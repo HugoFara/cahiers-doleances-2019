@@ -22,7 +22,13 @@ uv sync
 ```
 
 Cela installe la bonne version de Python, crée l'environnement virtuel et installe les
-dépendances. Sous VSCode l'environnement s'active automatiquement ; sinon :
+dépendances. La version est épinglée à **3.12** dans `.python-version` : `psycopg2-binary`
+ne publie pas encore de wheel pour Python 3.14, et sans cette épingle `uv` choisit
+l'interpréteur le plus récent de la machine puis échoue à compiler psycopg2 depuis les
+sources (`pg_config executable not found`). C'est aussi la version qu'utilise
+`topic-builder/`.
+
+Sous VSCode l'environnement s'active automatiquement ; sinon :
 
 ```bash
 source .venv/bin/activate
@@ -109,8 +115,15 @@ uv run pre-commit run --all-files # lancer manuellement sur tout le repo
 uv run pre-commit autoupdate # mettre à jour les versions des hooks
 ```
 
-## Tester avec Tox
+## Tests
+
+Deux suites, parce que `topic-builder/` est un projet uv autonome (lockfile et
+dépendances séparés) qui se teste depuis son propre dossier :
 
 ```bash
-tox -vv
+uv run --extra dev pytest          # extraction/ (depuis la racine)
+cd topic-builder && uv run pytest  # topic-builder/
 ```
+
+La CI rejoue les deux sur chaque PR (`.github/workflows/tests.yaml`), en plus des
+hooks pre-commit.
