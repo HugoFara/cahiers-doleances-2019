@@ -125,8 +125,10 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
-.env.test
+# `.env*` plutôt que `.env` seul : une copie de travail (.env.bak, .env.prod,
+# .env.local) contient les mêmes secrets et n'était pas couverte.
+.env*
+!.env.example
 .venv
 env/
 venv/
