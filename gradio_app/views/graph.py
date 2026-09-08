@@ -123,7 +123,10 @@ for _r in (n for n in propre if n not in parent_de):
         for _e in enfants[_x]:
             PROFONDEUR[_e] = PROFONDEUR[_x] + 1
             _f.append(_e)
-PROF_MAX = max(PROFONDEUR.values())
+# `default=0` : sans thème en base (installation neuve, avant tout chargement
+# d'analyse) PROFONDEUR est vide et `max()` lève ValueError à l'import, ce qui
+# faisait échouer le démarrage de l'app entière, pas seulement cette vue.
+PROF_MAX = max(PROFONDEUR.values(), default=0)
 
 
 def _prof(n):
