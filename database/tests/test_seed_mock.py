@@ -5,7 +5,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from database import seed_mock
-from database.models import Base, Contribution, Extraction, Instance, PageExtraction, Topic
+from database.models import (
+    Base,
+    Contribution,
+    Extraction,
+    Instance,
+    PageExtraction,
+    Topic,
+)
 
 
 @pytest.fixture

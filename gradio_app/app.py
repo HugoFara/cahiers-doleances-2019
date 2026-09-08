@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import gradio as gr
 import plotly.offline
 from data_helpers import PDF_DIR

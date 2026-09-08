@@ -128,7 +128,10 @@ Les hooks [pre-commit](https://pre-commit.com/) tournent à chaque commit, et la
 les rejoue sur chaque PR (`.github/workflows/pre-commit.yaml`). Trois familles :
 
 - **hygiène** : espaces/fins de ligne, newline final, syntaxe YAML, résidus de merge ;
-- **lint Python** : ruff avec autofix ;
+- **lint Python** : ruff avec autofix. Les règles sont déclarées dans
+  `pyproject.toml` (`[tool.ruff.lint]`) : sans elles le lint suit les défauts de
+  ruff, qui changent entre versions — le repo passait en 0.15 et sortait 12
+  erreurs en 0.16 sans qu'une ligne de code ait bougé ;
 - **sécurité** : [gitleaks](https://github.com/gitleaks/gitleaks) bloque tout secret
   (mot de passe, clé API, token) avant qu'il parte dans un repo public, et
   `check-added-large-files` refuse les fichiers > 500 Ko (dump, PDF égaré).
