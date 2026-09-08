@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pandas as pd
+from communes import regrouper
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
@@ -23,14 +24,23 @@ engine = create_engine(
     pool_pre_ping=True,
 )
 
-def list_communes() -> list[str]:
+def _graphies() -> dict[str, list[str]]:
+    """{graphie affichée: toutes les graphies de la même commune}.
+
+    Une même commune est écrite différemment selon les PDF (« AHUILLE » /
+    « AHUILLÉ ») : sans ce regroupement la liste en propose deux, dont chacune
+    ne montre qu'une partie des contributions.
+    """
     # la commune est parsée du PDF : elle est vide quand l'extraction a échoué.
     q = text("""
         SELECT DISTINCT city FROM contribution
         WHERE city IS NOT NULL AND btrim(city) <> ''
-        ORDER BY city
     """)
-    return pd.read_sql(q, engine)["city"].tolist()
+    return regrouper(pd.read_sql(q, engine)["city"].tolist())
+
+
+def list_communes() -> list[str]:
+    return list(_graphies())
 
 
 
@@ -53,10 +63,12 @@ def _rows(commune: str) -> pd.DataFrame:
             SELECT max(id) FROM extraction WHERE contribution_id = k.id
         )
         LEFT JOIN annotation a ON a.contribution_id = k.id
-        WHERE k.city = :city
+        WHERE k.city = ANY(:graphies)
         ORDER BY k.id
     """)
-    return pd.read_sql(q, engine, params={"city": commune})
+    # toutes les graphies de la commune, pas seulement celle affichée
+    graphies = _graphies().get(commune, [commune])
+    return pd.read_sql(q, engine, params={"graphies": graphies})
 
 def _topic_instances(contribution_id: int) -> pd.DataFrame:
     """Les instances de thèmes d'une contribution avec verbatim et résumé."""
