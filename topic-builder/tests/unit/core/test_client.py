@@ -52,7 +52,30 @@ def test_from_config_loads_real_yaml(tmp_path):
     config_path.write_text("backend: default\nmodel: stub-model\npool_size: 3\napi_key_env_var:\nendpoint_args: {}\n")
     client = LLMClient.from_config(config_path)
     assert client.model == "stub-model"
-    assert isinstance(client.semaphore, asyncio.Semaphore)
+    assert client.pool_size == 3
+
+
+def test_semaphore_is_created_lazily_inside_the_running_loop(monkeypatch):
+    """The semaphore is bound to a loop, so it cannot exist before one runs."""
+    client = _make_client_with_stub_backend(monkeypatch, pool_size=3)
+    assert client._semaphore is None
+
+    async def get_it():
+        return client._get_semaphore()
+
+    semaphore = asyncio.run(get_it())
+    assert isinstance(semaphore, asyncio.Semaphore)
+    assert semaphore._value == 3
+
+
+def test_semaphore_is_recreated_when_the_event_loop_changes(monkeypatch):
+    """Successive `asyncio.run` calls each get a fresh loop; a stale semaphore would deadlock."""
+    client = _make_client_with_stub_backend(monkeypatch)
+
+    async def get_it():
+        return client._get_semaphore()
+
+    assert asyncio.run(get_it()) is not asyncio.run(get_it())
 
 
 def _make_client_with_stub_backend(monkeypatch, pool_size: int = 2) -> LLMClient:

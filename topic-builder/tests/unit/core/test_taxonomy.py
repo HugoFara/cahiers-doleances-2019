@@ -13,6 +13,7 @@ from topicbuilder.core.taxonomy import (
     clear_dangling_parents,
     clear_self_parents,
     drop_blank_names,
+    drop_childless_parents,
     find_cycles,
     find_dangling_parents,
     find_duplicate_names,
@@ -296,23 +297,30 @@ def test_sanitize_taxonomy_empty_taxonomy():
 
 
 def test_sanitize_taxonomy_same_name_different_level_keeps_highest():
+    # The level-1 survivor needs a child, otherwise the drop_childless_parents pass
+    # sweeps it and the whole taxonomy comes back empty.
+    high = Topic(name="A", description="high", level=1)
     taxonomy = Taxonomy(
         topics=[
             Topic(name="A", description="low", level=0),
-            Topic(name="A", description="high", level=1),
+            high,
+            Topic(name="Child", description="d", level=0, parent=high.id),
         ]
     )
     result = sanitize_taxonomy(taxonomy)
-    assert len(result.topics) == 1
-    assert result.topics[0].level == 1
+    survivors = [t for t in result.topics if t.name == "A"]
+    assert len(survivors) == 1
+    assert survivors[0].level == 1
 
 
 def test_sanitize_taxonomy_same_name_different_level_preserves_first_occurrence_position():
+    # B is parented to the level-2 A so the survivor is not swept as a childless meta-topic.
+    a_high = Topic(name="A", description="d", level=2)
     taxonomy = Taxonomy(
         topics=[
             Topic(name="A", description="d", level=0),
-            Topic(name="B", description="d", level=0),
-            Topic(name="A", description="d", level=2),
+            Topic(name="B", description="d", level=0, parent=a_high.id),
+            a_high,
         ]
     )
     result = sanitize_taxonomy(taxonomy)
@@ -321,17 +329,21 @@ def test_sanitize_taxonomy_same_name_different_level_preserves_first_occurrence_
 
 
 def test_sanitize_taxonomy_cross_level_parent_references_consistent():
+    # Both meta-topics carry a child, so only the cross-level merge is under test here.
     parent_topic = Topic(name="Parent", description="d", level=2)
+    child_high = Topic(name="Child", description="d", level=1, parent=parent_topic.id)
     taxonomy = Taxonomy(
         topics=[
             Topic(name="Child", description="d", level=0, parent=parent_topic.id),
-            Topic(name="Child", description="d", level=1),
+            child_high,
             parent_topic,
+            Topic(name="Leaf", description="d", level=0, parent=child_high.id),
         ]
     )
     result = sanitize_taxonomy(taxonomy)
     child = next(t for t in result.topics if t.name == "Child")
     assert child.level == 1
+    assert child.parent == parent_topic.id
     assert any(t.name == "Parent" for t in result.topics)
 
 
@@ -545,3 +557,42 @@ def test_clear_self_parents_null_parent_unchanged():
     topic = Topic(name="A", description="d")
     result = clear_self_parents(Taxonomy(topics=[topic]))
     assert result.topics[0].parent is None
+
+
+def test_drop_childless_parents_removes_meta_topic_with_no_children():
+    taxonomy = Taxonomy(topics=[Topic(name="Orphan meta", description="d", level=1)])
+    assert drop_childless_parents(taxonomy).topics == []
+
+
+def test_drop_childless_parents_keeps_meta_topic_with_a_child():
+    parent = Topic(name="P", description="d", level=1)
+    child = Topic(name="C", description="d", level=0, parent=parent.id)
+    result = drop_childless_parents(Taxonomy(topics=[parent, child]))
+    assert {t.name for t in result.topics} == {"P", "C"}
+
+
+def test_drop_childless_parents_keeps_childless_leaves():
+    """Only level>0 topics are meta-topics; a level-0 topic with no child is a normal leaf."""
+    taxonomy = Taxonomy(topics=[Topic(name="Leaf", description="d", level=0)])
+    assert [t.name for t in drop_childless_parents(taxonomy).topics] == ["Leaf"]
+
+
+def test_drop_childless_parents_cascades_to_fixed_point():
+    """Dropping a meta-topic can leave its own parent childless, which must go too."""
+    grandparent = Topic(name="GP", description="d", level=2)
+    parent = Topic(name="P", description="d", level=1, parent=grandparent.id)
+    result = drop_childless_parents(Taxonomy(topics=[grandparent, parent]))
+    assert result.topics == []
+
+
+def test_drop_childless_parents_stops_cascade_at_a_populated_branch():
+    grandparent = Topic(name="GP", description="d", level=2)
+    kept = Topic(name="P kept", description="d", level=1, parent=grandparent.id)
+    dropped = Topic(name="P dropped", description="d", level=1, parent=grandparent.id)
+    leaf = Topic(name="Leaf", description="d", level=0, parent=kept.id)
+    result = drop_childless_parents(Taxonomy(topics=[grandparent, kept, dropped, leaf]))
+    assert {t.name for t in result.topics} == {"GP", "P kept", "Leaf"}
+
+
+def test_drop_childless_parents_empty_taxonomy():
+    assert drop_childless_parents(Taxonomy(topics=[])).topics == []

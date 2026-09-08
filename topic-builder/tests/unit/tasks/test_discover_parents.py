@@ -72,14 +72,35 @@ def test_generate_parent_candidates_calls_client_with_expected_tool_choice_and_p
 
 
 def test_generate_parent_candidates_snaps_children_to_nearest_chunk_name(taxonomy, clustering_config):
+    # Both names are misspelled on purpose; a candidate needs two children to be kept.
     photo = next(t for t in taxonomy.topics if t.name == "Photosynthesis")
+    water = next(t for t in taxonomy.topics if t.name == "Water Cycle")
     response = make_parent_candidates_response(
-        [ParentCandidate(parent="P", children=Taxonomy(topics=[Topic(name="Photosynthesi", description="d")]))]
+        [
+            ParentCandidate(
+                parent="P",
+                children=Taxonomy(
+                    topics=[
+                        Topic(name="Photosynthesi", description="d"),
+                        Topic(name="Water Cycl", description="d"),
+                    ]
+                ),
+            )
+        ]
     )
     mock_client = MagicMock(return_value=[response])
     result = generate_parent_candidates(taxonomy, mock_client, STUB_PROMPT, clustering_config)
     assert len(result) == 1
-    assert result[0].children.topics[0].id == photo.id
+    assert {t.id for t in result[0].children.topics} == {photo.id, water.id}
+
+
+def test_generate_parent_candidates_drops_candidate_with_a_single_child(taxonomy, clustering_config):
+    """A parent grouping one topic adds a level without grouping anything."""
+    response = make_parent_candidates_response(
+        [ParentCandidate(parent="P", children=Taxonomy(topics=[Topic(name="Photosynthesis", description="d")]))]
+    )
+    mock_client = MagicMock(return_value=[response])
+    assert generate_parent_candidates(taxonomy, mock_client, STUB_PROMPT, clustering_config) == []
 
 
 def test_generate_parent_candidates_dedupes_children_across_candidates(clustering_config):

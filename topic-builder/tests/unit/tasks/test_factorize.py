@@ -273,11 +273,15 @@ def test_insert_merges_target_parent_inherited_from_source_unless_already_set(ta
 
 
 def test_insert_merges_does_not_remove_same_name_at_different_level():
+    # The level-1 B carries a child, otherwise it is swept as a childless meta-topic
+    # and the test could not tell that apart from the merge removing it.
+    b_high = Topic(name="B", description="d", level=1)
     taxonomy = Taxonomy(
         topics=[
             Topic(name="A", description="d", level=0),
             Topic(name="B", description="d", level=0),
-            Topic(name="B", description="d", level=1),
+            b_high,
+            Topic(name="Leaf", description="d", level=0, parent=b_high.id),
         ]
     )
     result = insert_merges(taxonomy, [merge("A", ["B"], level=0)])

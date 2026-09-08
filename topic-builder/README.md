@@ -443,8 +443,8 @@ Then open `http://localhost:8080` in your browser.
 
 - Create a feature branch
 - Install the project `uv sync` and pre-commits `pre-commit install`
-- Create your changes by following the development rules at `.claude/rules/develop.md`
-- Test your changes by following the testing rules at `.claude/rules/test.md`
+- Run the unit tests from this directory with `uv run pytest` — they must stay green,
+  the CI runs them on every PR (`.github/workflows/tests.yaml`)
 - Open a MR and tag at least the owner of this repository.
 
 [Back to top](#topic-builder)
