@@ -1,0 +1,31 @@
+# Base PostgreSQL locale de développement.
+#
+#   docker compose up -d      # ou : podman compose up -d
+#   uv run alembic upgrade head
+#
+# Les identifiants sont lus dans `.env` (le même que celui des scripts Python),
+# il n'y a donc qu'un seul endroit à renseigner. Les données survivent à un
+# `down` ; `down -v` supprime le volume et repart d'une base vierge.
+services:
+  db:
+    image: postgres:16
+    container_name: cahier-doleances-db
+    environment:
+      POSTGRES_USER: ${DB_USER:?renseignez DB_USER dans .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?renseignez DB_PASSWORD dans .env}
+      POSTGRES_DB: ${DB_NAME:?renseignez DB_NAME dans .env}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `uv run alembic upgrade head` juste après un `up -d` échouerait sinon :
+      # Postgres accepte les connexions avant d'avoir fini son initialisation.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+
+volumes:
+  pgdata:

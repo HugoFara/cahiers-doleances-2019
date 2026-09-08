@@ -55,16 +55,19 @@ l'hôte, le port et le nom de la base concernés.
 
 Deux options pour disposer d'une base :
 
-1. **Base locale avec Docker** (recommandé pour le développement) :
+1. **Base locale avec Docker** (recommandé pour le développement) — `compose.yaml`
+   lit les mêmes variables que les scripts Python, il n'y a que `.env` à renseigner :
 
    ```bash
-   docker run --name cahier-doleances-db \
-     -e POSTGRES_USER=$DB_USER \
-     -e POSTGRES_PASSWORD=$DB_PASSWORD \
-     -e POSTGRES_DB=$DB_NAME \
-     -p $DB_PORT:5432 \
-     -d postgres:16
+   cp .env.example .env      # puis renseigner DB_USER, DB_PASSWORD, DB_NAME
+   docker compose up -d      # ou : podman compose up -d
+   uv run alembic upgrade head
    ```
+
+   Le service déclare un *healthcheck* : `up -d` ne rend la main qu'une fois Postgres
+   réellement prêt, sinon la migration qui suit échouerait (Postgres accepte les
+   connexions avant d'avoir fini de s'initialiser). Les données survivent à un
+   `docker compose down` ; `down -v` supprime le volume et repart d'une base vierge.
 
 2. **Base distante du projet** : demander les credentials d'accès à `Ronan Sy`.
 
@@ -141,7 +144,7 @@ Deux suites, parce que `topic-builder/` est un projet uv autonome (lockfile et
 dépendances séparés) qui se teste depuis son propre dossier :
 
 ```bash
-uv run --extra dev pytest          # extraction/ (depuis la racine)
+uv run --extra dev pytest          # extraction/ et database/ (depuis la racine)
 cd topic-builder && uv run pytest  # topic-builder/
 ```
 
