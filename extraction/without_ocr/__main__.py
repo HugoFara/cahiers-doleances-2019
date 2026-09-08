@@ -7,36 +7,15 @@ extraction time.
 import sys
 
 from sqlalchemy import func, select
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
-from database.db import get_engine
+from database.db import check_connection, get_engine
 from database.models import Base, Contribution, PageExtraction
 from extraction.without_ocr.discovery import list_pdfs, require_path_to_data
 from extraction.without_ocr.extract_text import extract_pdf_pages
 from extraction.without_ocr.settings import logger
 from extraction.without_ocr.timing import timed
-
-
-def _check_db_connection(engine) -> None:
-    """Abort early with a clear message if the database is not reachable."""
-    try:
-        with engine.connect() as conn:
-            conn.execute(select(1))
-    except OperationalError as exc:
-        url = engine.url
-        logger.error(
-            "Impossible de se connecter à la base de données (%s). "
-            "Vérifiez qu'elle est lancée et accessible (host=%s, port=%s, db=%s). "
-            "Erreur : %s",
-            url,
-            url.host,
-            url.port,
-            url.database,
-            exc.orig,
-        )
-        sys.exit(1)
 
 
 @timed
@@ -52,7 +31,7 @@ def main() -> int:
     logger.info(f"Found {len(pdf_paths)} PDF(s) in {data_dir.resolve()}")
 
     engine = get_engine()
-    _check_db_connection(engine)
+    check_connection(engine)
     Base.metadata.create_all(engine)
     failed: list[str] = []
     succeeded: list[int] = []
