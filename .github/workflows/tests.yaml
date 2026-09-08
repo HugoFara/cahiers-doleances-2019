@@ -1,0 +1,34 @@
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  # `topic-builder/` est un projet uv autonome (lockfile et dépendances séparés),
+  # il se teste depuis son propre dossier : d'où deux jobs plutôt qu'un seul pytest.
+  racine:
+    name: extraction / database / gradio_app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked --extra dev
+      - run: uv run pytest
+
+  topic-builder:
+    name: topic-builder
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: topic-builder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run pytest
