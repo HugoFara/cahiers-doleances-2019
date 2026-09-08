@@ -104,7 +104,8 @@ uv run python gradio_app/app.py
 ## Analyse des thèmes
 
 `topic-builder/` attend un CSV `id,content` en entrée. `database/export_dataset.py`
-le produit depuis la base, une ligne par contribution :
+le produit depuis la base, une ligne par contribution. Le seed de démo suffit pour
+l'essayer, sans avoir de PDF sous la main :
 
 ```bash
 uv run python -m database.export_dataset --output topic-builder/data/cahiers/dataset.csv

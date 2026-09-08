@@ -7,10 +7,15 @@ from database.models import (
     Extraction,
     Feeling,
     Instance,
+    PageExtraction,
     Topic,
 )
 
 OCR = "mock_data_ocr"
+
+# Les textes du seed sont des transcriptions propres : score maximal, aucune
+# page à repasser à l'OCR.
+QUALITE_MOCK = 1.0
 
 # Taxonomie mock : enfant -> parent. Les parents sont des racines (parent NULL).
 # Remplaçable par la hiérarchie officielle de l'équipe analyse, sans migration.
@@ -264,6 +269,24 @@ def main():
                 )
             )
 
+            # `page_extraction` est la table que lit `database/export_dataset.py` :
+            # sans ces lignes, le seed de démo ne permet pas d'exercer la chaîne
+            # d'analyse (l'export ne trouverait rien à écrire).
+            # Le seed n'est pas une simulation page à page : une contribution donne
+            # une ligne, portant tout son texte, comme le fait l'extraction réelle
+            # qui crée une contribution par page.
+            session.add(
+                PageExtraction(
+                    contribution_id=contribution.id,
+                    pdf_name=entry["pdf_file"],
+                    page_number=entry["start_page"],
+                    text=entry["text"],
+                    quality_score=QUALITE_MOCK,
+                    needs_ocr=entry["is_handwritten"],
+                    city=entry["city"],
+                )
+            )
+
             for t in entry["topics"]:
                 session.add(
                     Instance(
@@ -277,7 +300,7 @@ def main():
 
         session.commit()
 
-        for model in (Contribution, Extraction, Topic, Instance, Feeling, Annotation):
+        for model in (Contribution, Extraction, PageExtraction, Topic, Instance, Feeling, Annotation):
             print(f"{model.__tablename__}: {session.query(model).count()} lignes")
 
 
