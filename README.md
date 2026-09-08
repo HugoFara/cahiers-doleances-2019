@@ -136,10 +136,14 @@ les rejoue sur chaque PR (`.github/workflows/pre-commit.yaml`). Trois familles :
   (mot de passe, clé API, token) avant qu'il parte dans un repo public, et
   `check-added-large-files` refuse les fichiers > 500 Ko (dump, PDF égaré).
 
+`pre-commit` ne fait pas partie des dépendances du projet : on le lance avec
+`uvx`, qui l'installe à la volée dans un environnement isolé (`uv run pre-commit`
+échoue avec `Failed to spawn: pre-commit`).
+
 ```bash
-uv run pre-commit install # une fois : active les hooks à chaque commit
-uv run pre-commit run --all-files # lancer manuellement sur tout le repo
-uv run pre-commit autoupdate # mettre à jour les versions des hooks
+uvx pre-commit install # une fois : active les hooks à chaque commit
+uvx pre-commit run --all-files # lancer manuellement sur tout le repo
+uvx pre-commit autoupdate # mettre à jour les versions des hooks
 ```
 
 ## Tests
