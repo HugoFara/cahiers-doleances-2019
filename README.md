@@ -98,6 +98,26 @@ vous pouvez lancer avec :
 uv run python gradio_app/app.py
 ```
 
+## Analyse des thèmes
+
+`topic-builder/` attend un CSV `id,content` en entrée. `database/export_dataset.py`
+le produit depuis la base, une ligne par contribution :
+
+```bash
+uv run python -m database.export_dataset --output topic-builder/data/cahiers/dataset.csv
+```
+
+L'`id` du document est l'`id` de la contribution. C'est ce qui permet à
+`database/load_analysis.py` de rattacher les thèmes détectés à la bonne contribution
+au retour de l'analyse, au lieu de les laisser orphelins. La boucle complète :
+
+```
+extraction  ->  page_extraction  ->  export_dataset  ->  topic-builder
+                                                              |
+                    topic / instance  <-  load_analysis  <-  taxonomy.json
+                                                              instances.json
+```
+
 ## Qualité et sécurité du code (pre-commit)
 
 Les hooks [pre-commit](https://pre-commit.com/) tournent à chaque commit, et la CI

@@ -115,10 +115,27 @@ ne produit que du bruit dans les diffs et des conflits de merge.
 La connexion est construite par `database/db.py` depuis `.env` (ou `DATABASE_URL`
 pour un SQLite local) — jamais de credentials dans un fichier committé.
 
+## Exporter le corpus pour l'analyse
+
+`database/export_dataset.py` lit `page_extraction` et écrit le CSV `id,content`
+attendu par `topic-builder` — une ligne par contribution, pages concaténées dans
+l'ordre. Les pages `needs_ocr` (manuscrites, texte illisible) sont écartées par
+défaut ; `--keep-ocr-pages` les réintègre pour inspecter le corpus complet.
+
+**L'`id` du document est `contribution.id`.** La livraison de l'analyse renvoie ses
+labels indexés par cet id, ce qui rend le rapprochement immédiat au retour — voir
+plus bas.
+
 ## Charger la livraison de l'équipe analyse (temporaire TODO: mettre dans une future pipeline)
 
 `database/load_analysis.py` lit `analyse/analysis_v4/` (`taxonomy.json` +
 `instances.json`) et remplit `topic` et `instance`. Il est important de récupérer ce script dans la future data pipeline.
+
+`instance.contribution_id` est résolu quand l'id de document de la livraison
+correspond à une contribution existante — c'est le cas des livraisons produites
+depuis `export_dataset.py`. Sinon (livraisons antérieures, numérotées `doc 73` par
+l'équipe analyse) il reste NULL et l'instance n'est rattachée que par
+`external_doc_id`, comme avant. Le script affiche le nombre d'instances rattachées.
 
 
 ## Commandes
@@ -129,6 +146,7 @@ uv run alembic upgrade head # appliquer à la base
 uv run alembic current # version actuelle de la base
 uv run alembic check # écart entre models.py et la base
 uv run python -m database.seed_mock # seed de démo : 4 contributions dactylographiées réelles
+uv run python -m database.export_dataset --output data/dataset.csv # corpus -> CSV topic-builder
 uv run python -m database.load_analysis # charger la livraison analyse
 ```
 

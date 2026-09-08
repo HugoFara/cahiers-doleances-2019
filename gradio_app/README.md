@@ -67,7 +67,10 @@ uv run python gradio_app/app.py   # http://localhost:7860
 
 - La taxonomie est chargée au démarrage : recharger la base demande un
   redémarrage de l'app.
-- `instance.contribution_id` est NULL : le rapprochement entre les documents de
-  la livraison analyse et les contributions n'est pas résolu. La vue graphe
-  affiche donc l'identifiant source (`doc 73`), et la vue commune n'affiche pas
-  encore les thèmes détectés par l'équipe analyse.
+- `instance.contribution_id` est NULL **pour la livraison analyse actuelle**, dont
+  les documents sont numérotés par l'équipe analyse (`doc 73`) sans correspondance
+  en base : la vue graphe affiche cet identifiant source, et la vue commune
+  n'affiche pas les thèmes détectés. Les livraisons produites depuis
+  `database/export_dataset.py` portent l'`id` de la contribution et sont rattachées
+  automatiquement par `load_analysis.py` ; les deux vues se rempliront à ce
+  moment-là, sans changement de code.

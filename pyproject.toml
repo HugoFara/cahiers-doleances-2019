@@ -42,5 +42,5 @@ include = ["database*", "extraction*", "gradio_app*"]
 [tool.pytest.ini_options]
 # `topic-builder/` est un projet uv autonome (dépendances et lockfile séparés) :
 # il se teste depuis son propre dossier, pas depuis la racine.
-testpaths = ["extraction"]
+testpaths = ["extraction", "database"]
 pythonpath = ["."]
