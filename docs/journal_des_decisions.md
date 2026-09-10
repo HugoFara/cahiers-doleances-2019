@@ -741,9 +741,84 @@ première personne », ce qui n'est pas la même chose qu'un auteur individuel.
 
 ---
 
+## 2026-09-10 — Un dossier par passe, et l'app n'en fonde aucune
+
+**Décision.** Trois corrections de structure, sans changer une ligne de
+logique. `gradio_app/communes.py` va dans `insee/` : `couverture/` et
+`insee/rattachement.py` l'importaient depuis l'app, qui fondait ainsi deux
+passes au lieu de les consommer — c'était le seul cycle du dépôt. `gradio_app`
+s'importe en paquet partout et se lance par `python -m gradio_app.app` : lancée
+par `python gradio_app/app.py`, elle importait ses modules à plat et pytest en
+paquet, deux régimes pour le même code, portés par une rustine
+`try/except ModuleNotFoundError`. Et l'échange avec l'analyse
+(`export_dataset.py`, `load_analysis.py`, `identifiants.py`) sort de
+`database/` pour former `analyse/` : six genres de run, cinq paquets, et c'est
+celui-là qui manquait.
+
+**Motif.** La convention la plus lisible du dépôt est *un dossier par lecture du
+corpus, du nom de son genre de run*, chaque dossier ne dépendant que de
+`database/`. Les trois écarts la contredisaient chacun à sa façon : une
+dépendance dans le mauvais sens, un module à deux noms, une passe sans dossier.
+
+**Alternatives écartées.** Laisser `communes.py` dans l'app et y faire pointer
+`couverture/` : c'est l'état qu'on corrige. Un `conftest.py` qui ajoute
+`gradio_app/` au `sys.path` pour que les tests suivent le régime plat : ça
+aurait officialisé la rustine au lieu de la retirer. Nommer le paquet
+`livraison/` plutôt qu'`analyse/` : le genre de run s'appelle `analyse`, le
+dossier porte le même nom, c'est la règle.
+
+**Réversibilité.** Totale : trois `git mv` et des imports. `load_analysis` perd
+son dossier par défaut, qui pointait sur `analyse/analysis_v4`, absent de toute
+machine — une livraison se nomme.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
+## 2026-09-10 — La grille gouvernementale existe, sans détections
+
+**Décision.** La deuxième grille que le plan demande depuis le début est écrite
+et chargée : `analyse/grilles/cadrage_gouvernemental_2019.json`, les quatre
+thèmes de la Lettre aux Français du 13 janvier 2019 et, sous chacun, ses
+questions **reproduites mot pour mot** en description. Seul le nom court de
+chaque thème enfant est une étiquette éditoriale, marquée non validée. La
+source est nommée, datée, et citée dans les `notes` du run. Elle se charge par
+`analyse/grille.py` en run de genre `analyse`, **non actif**.
+
+**Périmètre.** La définition de la grille, pas ses détections. Elle apparaît
+dans le sélecteur de l'app — qui a désormais deux entrées — et la vue l'affiche
+vide en disant pourquoi.
+
+**Motif.** Le plan la veut *étiquetée comme telle*, « cadrage gouvernemental
+2019 », précisément pour que ce cadrage soit visible et discutable au lieu
+d'être la référence implicite de toute lecture. Sa définition ne dépend d'aucun
+modèle ; c'était la seule partie du chantier des grilles qui n'attendait pas la
+décision d'hébergement, et elle donne au sélecteur de l'app la raison d'exister
+qu'il n'avait pas.
+
+**Alternatives écartées.** Reprendre le questionnaire de granddebat.fr plutôt
+que la lettre : le site n'existe plus, et ses formulations reprenaient celles de
+la lettre, qui est la source primaire et reste en ligne. Reformuler les questions
+en thèmes : c'est ce que la grille émergente fait déjà à sa manière ; ici la
+valeur est de reproduire le cadrage tel quel. Nommer le deuxième thème
+« organisation de l'État et des collectivités publiques », comme le corps de la
+lettre : la phrase qui nomme les quatre thèmes dit « services publics », et
+c'est le nom que le Grand Débat a retenu.
+
+**Réversibilité.** Totale : un run non actif, supprimable avec ses 24 thèmes.
+
+**Ce que cela ne règle pas.** Les détections. Rattacher chaque doléance à l'un
+de ces thèmes demande un modèle — LLM ou embeddings — et donc la P3. Un
+rattachement lexical sur l'index plein texte est possible avant, à condition de
+l'étiqueter comme tel pour que `taxonomie/` mesure de combien il est mauvais.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
-- Le choix des grilles de thèmes, et le statut donné à chacune.
+- Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs détections.
 - Les règles d'anonymisation : ce qui est occulté, ce qui ne l'est pas
   (personnalités publiques dans leur rôle), le seuil de rappel accepté.
 - L'arbitrage précision géographique / protection pour les très petites communes

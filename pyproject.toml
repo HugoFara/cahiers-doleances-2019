@@ -56,6 +56,7 @@ include = ["analyse*", "anonymisation*", "couverture*", "database*", "doublons*"
 # publics, versionnés pour que le chargement soit reproductible hors ligne.
 [tool.setuptools.package-data]
 insee = ["referentiel/*.csv", "referentiel/*.md"]
+analyse = ["grilles/*.json"]
 
 # Sans section [tool.ruff], le lint suit les règles par défaut de ruff, qui
 # changent d'une version à l'autre : le repo passait en 0.15 et sortait 12

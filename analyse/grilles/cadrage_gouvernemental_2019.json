@@ -1,0 +1,203 @@
+{
+  "label": "cadrage gouvernemental 2019",
+  "source": {
+    "titre": "Lettre aux Français, Emmanuel Macron, 13 janvier 2019",
+    "url": "https://www.elysee.fr/emmanuel-macron/2019/01/13/lettre-aux-francais",
+    "consultee_le": "2026-09-10",
+    "note": "Les quatre thèmes sont nommés dans la lettre, dans cet ordre. Chaque thème enfant reprend en description le texte exact des questions de la lettre ; seul le nom court est une étiquette éditoriale. Le cadrage est celui du gouvernement : il est reproduit tel quel pour être visible et discutable, pas parce qu'il serait neutre."
+  },
+  "topics": [
+    {
+      "id": "gd2019-fiscalite",
+      "name": "La fiscalité et les dépenses publiques",
+      "description": "Premier des « quatre grands thèmes qui couvrent beaucoup des grands enjeux de la Nation » retenus par la Lettre aux Français du 13 janvier 2019.",
+      "level": 1,
+      "validated": false,
+      "parent": null
+    },
+    {
+      "id": "gd2019-fiscalite-01",
+      "name": "impôts à baisser en priorité",
+      "description": "Comment pourrait-on rendre notre fiscalité plus juste et plus efficace ? Quels impôts faut-il à vos yeux baisser en priorité ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-fiscalite"
+    },
+    {
+      "id": "gd2019-fiscalite-02",
+      "name": "économies prioritaires",
+      "description": "Quelles sont les économies qui vous semblent prioritaires à faire ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-fiscalite"
+    },
+    {
+      "id": "gd2019-fiscalite-03",
+      "name": "services publics à supprimer ou à créer",
+      "description": "Faut-il supprimer certains services publics qui seraient dépassés ou trop chers par rapport à leur utilité ? À l'inverse, voyez-vous des besoins nouveaux de services publics et comment les financer ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-fiscalite"
+    },
+    {
+      "id": "gd2019-fiscalite-04",
+      "name": "pacte social",
+      "description": "Comment mieux organiser notre pacte social ? Quels objectifs définir en priorité ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-fiscalite"
+    },
+    {
+      "id": "gd2019-etat",
+      "name": "L'organisation de l'État et des services publics",
+      "description": "Deuxième des quatre thèmes de la Lettre aux Français du 13 janvier 2019.",
+      "level": 1,
+      "validated": false,
+      "parent": null
+    },
+    {
+      "id": "gd2019-etat-01",
+      "name": "échelons administratifs et décentralisation",
+      "description": "Y a-t-il trop d'échelons administratifs ou de niveaux de collectivités locales ? Faut-il renforcer la décentralisation et donner plus de pouvoir de décision et d'action au plus près des citoyens ? À quels niveaux et pour quels services ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-etat"
+    },
+    {
+      "id": "gd2019-etat-02",
+      "name": "organisation de l'État et fonctionnement de l'administration",
+      "description": "Comment voudriez-vous que l'État soit organisé et comment peut-il améliorer son action ? Faut-il revoir le fonctionnement de l'administration et comment ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-etat"
+    },
+    {
+      "id": "gd2019-etat-03",
+      "name": "territoires en difficulté",
+      "description": "Comment l'État et les collectivités locales peuvent-ils s'améliorer pour mieux répondre aux défis de nos territoires les plus en difficulté et que proposez-vous ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-etat"
+    },
+    {
+      "id": "gd2019-ecologie",
+      "name": "La transition écologique",
+      "description": "Troisième des quatre thèmes de la Lettre aux Français du 13 janvier 2019.",
+      "level": 1,
+      "validated": false,
+      "parent": null
+    },
+    {
+      "id": "gd2019-ecologie-01",
+      "name": "financement de la transition écologique",
+      "description": "Comment finance-t-on la transition écologique : par l'impôt, par les taxes et qui doit être concerné en priorité ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-ecologie"
+    },
+    {
+      "id": "gd2019-ecologie-02",
+      "name": "accès aux solutions concrètes",
+      "description": "Comment rend-on les solutions concrètes accessibles à tous, par exemple pour remplacer sa vieille chaudière ou sa vieille voiture ? Quelles sont les solutions les plus simples et les plus supportables sur un plan financier ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-ecologie"
+    },
+    {
+      "id": "gd2019-ecologie-03",
+      "name": "se déplacer, se loger, se chauffer, se nourrir au niveau local",
+      "description": "Quelles sont les solutions pour se déplacer, se loger, se chauffer, se nourrir qui doivent être conçues plutôt au niveau local que national ? Quelles propositions concrètes feriez-vous pour accélérer notre transition environnementale ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-ecologie"
+    },
+    {
+      "id": "gd2019-ecologie-04",
+      "name": "garantie scientifique et échelon européen",
+      "description": "Comment devons-nous garantir scientifiquement les choix que nous devons faire à cet égard ? Comment faire partager ces choix à l'échelon européen et international pour que nos agriculteurs et nos industriels ne soient pas pénalisés par rapport à leurs concurrents étrangers ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-ecologie"
+    },
+    {
+      "id": "gd2019-democratie",
+      "name": "La démocratie et la citoyenneté",
+      "description": "Quatrième des quatre thèmes de la Lettre aux Français du 13 janvier 2019.",
+      "level": 1,
+      "validated": false,
+      "parent": null
+    },
+    {
+      "id": "gd2019-democratie-01",
+      "name": "vote blanc et vote obligatoire",
+      "description": "Faut-il reconnaître le vote blanc ? Faut-il rendre le vote obligatoire ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-democratie"
+    },
+    {
+      "id": "gd2019-democratie-02",
+      "name": "proportionnelle aux législatives",
+      "description": "Quelle est la bonne dose de proportionnelle aux élections législatives pour une représentation plus juste de tous les projets politiques ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-democratie"
+    },
+    {
+      "id": "gd2019-democratie-03",
+      "name": "nombre de parlementaires et d'élus",
+      "description": "Faut-il, et dans quelles proportions, limiter le nombre de parlementaires ou autres catégories d'élus ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-democratie"
+    },
+    {
+      "id": "gd2019-democratie-04",
+      "name": "rôle du Sénat et du CESE",
+      "description": "Quel rôle nos assemblées, dont le Sénat et le Conseil Économique, Social et Environnemental, doivent-elles jouer pour représenter nos territoires et la société civile ? Faut-il les transformer et comment ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-democratie"
+    },
+    {
+      "id": "gd2019-democratie-05",
+      "name": "participation citoyenne",
+      "description": "Quelles évolutions souhaitez-vous pour rendre la participation citoyenne plus active, la démocratie plus participative ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-democratie"
+    },
+    {
+      "id": "gd2019-democratie-06",
+      "name": "citoyens tirés au sort",
+      "description": "Faut-il associer davantage et directement des citoyens non élus, par exemple tirés au sort, à la décision publique ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-democratie"
+    },
+    {
+      "id": "gd2019-democratie-07",
+      "name": "référendums",
+      "description": "Faut-il accroître le recours aux référendums et qui doit en avoir l'initiative ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-democratie"
+    },
+    {
+      "id": "gd2019-democratie-08",
+      "name": "intégration et immigration",
+      "description": "Que proposez-vous pour améliorer l'intégration dans notre Nation ? En matière d'immigration, une fois nos obligations d'asile remplies, souhaitez-vous que nous puissions nous fixer des objectifs annuels définis par le Parlement ? Que proposez-vous afin de répondre à ce défi qui va durer ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-democratie"
+    },
+    {
+      "id": "gd2019-democratie-09",
+      "name": "laïcité et valeurs de la République",
+      "description": "Comment renforcer les principes de la laïcité française, dans le rapport entre l'État et les religions de notre pays ? Comment garantir le respect par tous de la compréhension réciproque et des valeurs intangibles de la République ?",
+      "level": 0,
+      "validated": false,
+      "parent": "gd2019-democratie"
+    }
+  ]
+}

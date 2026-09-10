@@ -14,6 +14,40 @@ Ce paquet gère l'aller et le retour :
 | `export_dataset.py` | le corpus vers le CSV `id,content` que lit `topic-builder` |
 | `load_analysis.py` | la livraison (`taxonomy.json`, `instances.json`) vers `topic` et `instance` |
 | `identifiants.py` | le format d'identifiant de document, partagé par les deux |
+| `grille.py` | une grille écrite à la main, chargée sans détections |
+| `grilles/` | les grilles de cadrage versionnées, avec leur source |
+
+## Deux grilles, dès le départ
+
+Le plan demande qu'au moins deux grilles coexistent pour qu'une comparaison
+soit possible : une grille **émergente** (découverte par `topic-builder`) et une
+grille reprenant les **thèmes du Grand Débat 2019**, étiquetée « cadrage
+gouvernemental 2019 » — précisément pour que ce cadrage soit visible et
+discutable au lieu d'être la référence implicite.
+
+La seconde est dans `grilles/cadrage_gouvernemental_2019.json` : les quatre
+thèmes de la Lettre aux Français du 13 janvier 2019, et sous chacun ses
+questions, **reproduites mot pour mot** en description — seul le nom court de
+chaque thème enfant est une étiquette éditoriale, marquée non validée tant
+qu'une relecture ne l'a pas confirmée. La source est nommée, datée, et citée
+dans les `notes` du run.
+
+```bash
+uv run python -m analyse.grille analyse/grilles/cadrage_gouvernemental_2019.json
+```
+
+Elle se charge comme un run de genre `analyse`, **non actif** : sans
+détections, elle n'a rien à servir, mais elle apparaît dans le sélecteur de
+l'app et `taxonomie/` peut la comparer aux autres. Recharger le même fichier met
+la grille à jour au lieu d'en créer une seconde ; `--activer` en fait la grille
+servie.
+
+**Ce qu'elle n'a pas : des détections.** Rattacher chaque doléance à l'un de
+ses thèmes demande un modèle — LLM ou embeddings — et donc la décision
+d'hébergement du plan. Un premier rattachement lexical, sur l'index plein texte,
+serait possible avant : il serait bon sur « fiscalité » et mauvais sur
+« démocratie », et devrait être étiqueté comme tel (`detector`) pour que
+`taxonomie/` dise de combien.
 
 ## Exporter le corpus pour l'analyse
 
@@ -71,4 +105,5 @@ uv run python -m analyse.export_dataset --output data/dataset.csv               
 uv run python -m analyse.export_dataset --niveau doleance --output data/dataset.csv  # au niveau doléance
 uv run python -m analyse.load_analysis <dossier>                                     # charger une livraison (met à jour sa grille)
 uv run python -m analyse.load_analysis <dossier> --nouveau-run --label "v5"          # charger en grille de plus
+uv run python -m analyse.grille analyse/grilles/cadrage_gouvernemental_2019.json     # charger une grille écrite à la main
 ```

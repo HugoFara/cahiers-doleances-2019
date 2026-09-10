@@ -129,7 +129,11 @@ trois choses, et la troisième est bloquante :
   cadrage soit visible et discutable au lieu d'être la référence implicite.
   Aucune des deux n'est neutre : la grille émergente déplace simplement la
   décision vers le nombre de clusters, le modèle d'embedding, la formulation du
-  prompt et le niveau de granularité.
+  prompt et le niveau de granularité. **La grille gouvernementale existe depuis
+  le 2026-09-10** (`analyse/grilles/cadrage_gouvernemental_2019.json`) : les
+  quatre thèmes et les vingt questions de la Lettre aux Français, reproduits mot
+  pour mot, chargés en run non actif. Il lui manque ses détections, qui
+  demandent un modèle — donc la P3.
 - **Une catégorie « hors grille » visible, avec son volume.** C'est la seule
   façon de voir ce que la grille ne capte pas. À afficher à côté de tout
   comptage.
@@ -298,6 +302,7 @@ en UE, formats IIIF / ALTO / EAD).
 | Standards IIIF / ALTO / EAD, export en masse | à faire |
 | Avertissements et couverture affichés dans l'app | fait — les deux vues, `gradio_app/avertissements.py` |
 | Changer de grille depuis l'app | à faire — demande de paramétrer `views/graph.py` par run |
+| Grille « cadrage gouvernemental 2019 » | définie — `analyse/grilles/`, 4 thèmes, 20 questions ; **sans détections** tant qu'il n'y a pas de modèle |
 
 **Ce que le découpage donne aujourd'hui** : sur les 2 855 pages de
 `topic-builder/data/cahiers/dataset.csv`, **1 002 doléances** dans 469 cahiers,
