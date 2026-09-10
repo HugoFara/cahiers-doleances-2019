@@ -14,6 +14,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
 - `insee/` : le rattachement des contributions au code INSEE de leur commune, et le référentiel géographique | [documentation](insee/README.md)
 - `doublons/` : les textes qui reviennent — tracts, lettres-types, campagnes | [documentation](doublons/README.md)
 - `anonymisation/` : le repérage des passages personnels | [documentation](anonymisation/README.md)
+- `taxonomie/` : ce que vaut une grille de thèmes | [documentation](taxonomie/README.md)
 - `reference/` : le jeu de référence annoté à la main, et la mesure de ce que valent les couches | [documentation](reference/README.md)
 - `gradio_app/` : l'interface pour parcourir les contributions et les annoter | [documentation](gradio_app/README.md)
 - `topic-builder/` : l'utilitaire de découverte, structuration et annotation des thèmes abordés dans les contributions | [documentation](topic-builder/README.md)
@@ -236,6 +237,19 @@ qui manque.
 
 La table ne contient que des offsets — le texte d'origine reste intact et fait
 foi, le caviardage est produit à la lecture.
+
+## Mesurer une grille de thèmes
+
+```bash
+uv run python -m taxonomie
+```
+
+Sur la grille livrée en août : **76 % des thèmes attestés ne le sont que par un
+seul document**, et 35 % de la grille n'a aucune détection. Un thème attesté une
+fois est la paraphrase d'un document, pas un thème. Ces mesures ne disent pas si
+une grille est bonne — elles disent ce qu'elle fait, ce qui permet de comparer
+deux grilles au lieu de relancer des passes de factorisation à l'aveugle. Voir
+[taxonomie/README.md](taxonomie/README.md).
 
 ## Qualité et sécurité du code (pre-commit)
 

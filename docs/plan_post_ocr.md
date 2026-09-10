@@ -127,15 +127,20 @@ trois choses, et la troisième est bloquante :
 - **Une catégorie « hors grille » visible, avec son volume.** C'est la seule
   façon de voir ce que la grille ne capte pas. À afficher à côté de tout
   comptage.
-- **Mesurer la taxonomie au lieu de la régénérer.** Les 32 passes successives de
-  `factorize`/`structure` de `RECIPE.md` traitent un symptôme à la main.
-  Instruments : distributions thèmes/document et documents/thème, stabilité entre
-  deux runs sur la même entrée, part hors grille, et un **jeu de référence** de
-  200-300 doléances annotées à la main. Sans lui on ne peut pas dire si la v5 vaut
-  mieux que la v4 — ni ce que vaut le découpage en doléances. L'outillage existe
-  depuis le 2026-09-10 (`reference/`) : tirage stratifié reproductible, étalon
-  versionnable sans le texte, précision/rappel et WindowDiff. **Il reste à
-  annoter** — c'est du travail humain, personne ne peut le produire à la place.
+- **Mesurer la taxonomie au lieu de la régénérer.** Fait le 2026-09-10
+  (`taxonomie/`). Sur la grille livrée : **76 % des thèmes attestés le sont par un
+  seul document**, 35 % de la grille n'a aucune détection, et les parents produits
+  par `structure` ne portent aucune détection propre (99,6 % inutilisés). La
+  grille ne généralise pas, elle réécrit le corpus — ce que les 32 passes de
+  factorisation ne pouvaient pas montrer, faute d'instrument. La **couverture**
+  (« hors grille ») fonctionne dès qu'une livraison est produite par
+  `export_dataset.py` ; elle n'est pas mesurable sur la livraison d'août, dont les
+  identifiants désignent un autre corpus.
+- **Le jeu de référence** de 200-300 doléances annotées à la main reste le
+  chaînon manquant : les métriques comparent deux grilles entre elles, seul un
+  étalon dit laquelle est juste. L'outillage existe (`reference/`) — tirage
+  stratifié reproductible, étalon versionnable sans le texte, précision/rappel et
+  WindowDiff. **Il reste à annoter**, et c'est du travail humain.
 - **Coût et passage à l'échelle.** Embeddings d'abord (une passe, peu chère),
   clustering, appel LLM sur les représentants ; ou distillation d'un petit
   classifieur. Les mêmes vecteurs servent à la recherche sémantique et aux
@@ -249,10 +254,10 @@ par doléance en moyenne) sans qu'on puisse encore chiffrer de combien.
 Côté code, le millésime du Code officiel géographique a été tranché le
 2026-09-10 — pivot 2019, table de passage vers le millésime courant, extraits
 versionnés — et reste révisable d'une commande si l'alignement national impose
-autre chose. Restent entièrement faisables sans décision préalable : les
-métriques de taxonomie et la catégorie « hors grille », la **recherche plein
-texte** (`tsvector`, configuration `french`) et vectorielle. Tout le reste
-attend soit du travail humain (annotation de l'étalon), soit une décision d'alignement (modèle de NER hébergé
+autre chose. Il ne reste qu'un chantier entièrement faisable sans décision
+préalable : la **recherche plein texte** (`tsvector`, configuration `french`) et
+vectorielle. Tout le reste attend soit du travail humain (annotation de
+l'étalon), soit une décision d'alignement (modèle de NER hébergé
 en UE, formats IIIF / ALTO / EAD).
 
 ---
@@ -275,7 +280,7 @@ en UE, formats IIIF / ALTO / EAD).
 | Anonymisation : passe de formes | fait — `anonymisation/` ; 88 % des doléances touchées |
 | Anonymisation : NER | fait le 2026-09-11 — `anonymisation/ner.py`, CamemBERT-NER en local sur CPU ; noms 1 309 -> 3 582 sur le découpage servi |
 | Anonymisation : rappel mesuré, occultation image | à faire — **le point dur** ; le rappel attend l'étalon annoté, l'image attend la géométrie |
-| Métriques de taxonomie, catégorie « hors grille » | à faire |
+| Métriques de taxonomie, catégorie « hors grille » | fait — `taxonomie/` ; 76 % de singletons |
 | Recherche plein texte et vectorielle | à faire — **le seul item encore entièrement faisable côté code** |
 | Couverture et représentativité | fait — pondérée par population, `insee/` et `couverture/` |
 | Standards IIIF / ALTO / EAD, export en masse | à faire |

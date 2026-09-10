@@ -644,6 +644,42 @@ comparable. Désactiver le nouveau ramène à l'ancien.
 
 ---
 
+## 2026-09-10 — Une grille de thèmes se mesure avant de se refaire
+
+**Décision.** Trois familles de mesures sur toute grille (`taxonomie/`) :
+réutilisation (documents par thème, thèmes par document, singletons), hiérarchie
+(racines, isolés, cycles, profondeur, largeur, noms dupliqués), et **couverture**
+— la part du texte réellement citée par les verbatims, dont le complément est le
+« hors grille ».
+
+**Motif.** Les 32 passes successives de `factorize`/`structure` du RECIPE de
+topic-builder corrigeaient un symptôme sans instrument pour dire si la passe
+suivante améliorait quoi que ce soit. Comparer deux grilles était impossible.
+
+**Mesuré sur la livraison d'août.** 6 788 thèmes, 1 380 documents. **3 392
+thèmes — 76 % de ceux qui sont attestés — ne le sont que par un seul document.**
+Un thème attesté une fois est la paraphrase de ce document : la grille ne
+généralise pas, elle réécrit le corpus. Et **2 343 thèmes (35 %) n'ont aucune
+détection** ; le détail par niveau dit où : 2 % des feuilles sont inutilisées
+contre 99,6 % des parents. Le labelling n'attache que des feuilles, les parents
+n'existent que pour la navigation.
+
+**Ce qui n'est pas mesurable, et pourquoi c'est une information.** La couverture
+demande de retrouver les verbatims dans le texte des documents. La livraison
+d'août ne s'y prête pas : ses identifiants désignent un autre corpus, ce que le
+garde-fou de `load_analysis` avait déjà établi. La mesure fonctionne dès qu'une
+livraison passe par `export_dataset.py` — vérifié sur une livraison fabriquée
+depuis le seed. C'est un argument de plus pour ne plus accepter de livraison dont
+les identifiants ne sont pas les nôtres.
+
+**Limite.** Ces mesures comparent des grilles entre elles ; aucune ne dit
+laquelle est juste. Cela reste le rôle du jeu de référence annoté, qui n'existe
+pas encore.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le choix des grilles de thèmes, et le statut donné à chacune.
