@@ -27,7 +27,7 @@ dépendances. La version est épinglée à **3.14** dans `.python-version` (le p
 l'installation. L'épingle reste utile : sans elle, `uv` prend l'interpréteur qu'il préfère
 sur la machine, et sur une machine où le seul 3.14 géré par uv est la variante
 *free-threaded* c'est elle qu'il choisit — variante pour laquelle les wheels manquent encore.
-`topic-builder/` reste sur 3.12, avec son propre lockfile.
+`topic-builder/` suit la même épingle, avec son propre lockfile.
 
 Sous VSCode l'environnement s'active automatiquement ; sinon :
 
