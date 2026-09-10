@@ -28,7 +28,7 @@ def lire_pages(session: Session, garder_pages_ocr: bool = False) -> list[PageExt
     """Lit les pages extraites, triées par cahier puis par page.
 
     Les pages `needs_ocr` sont écartées par défaut, comme dans
-    `database/export_dataset.py` : leur texte est du bruit d'extraction, il
+    `analyse/export_dataset.py` : leur texte est du bruit d'extraction, il
     ferait déclencher les règles de découpage au hasard.
 
     Args:

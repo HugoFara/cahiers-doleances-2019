@@ -10,6 +10,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
 - `extraction/` : les pipelines d'extraction de texte depuis les PDFs
   - `extraction/without_ocr/` : extraction du texte natif, sans OCR | [documentation](extraction/without_ocr/README.md)
 - `segmentation/` : le découpage des cahiers en doléances individuelles | [documentation](segmentation/README.md)
+- `analyse/` : l'échange avec l'analyse — le corpus qui sort, la grille de thèmes qui revient | [documentation](analyse/README.md)
 - `couverture/` : ce que le corpus analysé laisse dehors | [documentation](couverture/README.md)
 - `insee/` : le rattachement des contributions au code INSEE de leur commune, et le référentiel géographique | [documentation](insee/README.md)
 - `doublons/` : les textes qui reviennent — tracts, lettres-types, campagnes | [documentation](doublons/README.md)
@@ -209,24 +210,24 @@ sans publier d'écrits nominatifs. Détail dans
 
 ## Analyse des thèmes
 
-`topic-builder/` attend un CSV `id,content` en entrée. `database/export_dataset.py`
+`topic-builder/` attend un CSV `id,content` en entrée. `analyse/export_dataset.py`
 le produit depuis la base, à deux niveaux :
 
 ```bash
 # une ligne par contribution (= une page)
-uv run python -m database.export_dataset --output topic-builder/data/cahiers/dataset.csv
+uv run python -m analyse.export_dataset --output topic-builder/data/cahiers/dataset.csv
 # une ligne par doléance (= ce qu'a écrit une personne) — à préférer
-uv run python -m database.export_dataset --niveau doleance --output topic-builder/data/cahiers/dataset.csv
+uv run python -m analyse.export_dataset --niveau doleance --output topic-builder/data/cahiers/dataset.csv
 ```
 
 Comme le découpage, les grilles de thèmes sont versionnées : charger une
 livraison ne détruit plus la précédente, plusieurs grilles concurrentes
 coexistent et l'app sert celle qui est active (voir
-[database/README.md](database/README.md)).
+[analyse/README.md](analyse/README.md)).
 
 L'`id` du document est la clé primaire de la ligne exportée : `42` pour une
 contribution, `d42` pour une doléance. C'est ce qui permet à
-`database/load_analysis.py` de rattacher les thèmes détectés à la bonne ligne au
+`analyse/load_analysis.py` de rattacher les thèmes détectés à la bonne ligne au
 retour de l'analyse, au lieu de les laisser orphelins — et le préfixe évite que
 les deux plages d'id, qui se recouvrent, soient confondues. La boucle complète :
 

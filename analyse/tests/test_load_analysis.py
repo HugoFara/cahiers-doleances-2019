@@ -4,8 +4,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from database.identifiants import CONTRIBUTION, DOLEANCE
-from database.load_analysis import (
+from analyse.identifiants import CONTRIBUTION, DOLEANCE
+from analyse.load_analysis import (
     Cibles,
     charger_instances,
     charger_topics,
@@ -57,7 +57,7 @@ def document(doc_id, *noms_de_topics) -> dict:
 
 
 def test_resout_un_id_de_document_qui_est_un_id_de_contribution():
-    """Cas des livraisons produites depuis database/export_dataset.py."""
+    """Cas des livraisons produites depuis analyse/export_dataset.py."""
     assert resoudre_document("42", cibles({41, 42, 43})) == (CONTRIBUTION, 42)
 
 

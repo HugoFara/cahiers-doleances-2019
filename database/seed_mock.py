@@ -282,7 +282,7 @@ def main():
                 )
             )
 
-            # `page_extraction` est la table que lit `database/export_dataset.py` :
+            # `page_extraction` est la table que lit `analyse/export_dataset.py` :
             # sans ces lignes, le seed de démo ne permet pas d'exercer la chaîne
             # d'analyse (l'export ne trouverait rien à écrire).
             # Le seed n'est pas une simulation page à page : une contribution donne

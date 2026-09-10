@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from database.export_dataset import (
+from analyse.export_dataset import (
     construire_documents,
     construire_documents_doleances,
     ecrire_dataset,

@@ -2,7 +2,7 @@
 
 import pytest
 
-from database.identifiants import (
+from analyse.identifiants import (
     CONTRIBUTION,
     DOLEANCE,
     id_document,

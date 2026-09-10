@@ -20,11 +20,11 @@ Deux niveaux d'export, `--niveau` :
   côtoyer, et une doléance longue y est coupée en deux.
 - `doleance` : une ligne = le texte d'un contributeur, tel que `segmentation/`
   l'a découpé. C'est la bonne unité d'analyse ; les ids y sont préfixés `d`
-  (voir `database/identifiants.py`).
+  (voir `analyse/identifiants.py`).
 
 Utilisation :
-    uv run python -m database.export_dataset --output dataset.csv
-    uv run python -m database.export_dataset --niveau doleance --output dataset.csv
+    uv run python -m analyse.export_dataset --output dataset.csv
+    uv run python -m analyse.export_dataset --niveau doleance --output dataset.csv
 """
 
 import argparse
@@ -36,8 +36,8 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from analyse.identifiants import CONTRIBUTION, DOLEANCE, NIVEAUX, id_document
 from database.db import check_connection, get_engine
-from database.identifiants import CONTRIBUTION, DOLEANCE, NIVEAUX, id_document
 from database.models import Doleance, PageExtraction
 from database.runs import SEGMENTATION, run_actif
 

@@ -1,3 +1,20 @@
+"""Charge une livraison de l'équipe analyse — une grille de thèmes et ses détections.
+
+Une livraison, c'est un dossier avec `taxonomy.json` (les thèmes, leur parenté,
+leur description) et `instances.json` (par document, les thèmes détectés et
+leurs extraits). Elle devient un run de genre `analyse` : la grille est une
+lecture du corpus, datée, attribuée, et plusieurs coexistent.
+
+Le rattachement des détections aux textes passe par l'identifiant de document
+(`identifiants.py`) et se vérifie par les verbatims : en dessous de
+`SEUIL_CORRESPONDANCE`, la livraison ne décrit pas ce corpus et n'y est pas
+rattachée.
+
+Utilisation :
+    uv run python -m analyse.load_analysis <dossier>
+    uv run python -m analyse.load_analysis <dossier> --nouveau-run --label "v5"
+"""
+
 import argparse
 import json
 from collections import defaultdict
@@ -7,12 +24,10 @@ from pathlib import Path
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from analyse.identifiants import CONTRIBUTION, DOLEANCE, lire_id_document
 from database.db import check_connection, get_engine
-from database.identifiants import CONTRIBUTION, DOLEANCE, lire_id_document
 from database.models import Contribution, Doleance, Instance, PageExtraction, Run, Topic
 from database.runs import ANALYSE, activer_run, creer_run, run_par_source
-
-DEFAUT = Path(__file__).resolve().parent.parent / "analyse" / "analysis_v4"
 
 
 def _propre(valeur):
@@ -77,7 +92,7 @@ class Cibles:
     Une livraison porte soit sur des contributions, soit sur des doléances,
     selon le `--niveau` avec lequel `export_dataset.py` a produit son entrée.
     Les deux tables ont des id qui se recouvrent, d'où le préfixe des ids de
-    doléance (`database/identifiants.py`).
+    doléance (`analyse/identifiants.py`).
     """
 
     contributions: set[int]
@@ -98,7 +113,7 @@ class Cibles:
 def resoudre_document(external_doc_id: str, cibles: Cibles) -> tuple[str, int] | None:
     """Rapproche l'id de document de la livraison d'une ligne existante.
 
-    `database/export_dataset.py` produit le dataset d'entrée de l'analyse avec
+    `analyse/export_dataset.py` produit le dataset d'entrée de l'analyse avec
     la clé primaire de la ligne exportée comme id de document : la livraison
     nous la renvoie telle quelle et le rapprochement est immédiat.
 
@@ -322,7 +337,7 @@ def resoudre_run(
 
 
 def main(
-    dossier: Path = DEFAUT,
+    dossier: Path,
     *,
     label: str | None = None,
     nouveau_run: bool = False,
@@ -400,8 +415,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Charge une livraison de l'équipe analyse.")
     parser.add_argument(
-        "dossier", nargs="?", type=Path, default=DEFAUT,
-        help=f"dossier contenant taxonomy.json et instances.json (défaut : {DEFAUT})",
+        "dossier", type=Path, help="dossier contenant taxonomy.json et instances.json"
     )
     parser.add_argument("--label", help="nom lisible de la grille (défaut : nom du dossier)")
     parser.add_argument(

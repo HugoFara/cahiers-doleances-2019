@@ -90,7 +90,7 @@ Scaleway : certains PDF font 43 Mo, ils ne transitent pas par l'app. Repli sur
 ## Prérequis
 
 1. Base accessible et remplie : `uv run python -m database.seed_mock` (démo) ou
-   `uv run python -m database.load_analysis` (livraison analyse).
+   `uv run python -m analyse.load_analysis <dossier>` (livraison analyse).
 2. `.env` renseigné :
    - base : `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
    - PDF : `S3_ENDPOINT`, `S3_BUCKET_NAME`, `SCW_ACCESS_KEY`, `SCW_SECRET_KEY`
@@ -118,6 +118,6 @@ uv run python gradio_app/app.py   # http://localhost:7860
   les documents sont numérotés par l'équipe analyse (`doc 73`) sans correspondance
   en base : la vue graphe affiche cet identifiant source, et la vue commune
   n'affiche pas les thèmes détectés. Les livraisons produites depuis
-  `database/export_dataset.py` portent l'`id` de la contribution et sont rattachées
+  `analyse/export_dataset.py` portent l'`id` de la contribution et sont rattachées
   automatiquement par `load_analysis.py` ; les deux vues se rempliront à ce
   moment-là, sans changement de code.

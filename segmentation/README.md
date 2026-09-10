@@ -109,14 +109,14 @@ est `NOT NULL` — il n'existe plus de run anonyme. Les pages `needs_ocr` sont �
 ## Exporter les doléances vers l'analyse
 
 ```bash
-uv run python -m database.export_dataset --niveau doleance --output topic-builder/data/cahiers/dataset.csv
+uv run python -m analyse.export_dataset --niveau doleance --output topic-builder/data/cahiers/dataset.csv
 ```
 
 L'export ne sert que le découpage actif : deux découpages du même corpus
 doubleraient les documents. Les identifiants sont préfixés `d` (`d42`), pour qu'une
 livraison sur les doléances ne soit pas rechargée comme si ses ids désignaient
 des contributions — les deux tables ont des id qui se recouvrent. Voir
-`database/identifiants.py`.
+`analyse/identifiants.py`.
 
 ## Tester
 

@@ -50,7 +50,7 @@ def test_le_seed_remplit_page_extraction(engine):
 
 def test_le_seed_alimente_l_export_du_dataset(engine):
     """Test de bout en bout du chaînage seed -> export."""
-    from database.export_dataset import construire_documents, lire_pages
+    from analyse.export_dataset import construire_documents, lire_pages
 
     seed_mock.main()
     with Session(engine) as session:
