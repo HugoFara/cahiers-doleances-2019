@@ -107,6 +107,37 @@ OmniDocBench V1.5. Les deux benchmarks ne sont pas comparables entre eux, et
 (`reference/`). C'est lui qu'il faut passer d'abord : une passe API sur
 l'échantillon se compte en centimes.
 
+**Essai du 2026-09-10.** Mistral OCR 4.1 passé sur 31 pages — une page seule,
+puis deux lots de 15 pages typées et 15 manuscrites tirées au sort
+(`data/ocr_essai_2026-09-10/`) : **0,12 $, zéro échec.**
+
+- **Manuscrit** : le score wordfreq — la métrique du projet — passe de
+  **0,13 ± 0,06 (garbage) à 0,90 ± 0,05**, plancher à 0,776. Les 15 pages
+  passent au-dessus du seuil `needs_ocr` de 0,3 : l'API lit le manuscrit.
+  C'est le déblocage des 47 % écartées, pour ~10 $ (batch : ~5 $).
+- **Dactylographié** : 2,9 s ± 0,8 s/page ; wordfreq 0,86 → 0,93. WER médian
+  contre la référence : 8,4 %. Mais ce WER surestime l'erreur de Mistral — sur
+  la page testée en détail, chaque écart était une *correction* de la
+  référence (`F£V` → `FEV`, `saint lcxjp du dorât` → `SAINT LOUP DU DORAT`,
+  `Ton` → `l'on`) : la couche texte des archives est elle-même corrompue,
+  notamment sur les en-têtes — là même où `find_city` lit la commune pour le
+  rattachement INSEE. Une repasse OCR améliorerait aussi `insee/`.
+- **Le seuil fuit** : 2 des 15 pages « typées » sont en réalité des
+  formulaires pré-imprimés remplis à la main — pymupdf n'y lit que les
+  pointillés, le wordfreq reste au-dessus de 0,3 (0,44) et la page entre dans
+  le corpus analysé avec du garbage. Les 47 % sont un *plancher* de la part
+  manuscrite.
+- **Réserves** : wordfreq mesure la proportion de mots français connus, pas la
+  fidélité — une hallucination fluide scorerait bien ; l'étalon annoté reste
+  le seul juge. La sortie est du markdown (`#`, liens d'images) — à normaliser
+  avant comparaison ou stockage. L'essai a envoyé des scans bruts porteurs de
+  données personnelles à l'API : à cadrer P3 avant toute passe en production.
+- **ornith-1.5:9b (Ollama, CPU)** pour comparaison : 207 s/page (contre 4,4),
+  chaîne de pensée fuite dans la réponse, en-tête omis, corps du texte juste.
+  À retester avec un GPU.
+
+Extrapolation corpus entier : ~6 h en séquentiel, 22 à 26 $.
+
 Le coût ne décide pas seul : envoyer les scans bruts à une API retombe sur la
 question de la P3 (hébergement, transfert). Mistral est européen, propose un
 endpoint UE (+10 %) et du self-host sélectif ; les modèles locaux tranchent la
@@ -342,7 +373,7 @@ IIIF / ALTO / EAD).
 | Runs et versions (grilles concurrentes, `doleance` versionnée) | fait — `database/runs.py`, table `run` |
 | Jeu de référence annoté (200-300 doléances) | outillage fait — `reference/` ; **reste à annoter** |
 | Chiffrer la part manuscrite écartée | fait — 47 % des pages, `couverture/` |
-| Reprendre le manuscrit (HTR) | à faire — **prochain** ; coût chiffré le 2026-09-10 (~25 $ en API, 0 € en local), restent la qualité sur manuscrit et la P3 |
+| Reprendre le manuscrit (HTR) | à faire — **prochain** ; essai Mistral OCR concluant le 2026-09-10 (manuscrit : wordfreq 0,13 → 0,90 sur 15 pages, corpus ~25 $) ; restent l'étalon de qualité et la P3 |
 | Commune -> INSEE | fait — 459 communes contre 307 par graphie |
 | Population et coordonnées (Code officiel géographique) | fait — `insee/referentiel/`, millésime pivot 2019 |
 | Types de support et d'auteur | fait — `typologie/` ; 20 % des doléances ne sont pas des contributions |
