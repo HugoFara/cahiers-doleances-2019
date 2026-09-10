@@ -4,8 +4,8 @@ Un run, c'est une production de couche : un découpage en doléances, une
 livraison de l'équipe analyse. Il porte de quoi la rejouer et la juger — modèle,
 version de prompt, paramètres, corpus, auteur, date.
 
-Deux genres coexistent aujourd'hui, `SEGMENTATION` et `ANALYSE`. Dans chaque
-genre, un seul run est `active` : c'est celui que l'app et les exports servent
+Trois genres coexistent aujourd'hui : `SEGMENTATION`, `ANALYSE` et `DOUBLONS`.
+Dans chaque genre, un seul run est `active` : c'est celui que l'app et les exports servent
 par défaut. Les autres restent en base, lisibles et comparables — c'est tout
 l'intérêt : deux grilles de thèmes concurrentes doivent pouvoir coexister pour
 que le choix de l'une soit visible et discutable.
@@ -20,7 +20,8 @@ from database.models import Run
 
 SEGMENTATION = "segmentation"
 ANALYSE = "analyse"
-GENRES = (SEGMENTATION, ANALYSE)
+DOUBLONS = "doublons"
+GENRES = (SEGMENTATION, ANALYSE, DOUBLONS)
 
 
 def creer_run(

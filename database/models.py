@@ -173,6 +173,49 @@ class Doleance(Base):
     num_words = Column(Integer)
 
 
+class DuplicateGroup(Base):
+    """Un ensemble de doléances au texte quasi identique.
+
+    Les registres contiennent des tracts collés, des lettres-types diffusées par
+    des associations, des pétitions, et parfois le même cahier scanné deux fois.
+    Comptées comme autant de contributions distinctes, elles gonflent les
+    fréquences de thèmes : « 34 % des contributions parlent de fiscalité » peut
+    ne mesurer que le nombre de fois qu'un tract a été recopié.
+
+    On ne les écrase pas pour autant. « Ce texte apparaît dans 47 communes » est
+    un résultat en soi — une campagne organisée, ce qui est autre chose qu'une
+    écriture individuelle. `cities` porte cette information.
+
+    Le regroupement est une couche interprétative comme les autres : il dépend
+    d'un seuil de similarité, il a donc un `run`.
+    """
+
+    __tablename__ = "duplicate_group"
+
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("run.id"))
+    size = Column(Integer)  # nombre de doléances du groupe
+    cities = Column(Integer)  # communes distinctes touchées
+    similarity_min = Column(Float)  # plus faible similarité retenue dans le groupe
+
+
+class DuplicateMember(Base):
+    """L'appartenance d'une doléance à un groupe de doublons.
+
+    Table de liaison plutôt qu'une colonne sur `doleance` : le regroupement est
+    une lecture du corpus, pas une propriété de la doléance, et deux runs de
+    déduplication doivent pouvoir coexister sans se marcher dessus.
+    """
+
+    __tablename__ = "duplicate_member"
+
+    id = Column(Integer, primary_key=True)
+    group_id = Column(Integer, ForeignKey("duplicate_group.id"))
+    # Indexé : « à quel groupe appartient cette doléance » est la question
+    # posée par toute lecture qui veut pondérer un comptage.
+    doleance_id = Column(Integer, ForeignKey("doleance.id"), index=True)
+
+
 # Référentiel des thèmes, alimenté depuis la livraison de l'équipe analyse.
 class Topic(Base):
     __tablename__ = "topic"
