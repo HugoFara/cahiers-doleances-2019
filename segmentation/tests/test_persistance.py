@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from database.models import Base, Doleance, PageExtraction
+from database.runs import SEGMENTATION, creer_run
 from segmentation.persistance import (
     cahiers_deja_decoupes,
     enregistrer_cahier,
@@ -46,6 +47,12 @@ def session() -> Session:
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
+
+@pytest.fixture
+def run(session) -> int:
+    """Un run de découpage : toute doléance écrite appartient à l'un d'eux."""
+    return creer_run(session, SEGMENTATION, label="test").id
 
 
 # --- grouper_par_cahier ---
@@ -97,58 +104,82 @@ def test_lire_pages_trie_par_cahier_puis_par_page(session):
 # --- enregistrer_cahier ---
 
 
-def test_ecrit_une_ligne_par_doleance_numerotee_dans_l_ordre(session):
+def test_ecrit_une_ligne_par_doleance_numerotee_dans_l_ordre(session, run):
     pages = [page(3, "Le 21 février 2019\n" + CORPS + "\nLe 22 février 2019\n" + CORPS)]
-    enregistrer_cahier(session, "cahier.pdf", pages)
+    enregistrer_cahier(session, "cahier.pdf", pages, run)
     session.flush()
     lignes = session.query(Doleance).order_by(Doleance.position).all()
     assert [ligne.position for ligne in lignes] == [0, 1]
     assert [ligne.signal for ligne in lignes] == ["debut", "date"]
 
 
-def test_reprend_la_commune_et_le_cahier_des_pages(session):
-    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)])
+def test_reprend_la_commune_et_le_cahier_des_pages(session, run):
+    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)], run)
     session.flush()
     ligne = session.query(Doleance).one()
     assert (ligne.city, ligne.pdf_name) == ("TRIZAY", "cahier.pdf")
 
 
-def test_rattache_la_doleance_a_la_contribution_de_sa_premiere_page(session):
+def test_rattache_la_doleance_a_la_contribution_de_sa_premiere_page(session, run):
     """Une contribution par page : c'est la page d'ouverture qui porte le lien."""
     pages = [
         page(3, "Le 21 février 2019\n" + CORPS, contribution_id=10),
         page(4, "Le 22 février 2019\n" + CORPS, contribution_id=11),
     ]
-    enregistrer_cahier(session, "cahier.pdf", pages)
+    enregistrer_cahier(session, "cahier.pdf", pages, run)
     session.flush()
     lignes = session.query(Doleance).order_by(Doleance.position).all()
     assert [ligne.contribution_id for ligne in lignes] == [10, 11]
 
 
-def test_compte_les_mots(session):
-    enregistrer_cahier(session, "cahier.pdf", [page(3, "trois petits mots")])
+def test_compte_les_mots(session, run):
+    enregistrer_cahier(session, "cahier.pdf", [page(3, "trois petits mots")], run)
     session.flush()
     assert session.query(Doleance).one().num_words == 3
 
 
-def test_un_cahier_sans_texte_n_ecrit_rien(session):
-    assert enregistrer_cahier(session, "cahier.pdf", [page(3, "")]) == []
+def test_un_cahier_sans_texte_n_ecrit_rien(session, run):
+    assert enregistrer_cahier(session, "cahier.pdf", [page(3, "")], run) == []
 
 
 # --- idempotence ---
 
 
-def test_les_cahiers_deja_decoupes_sont_reconnus(session):
-    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)])
+def test_les_cahiers_deja_decoupes_sont_reconnus(session, run):
+    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)], run)
     session.flush()
-    assert cahiers_deja_decoupes(session) == {"cahier.pdf"}
+    assert cahiers_deja_decoupes(session, run) == {"cahier.pdf"}
 
 
-def test_oublier_un_cahier_ne_touche_pas_les_autres(session):
-    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)])
-    enregistrer_cahier(session, "autre.pdf", [page(3, CORPS, pdf_name="autre.pdf")])
+def test_oublier_un_cahier_ne_touche_pas_les_autres(session, run):
+    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)], run)
+    enregistrer_cahier(session, "autre.pdf", [page(3, CORPS, pdf_name="autre.pdf")], run)
     session.flush()
-    oublier_cahier(session, "cahier.pdf")
+    oublier_cahier(session, "cahier.pdf", run)
     session.flush()
-    assert cahiers_deja_decoupes(session) == {"autre.pdf"}
+    assert cahiers_deja_decoupes(session, run) == {"autre.pdf"}
 
+
+def test_un_nouveau_run_repart_d_un_corpus_vierge(session, run):
+    """Le run précédent reste intact : on ne détruit plus pour réessayer."""
+    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)], run)
+    session.flush()
+
+    second = creer_run(session, SEGMENTATION, label="règles v2").id
+    assert cahiers_deja_decoupes(session, second) == set()
+
+    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)], second)
+    session.flush()
+    assert session.query(Doleance).count() == 2
+    assert {d.run_id for d in session.query(Doleance)} == {run, second}
+
+
+def test_oublier_un_cahier_ne_touche_pas_les_autres_runs(session, run):
+    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)], run)
+    second = creer_run(session, SEGMENTATION, label="règles v2").id
+    enregistrer_cahier(session, "cahier.pdf", [page(3, CORPS)], second)
+    session.flush()
+
+    oublier_cahier(session, "cahier.pdf", second)
+    session.flush()
+    assert [d.run_id for d in session.query(Doleance)] == [run]

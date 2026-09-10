@@ -1,4 +1,18 @@
-from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -49,6 +63,45 @@ class PageExtraction(Base):
     city = Column(String)  # ville extraite
 
 
+class Run(Base):
+    """Une production de couche interprétative : un découpage, une livraison d'analyse.
+
+    Les thèmes ne sont pas la structure du corpus, seulement une couche posée
+    dessus — et une couche doit pouvoir être versionnée, attribuée, comparée à
+    une autre, et retirée. Avant cette table, `load_analysis` faisait
+    `DELETE FROM instance` à chaque livraison : une seule grille pouvait exister
+    à la fois, et rien ne disait de quel modèle ni de quel prompt elle venait.
+
+    `active` désigne le run servi par défaut pour son genre — un index unique
+    partiel garantit qu'il n'y en a qu'un. Les autres restent en base, lisibles
+    et comparables.
+    """
+
+    __tablename__ = "run"
+    __table_args__ = (
+        Index(
+            "uq_run_actif_par_genre",
+            "kind",
+            unique=True,
+            sqlite_where=text("active"),
+            postgresql_where=text("active"),
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    kind = Column(String)  # "segmentation" | "analyse" (database/runs.py)
+    label = Column(String)  # nom court lisible : « grille émergente v4 »
+    source = Column(String)  # dossier de livraison, ou module producteur
+    model = Column(String)  # modèle LLM ou OCR utilisé, s'il y en a un
+    prompt_version = Column(String)
+    parameters = Column(JSON)  # seuils et config, tels qu'appliqués
+    corpus = Column(String)  # ce sur quoi le run a tourné
+    author = Column(String)  # humain ou machine ; à renseigner avant publication
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    active = Column(Boolean)  # run servi par défaut pour ce genre
+    notes = Column(Text)
+
+
 class Doleance(Base):
     """Le texte d'un contributeur : l'unité d'analyse réelle du corpus.
 
@@ -66,6 +119,7 @@ class Doleance(Base):
     __tablename__ = "doleance"
 
     id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("run.id"))  # découpage qui l'a produite
     # Contribution de la page où la doléance commence : garde le lien vers la
     # commune et les annotations existantes. NULL si la page était orpheline.
     contribution_id = Column(Integer, ForeignKey("contribution.id"))
@@ -83,10 +137,14 @@ class Doleance(Base):
 # Référentiel des thèmes, alimenté depuis la livraison de l'équipe analyse.
 class Topic(Base):
     __tablename__ = "topic"
+    # Deux grilles concurrentes peuvent réutiliser le même UUID de livraison :
+    # l'unicité vaut dans un run, pas dans la table.
+    __table_args__ = (UniqueConstraint("run_id", "external_id", name="uq_topic_run_external_id"),)
 
     id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("run.id"))  # grille à laquelle il appartient
     # UUID de la livraison : clé de rapprochement pour recharger sans dupliquer
-    external_id = Column(String, unique=True)
+    external_id = Column(String)
     name = Column(String)
     description = Column(Text)
     level = Column(Integer)  # rang d'abstraction fourni par l'équipe analyse
@@ -99,6 +157,7 @@ class Instance(Base):
     __tablename__ = "instance"
 
     id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("run.id"))  # livraison qui l'a produite
     contribution_id = Column(Integer, ForeignKey("contribution.id"))
     # id du document dans la livraison analyse ; le rapprochement avec
     # contribution reste à faire, on conserve la clé source en attendant

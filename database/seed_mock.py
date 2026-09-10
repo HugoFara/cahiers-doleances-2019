@@ -8,8 +8,10 @@ from database.models import (
     Feeling,
     Instance,
     PageExtraction,
+    Run,
     Topic,
 )
+from database.runs import ANALYSE, creer_run
 
 OCR = "mock_data_ocr"
 
@@ -232,17 +234,28 @@ def main():
         if session.query(Contribution).first():
             raise SystemExit("La base contient déjà des contributions : abandon.")
 
+        # Les thèmes appartiennent à une grille : sans run, ils seraient
+        # invisibles pour l'app et les exports, qui ne servent que la grille active.
+        grille = creer_run(
+            session,
+            ANALYSE,
+            label="grille de démo",
+            source="database/seed_mock.py",
+            author="seed",
+            notes="Thèmes fictifs : à ne jamais confondre avec une livraison réelle.",
+        )
+
         # référentiel : d'abord les racines (parent NULL), puis les thèmes
         # feuilles rattachés à leur parent via TAXONOMY
         names = sorted({t["name"] for entry in MOCK for t in entry["topics"]})
         refs = {}
         for name in sorted(set(TAXONOMY.values())):
-            ref = Topic(name=name)
+            ref = Topic(run_id=grille.id, name=name)
             session.add(ref)
             session.flush()  # récupère l'id auto-généré
             refs[name] = ref.id
         for name in names:
-            ref = Topic(name=name, parent=TAXONOMY.get(name))
+            ref = Topic(run_id=grille.id, name=name, parent=TAXONOMY.get(name))
             session.add(ref)
             session.flush()
             refs[name] = ref.id
@@ -290,6 +303,7 @@ def main():
             for t in entry["topics"]:
                 session.add(
                     Instance(
+                        run_id=grille.id,
                         contribution_id=contribution.id,
                         topic_id=refs[t["name"]],
                         verbatim=t["verbatim"],
@@ -300,7 +314,7 @@ def main():
 
         session.commit()
 
-        for model in (Contribution, Extraction, PageExtraction, Topic, Instance, Feeling, Annotation):
+        for model in (Run, Contribution, Extraction, PageExtraction, Topic, Instance, Feeling, Annotation):
             print(f"{model.__tablename__}: {session.query(model).count()} lignes")
 
 

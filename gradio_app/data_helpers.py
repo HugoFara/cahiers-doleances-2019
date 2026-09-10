@@ -168,26 +168,52 @@ def save_annotation(commune: str, idx: int, is_anonymized: bool, is_of_interest:
 
 
 #  vue graphe : la taxonomie et ses détections, lues une fois au démarrage
+#
+#  Plusieurs grilles de thèmes coexistent en base (voir database/runs.py) : sans
+#  filtre, l'app les afficherait empilées, et les noms de thèmes — uniques dans
+#  une grille, pas dans la table — se confondraient d'une grille à l'autre. On
+#  ne sert donc que la grille active.
+#
+#  Écrit en sous-requête plutôt qu'en paramètre Python : quand aucune grille
+#  n'est active, la sous-requête vaut NULL, la comparaison n'est jamais vraie et
+#  les vues sont vides — exactement ce qu'on veut sur une base pas encore
+#  chargée, sans branchement supplémentaire.
+GRILLE_SERVIE = "(SELECT id FROM run WHERE kind = 'analyse' AND active)"
+
+
+def grille_servie() -> dict | None:
+    """La grille de thèmes actuellement affichée, pour l'annoncer à l'écran."""
+    q = text("SELECT id, label, created_at FROM run WHERE kind = 'analyse' AND active")
+    lignes = pd.read_sql(q, engine).to_dict("records")
+    return lignes[0] if lignes else None
+
+
 def charger_taxonomie() -> pd.DataFrame:
-    """Tous les topics avec leur parent résolu par nom (les noms sont uniques)."""
-    q = text("""
+    """Les topics de la grille servie, parent résolu par nom.
+
+    Les noms sont uniques **dans une grille**, ce qui suffit au graphe puisqu'il
+    n'en affiche qu'une.
+    """
+    q = text(f"""
         SELECT t.id, t.external_id, t.name, t.description, t.level, p.name AS parent_nom
         FROM topic t
-        LEFT JOIN topic p ON p.id = t.parent_id
+        LEFT JOIN topic p ON p.id = t.parent_id AND p.run_id = t.run_id
+        WHERE t.run_id = {GRILLE_SERVIE}
     """)
     return pd.read_sql(q, engine)
 
 
 def charger_detections() -> pd.DataFrame:
-    """Les instances, rattachées au nom de leur topic.
+    """Les instances de la grille servie, rattachées au nom de leur topic.
 
     `external_doc_id` est l'identifiant du document dans la livraison analyse :
     le rapprochement avec `contribution` n'est pas résolu, on affiche cet id tel quel.
     """
-    q = text("""
+    q = text(f"""
         SELECT t.name AS topic, i.verbatim, i.summary, i.external_doc_id
         FROM instance i
         JOIN topic t ON t.id = i.topic_id
+        WHERE i.run_id = {GRILLE_SERVIE}
         ORDER BY i.id
     """)
     return pd.read_sql(q, engine)

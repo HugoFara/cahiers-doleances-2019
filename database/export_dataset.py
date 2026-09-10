@@ -39,6 +39,7 @@ from sqlalchemy.orm import Session
 from database.db import check_connection, get_engine
 from database.identifiants import CONTRIBUTION, DOLEANCE, NIVEAUX, id_document
 from database.models import Doleance, PageExtraction
+from database.runs import SEGMENTATION, run_actif
 
 DEFAUT = Path("data/dataset.csv")
 
@@ -83,15 +84,30 @@ def construire_documents(pages: list[PageExtraction]) -> list[dict[str, str]]:
     ]
 
 
-def lire_doleances(session: Session) -> list[Doleance]:
-    """Lit les doléances découpées, dans l'ordre de lecture des cahiers.
+def lire_doleances(session: Session, run_id: int | None = None) -> list[Doleance]:
+    """Lit les doléances d'un découpage, dans l'ordre de lecture des cahiers.
 
-    Pas de filtre `needs_ocr` ici : le découpage a déjà travaillé sur les pages
-    retenues par `segmentation/`, refiltrer n'aurait rien à filtrer.
+    Le filtre sur le run n'est pas optionnel dans les faits : plusieurs
+    découpages peuvent coexister, exporter la table entière mélangerait deux
+    lectures du même corpus et doublerait les documents.
+
+    Args:
+        session: session ouverte sur la base.
+        run_id: découpage à exporter ; ``None`` prend le run actif.
+
+    Returns:
+        Les doléances du run, vide s'il n'y a aucun découpage.
     """
+    if run_id is None:
+        run = run_actif(session, SEGMENTATION)
+        if run is None:
+            return []
+        run_id = run.id
     return list(
         session.scalars(
-            select(Doleance).order_by(Doleance.pdf_name, Doleance.position)
+            select(Doleance)
+            .where(Doleance.run_id == run_id)
+            .order_by(Doleance.pdf_name, Doleance.position)
         )
     )
 
@@ -124,9 +140,11 @@ def main(
 
     with Session(engine) as session:
         if niveau == DOLEANCE:
+            run = run_actif(session, SEGMENTATION)
             doleances = lire_doleances(session)
             documents = construire_documents_doleances(doleances)
-            lues = f"{len(doleances)} doléance(s) lue(s)"
+            origine = f" (run #{run.id} « {run.label} »)" if run else ""
+            lues = f"{len(doleances)} doléance(s) lue(s){origine}"
             vide = (
                 "Aucune doléance à exporter. Les cahiers ont-ils été découpés "
                 "(uv run python -m segmentation) ?"

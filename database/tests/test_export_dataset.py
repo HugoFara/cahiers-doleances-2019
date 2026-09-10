@@ -14,6 +14,7 @@ from database.export_dataset import (
     lire_pages,
 )
 from database.models import Base, Doleance, PageExtraction
+from database.runs import SEGMENTATION, creer_run
 
 
 def page(contribution_id: int, page_number: int, text: str, needs_ocr: bool = False) -> PageExtraction:
@@ -124,14 +125,22 @@ def test_ecrit_un_csv_relisible_par_topic_builder(tmp_path):
 # --- niveau doleance ---
 
 
+@pytest.fixture
+def run(session) -> int:
+    """Le découpage servi : l'export ne lit jamais la table entière."""
+    return creer_run(session, SEGMENTATION, label="test").id
+
+
 def doleance(
     doleance_id: int,
     text: str,
     position: int = 0,
     pdf_name: str = "cahier.pdf",
+    run_id: int | None = None,
 ) -> Doleance:
     return Doleance(
         id=doleance_id,
+        run_id=run_id,
         contribution_id=1,
         pdf_name=pdf_name,
         city="Trizay",
@@ -155,13 +164,27 @@ def test_ecarte_les_doleances_sans_texte(texte_vide):
     assert construire_documents_doleances([doleance(1, texte_vide)]) == []
 
 
-def test_lire_doleances_suit_l_ordre_de_lecture_des_cahiers(session):
+def test_lire_doleances_suit_l_ordre_de_lecture_des_cahiers(session, run):
     session.add_all(
         [
-            doleance(3, "b2", position=1),
-            doleance(2, "b1", position=0),
-            doleance(1, "a", position=0, pdf_name="autre.pdf"),
+            doleance(3, "b2", position=1, run_id=run),
+            doleance(2, "b1", position=0, run_id=run),
+            doleance(1, "a", position=0, pdf_name="autre.pdf", run_id=run),
         ]
     )
     session.flush()
     assert [d.text for d in lire_doleances(session)] == ["a", "b1", "b2"]
+
+
+def test_lire_doleances_n_exporte_que_le_decoupage_servi(session, run):
+    """Sinon deux découpages du même corpus doubleraient les documents."""
+    autre = creer_run(session, SEGMENTATION, label="règles v2", actif=False).id
+    session.add_all([doleance(1, "servi", run_id=run), doleance(2, "ancien", run_id=autre)])
+    session.flush()
+    assert [d.text for d in lire_doleances(session)] == ["servi"]
+    assert [d.text for d in lire_doleances(session, autre)] == ["ancien"]
+
+
+def test_lire_doleances_sans_aucun_decoupage(session):
+    """Base migrée mais pas encore découpée : couche vide, pas une erreur."""
+    assert lire_doleances(session) == []

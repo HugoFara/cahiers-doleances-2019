@@ -7,6 +7,11 @@ Le regroupement se fait par **cahier** (`page_extraction.pdf_name`), pas par
 contribution : le pipeline `extraction/without_ocr` crée une contribution par
 page, une doléance qui court sur deux pages en traverserait donc deux. Le cahier
 est la seule unité qui contient sûrement la doléance entière.
+
+Tout est rapporté à un **run** (`database/runs.py`). Le découpage est un acte
+interprétatif — c'est une heuristique qui décide qu'une page porte trois auteurs
+— il appartient donc à la couche annotation, versionnée : deux découpages
+peuvent coexister et se comparer, au lieu que le second écrase le premier.
 """
 
 from collections import defaultdict
@@ -66,18 +71,33 @@ def decouper_pages(pages: list[PageExtraction]) -> list[Doleance]:
     return decouper_cahier([(p.page_number, p.text or "") for p in pages])
 
 
-def cahiers_deja_decoupes(session: Session) -> set[str]:
-    """Noms des PDF ayant déjà des doléances en base."""
-    return set(session.scalars(select(LigneDoleance.pdf_name).distinct()))
+def cahiers_deja_decoupes(session: Session, run_id: int) -> set[str]:
+    """Noms des PDF déjà découpés **dans ce run**.
+
+    Le filtre sur le run est ce qui permet de reprendre un découpage interrompu
+    sans écraser un découpage antérieur : un nouveau run repart d'un ensemble
+    vide, l'ancien reste intact.
+    """
+    return set(
+        session.scalars(
+            select(LigneDoleance.pdf_name)
+            .where(LigneDoleance.run_id == run_id)
+            .distinct()
+        )
+    )
 
 
-def oublier_cahier(session: Session, pdf_name: str) -> None:
-    """Supprime les doléances d'un cahier, pour le redécouper."""
-    session.execute(delete(LigneDoleance).where(LigneDoleance.pdf_name == pdf_name))
+def oublier_cahier(session: Session, pdf_name: str, run_id: int) -> None:
+    """Supprime les doléances d'un cahier dans ce run, pour le redécouper."""
+    session.execute(
+        delete(LigneDoleance).where(
+            LigneDoleance.pdf_name == pdf_name, LigneDoleance.run_id == run_id
+        )
+    )
 
 
 def enregistrer_cahier(
-    session: Session, pdf_name: str, pages: list[PageExtraction]
+    session: Session, pdf_name: str, pages: list[PageExtraction], run_id: int
 ) -> list[LigneDoleance]:
     """Découpe un cahier et ajoute ses doléances à la session (sans commit).
 
@@ -85,6 +105,7 @@ def enregistrer_cahier(
         session: session ouverte sur la base.
         pdf_name: nom du PDF découpé.
         pages: ses pages, dans l'ordre.
+        run_id: run de découpage auquel rattacher les doléances.
 
     Returns:
         Les lignes ajoutées, dans l'ordre du cahier.
@@ -95,6 +116,7 @@ def enregistrer_cahier(
     lignes = []
     for rang, doleance in enumerate(decouper_pages(pages)):
         ligne = LigneDoleance(
+            run_id=run_id,
             contribution_id=contribution_par_page.get(doleance.page_debut),
             pdf_name=pdf_name,
             city=ville,

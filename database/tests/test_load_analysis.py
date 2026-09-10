@@ -8,6 +8,7 @@ from database.identifiants import CONTRIBUTION, DOLEANCE
 from database.load_analysis import (
     Cibles,
     charger_instances,
+    charger_topics,
     mesurer_correspondance,
     resoudre_document,
     taux_correspondance,
@@ -20,6 +21,7 @@ from database.models import (
     PageExtraction,
     Topic,
 )
+from database.runs import ANALYSE, creer_run
 
 
 @pytest.fixture
@@ -28,6 +30,12 @@ def session() -> Session:
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
+
+@pytest.fixture
+def run(session) -> int:
+    """Toute instance appartient à une grille : les tests en ouvrent une."""
+    return creer_run(session, ANALYSE, label="test").id
 
 
 def cibles(contributions=(), doleances=None) -> Cibles:
@@ -77,12 +85,12 @@ def test_ne_resout_pas_un_id_non_numerique(valeur):
 # --- charger_instances ---
 
 
-def test_rattache_les_instances_a_leur_contribution(session):
+def test_rattache_les_instances_a_leur_contribution(session, run):
     session.add(Contribution(id=7, city="Trizay"))
     session.add(Topic(id=1, name="fiscalité"))
     session.flush()
 
-    inconnus, rattachees = charger_instances(session, [document(7, "fiscalité")], {"fiscalité": 1}, cibles({7}))
+    inconnus, rattachees = charger_instances(session, [document(7, "fiscalité")], {"fiscalité": 1}, cibles({7}), run)
 
     assert (inconnus, rattachees) == (0, 1)
     instance = session.query(Instance).one()
@@ -90,12 +98,12 @@ def test_rattache_les_instances_a_leur_contribution(session):
     assert instance.external_doc_id == "7"
 
 
-def test_conserve_external_doc_id_quand_le_rapprochement_echoue(session):
+def test_conserve_external_doc_id_quand_le_rapprochement_echoue(session, run):
     """Comportement d'avant : l'instance existe, simplement non rattachée."""
     session.add(Topic(id=1, name="fiscalité"))
     session.flush()
 
-    inconnus, rattachees = charger_instances(session, [document("73", "fiscalité")], {"fiscalité": 1}, cibles())
+    inconnus, rattachees = charger_instances(session, [document("73", "fiscalité")], {"fiscalité": 1}, cibles(), run)
 
     assert (inconnus, rattachees) == (0, 0)
     instance = session.query(Instance).one()
@@ -103,30 +111,30 @@ def test_conserve_external_doc_id_quand_le_rapprochement_echoue(session):
     assert instance.external_doc_id == "73"
 
 
-def test_ignore_les_labels_dont_le_topic_est_inconnu(session):
+def test_ignore_les_labels_dont_le_topic_est_inconnu(session, run):
     session.add(Contribution(id=7, city="Trizay"))
     session.add(Topic(id=1, name="fiscalité"))
     session.flush()
 
     inconnus, rattachees = charger_instances(
-        session, [document(7, "fiscalité", "thème fantôme")], {"fiscalité": 1}, cibles({7})
+        session, [document(7, "fiscalité", "thème fantôme")], {"fiscalité": 1}, cibles({7}), run
     )
 
     assert (inconnus, rattachees) == (1, 1)
     assert session.query(Instance).count() == 1
 
 
-def test_remplace_les_instances_existantes(session):
+def test_remplace_les_instances_existantes(session, run):
     session.add(Topic(id=1, name="fiscalité"))
-    session.add(Instance(id=99, external_doc_id="ancienne", topic_id=1))
+    session.add(Instance(id=99, run_id=run, external_doc_id="ancienne", topic_id=1))
     session.flush()
 
-    charger_instances(session, [document("73", "fiscalité")], {"fiscalité": 1}, cibles())
+    charger_instances(session, [document("73", "fiscalité")], {"fiscalité": 1}, cibles(), run)
 
     assert [i.external_doc_id for i in session.query(Instance).all()] == ["73"]
 
 
-def test_rattache_une_instance_de_doleance_a_sa_doleance_et_a_sa_contribution(session):
+def test_rattache_une_instance_de_doleance_a_sa_doleance_et_a_sa_contribution(session, run):
     """La doléance porte le lien fin, la contribution reste renseignée pour l'app."""
     session.add(Contribution(id=7, city="Trizay"))
     session.add(Doleance(id=42, contribution_id=7, text="un texte"))
@@ -134,13 +142,45 @@ def test_rattache_une_instance_de_doleance_a_sa_doleance_et_a_sa_contribution(se
     session.flush()
 
     inconnus, rattachees = charger_instances(
-        session, [document("d42", "fiscalité")], {"fiscalité": 1}, cibles(doleances={42: 7})
+        session, [document("d42", "fiscalité")], {"fiscalité": 1}, cibles(doleances={42: 7}), run
     )
 
     assert (inconnus, rattachees) == (0, 1)
     instance = session.query(Instance).one()
     assert (instance.doleance_id, instance.contribution_id) == (42, 7)
     assert instance.external_doc_id == "d42"
+
+
+def test_recharger_une_grille_ne_touche_pas_a_l_autre(session, run):
+    """Le point de tout le versionnement : `DELETE FROM instance` détruisait tout."""
+    autre = creer_run(session, ANALYSE, label="grille concurrente", actif=False).id
+    session.add(Topic(id=1, run_id=run, name="fiscalité"))
+    session.add(Topic(id=2, run_id=autre, name="fiscalité"))
+    session.add(Instance(id=99, run_id=autre, external_doc_id="d1", topic_id=2))
+    session.flush()
+
+    charger_instances(session, [document("73", "fiscalité")], {"fiscalité": 1}, cibles(), run)
+    session.flush()
+
+    par_run = {i.run_id: i.external_doc_id for i in session.query(Instance).all()}
+    assert par_run == {run: "73", autre: "d1"}
+
+
+def test_charger_les_topics_d_un_run_ignore_ceux_des_autres(session, run):
+    """Deux grilles peuvent réutiliser le même UUID sans se contaminer."""
+    autre = creer_run(session, ANALYSE, label="grille concurrente", actif=False).id
+    session.add(Topic(run_id=autre, external_id="uuid-1", name="intouchée"))
+    session.flush()
+
+    charger_topics(
+        session,
+        [{"id": "uuid-1", "name": "fiscalité", "description": "", "level": 0, "validated": False}],
+        run,
+    )
+    session.flush()
+
+    noms = {t.run_id: t.name for t in session.query(Topic).all()}
+    assert noms == {run: "fiscalité", autre: "intouchée"}
 
 
 # --- taux_correspondance ---
@@ -211,13 +251,13 @@ def test_mesure_sans_aucun_id_resolu(session):
     assert mesurer_correspondance(session, [doc], cibles({1, 2})) == (0.0, 0)
 
 
-def test_charger_instances_sans_rattachement_laisse_contribution_id_null(session):
+def test_charger_instances_sans_rattachement_laisse_contribution_id_null(session, run):
     """`rattacher=False` : on charge les thèmes sans inventer de lien."""
     session.add(Contribution(id=3))
     topic = Topic(external_id="t1", name="vote")
     session.add(topic)
     session.flush()
-    charger_instances(session, [document(3, "vote")], {"vote": topic.id}, cibles({3}), False)
+    charger_instances(session, [document(3, "vote")], {"vote": topic.id}, cibles({3}), run, False)
     session.flush()
     instances = session.query(Instance).all()
     assert len(instances) == 1

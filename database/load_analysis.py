@@ -1,5 +1,5 @@
+import argparse
 import json
-import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 
 from database.db import check_connection, get_engine
 from database.identifiants import CONTRIBUTION, DOLEANCE, lire_id_document
-from database.models import Contribution, Doleance, Instance, PageExtraction, Topic
+from database.models import Contribution, Doleance, Instance, PageExtraction, Run, Topic
+from database.runs import ANALYSE, activer_run, creer_run, run_par_source
 
 DEFAUT = Path(__file__).resolve().parent.parent / "analyse" / "analysis_v4"
 
@@ -24,13 +25,21 @@ def _propre(valeur):
     return valeur.replace("\x00", "") if isinstance(valeur, str) else valeur
 
 
-def charger_topics(session: Session, topics: list[dict]) -> dict[str, int]:
-    """Upsert des topics par external_id. Renvoie {external_id: topic.id}."""
-    connus = {t.external_id: t for t in session.query(Topic).all() if t.external_id}
+def charger_topics(session: Session, topics: list[dict], run_id: int) -> dict[str, int]:
+    """Upsert des topics de ce run par external_id. Renvoie {external_id: topic.id}.
+
+    Le filtre sur le run est ce qui autorise deux grilles concurrentes : hors de
+    lui, l'UUID d'une livraison écraserait le thème homonyme d'une autre.
+    """
+    connus = {
+        t.external_id: t
+        for t in session.query(Topic).filter(Topic.run_id == run_id).all()
+        if t.external_id
+    }
     for t in topics:
         ligne = connus.get(t["id"])
         if ligne is None:
-            ligne = Topic(external_id=t["id"])
+            ligne = Topic(run_id=run_id, external_id=t["id"])
             session.add(ligne)
             connus[t["id"]] = ligne
         ligne.name = _propre(t["name"])
@@ -41,10 +50,16 @@ def charger_topics(session: Session, topics: list[dict]) -> dict[str, int]:
     return {ext: ligne.id for ext, ligne in connus.items()}
 
 
-def rattacher_parents(session: Session, topics: list[dict], ids: dict[str, int]) -> int:
+def rattacher_parents(
+    session: Session, topics: list[dict], ids: dict[str, int], run_id: int
+) -> int:
     """Deuxième passe : `parent` est un UUID, il faut que tous les topics existent."""
     orphelins = 0
-    par_ext = {t.external_id: t for t in session.query(Topic).all() if t.external_id}
+    par_ext = {
+        t.external_id: t
+        for t in session.query(Topic).filter(Topic.run_id == run_id).all()
+        if t.external_id
+    }
     for t in topics:
         parent_ext = t.get("parent")
         cible = ids.get(parent_ext) if parent_ext else None
@@ -229,13 +244,19 @@ def charger_instances(
     documents: list[dict],
     ids_par_nom: dict[str, int],
     cibles: Cibles,
+    run_id: int,
     rattacher: bool = True,
 ) -> tuple[int, int]:
-    """Remplace toutes les instances par celles de la livraison.
+    """Remplace les instances **de ce run** par celles de la livraison.
+
+    Recharger une livraison ne touche plus aux autres grilles : c'est la
+    différence entre versionner une couche et l'écraser.
 
     Renvoie (labels sans topic ignorés, instances rattachées à un document).
     """
-    session.execute(text("DELETE FROM instance"))
+    session.execute(
+        text("DELETE FROM instance WHERE run_id = :run_id"), {"run_id": run_id}
+    )
     inconnus = 0
     rattachees = 0
     for doc in documents:
@@ -250,6 +271,7 @@ def charger_instances(
                 continue
             rattachees += cle is not None
             session.add(Instance(
+                run_id=run_id,
                 contribution_id=contribution_id,
                 doleance_id=doleance_id,
                 external_doc_id=str(doc["id"]),
@@ -260,7 +282,54 @@ def charger_instances(
     return inconnus, rattachees
 
 
-def main(dossier: Path = DEFAUT) -> None:
+def resoudre_run(
+    session: Session,
+    dossier: Path,
+    *,
+    label: str | None,
+    nouveau: bool,
+    auteur: str | None,
+    modele: str | None,
+    version_prompt: str | None,
+    nb_topics: int,
+    nb_documents: int,
+) -> "Run":
+    """Le run de cette livraison : le sien s'il existe déjà, un neuf sinon.
+
+    Recharger la même livraison la met à jour ; `nouveau` force une grille de
+    plus, pour comparer deux passages du même corpus.
+    """
+    source = str(dossier)
+    existant = None if nouveau else run_par_source(session, ANALYSE, source)
+    if existant is not None:
+        activer_run(session, existant)
+        print(f"run d'analyse repris : #{existant.id} « {existant.label} »")
+        return existant
+
+    run = creer_run(
+        session,
+        ANALYSE,
+        label=label or dossier.name,
+        source=source,
+        model=modele,
+        prompt_version=version_prompt,
+        parameters={"topics": nb_topics, "documents": nb_documents},
+        corpus=f"{nb_documents} document(s) labellisé(s)",
+        author=auteur,
+    )
+    print(f"run d'analyse créé : #{run.id} « {run.label} »")
+    return run
+
+
+def main(
+    dossier: Path = DEFAUT,
+    *,
+    label: str | None = None,
+    nouveau_run: bool = False,
+    auteur: str | None = None,
+    modele: str | None = None,
+    version_prompt: str | None = None,
+) -> None:
     topics = json.loads((dossier / "taxonomy.json").read_text())["topics"]
     documents = json.loads((dossier / "instances.json").read_text())["documents"]
     print(f"livraison : {len(topics)} topics · {len(documents)} documents")
@@ -269,13 +338,31 @@ def main(dossier: Path = DEFAUT) -> None:
     check_connection(engine)
 
     with Session(engine) as session:
-        ids = charger_topics(session, topics)
+        run = resoudre_run(
+            session,
+            dossier,
+            label=label,
+            nouveau=nouveau_run,
+            auteur=auteur,
+            modele=modele,
+            version_prompt=version_prompt,
+            nb_topics=len(topics),
+            nb_documents=len(documents),
+        )
+        run_id = run.id
+        sans_auteur = run.author is None
+
+        ids = charger_topics(session, topics, run_id)
         print(f"  topics synchronisés : {len(ids)}")
 
-        orphelins = rattacher_parents(session, topics, ids)
+        orphelins = rattacher_parents(session, topics, ids, run_id)
         print(f"  parents rattachés ({orphelins} parent(s) introuvable(s) -> NULL)")
 
-        ids_par_nom = {t.name: t.id for t in session.query(Topic).all()}
+        # Noms scopés au run : deux grilles peuvent nommer un thème pareil.
+        ids_par_nom = {
+            t.name: t.id
+            for t in session.query(Topic).filter(Topic.run_id == run_id).all()
+        }
         cibles = Cibles.depuis(session)
 
         taux, testes = mesurer_correspondance(session, documents, cibles)
@@ -292,16 +379,45 @@ def main(dossier: Path = DEFAUT) -> None:
             )
 
         inconnus, rattachees = charger_instances(
-            session, documents, ids_par_nom, cibles, rattacher
+            session, documents, ids_par_nom, cibles, run_id, rattacher
         )
         print(f"  instances chargées ({inconnus} label(s) sans topic -> ignoré(s))")
         print(f"  instances rattachées à un document : {rattachees}")
 
         session.commit()
 
-        for modele in (Topic, Instance):
-            print(f"{modele.__tablename__}: {session.query(modele).count()} lignes")
+        for modele_orm in (Topic, Instance):
+            total = session.query(modele_orm).count()
+            dans_le_run = (
+                session.query(modele_orm).filter(modele_orm.run_id == run_id).count()
+            )
+            print(f"{modele_orm.__tablename__}: {dans_le_run} lignes dans ce run "
+                  f"· {total} au total (toutes grilles)")
+
+    if sans_auteur:
+        print("run sans auteur : renseigner --auteur avant publication")
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAUT)
+    parser = argparse.ArgumentParser(description="Charge une livraison de l'équipe analyse.")
+    parser.add_argument(
+        "dossier", nargs="?", type=Path, default=DEFAUT,
+        help=f"dossier contenant taxonomy.json et instances.json (défaut : {DEFAUT})",
+    )
+    parser.add_argument("--label", help="nom lisible de la grille (défaut : nom du dossier)")
+    parser.add_argument(
+        "--nouveau-run", action="store_true",
+        help="charger en une grille de plus au lieu de mettre à jour celle de ce dossier",
+    )
+    parser.add_argument("--auteur", help="qui a produit la livraison")
+    parser.add_argument("--modele", help="modèle LLM ayant produit la grille")
+    parser.add_argument("--version-prompt", help="version du prompt employé")
+    args = parser.parse_args()
+    main(
+        args.dossier,
+        label=args.label,
+        nouveau_run=args.nouveau_run,
+        auteur=args.auteur,
+        modele=args.modele,
+        version_prompt=args.version_prompt,
+    )
