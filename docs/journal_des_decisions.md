@@ -926,6 +926,70 @@ comparaison, qui est tout l'intérêt.
 
 ---
 
+## 2026-09-10 — La recherche est indifférente aux accents, et ses extraits sont caviardés
+
+**Décision.** Le corpus est cherchable en plein texte au niveau de la doléance,
+par un index GIN sur `to_tsvector('francais_sans_accent', text)`. Cette
+configuration est une copie de `french` dont la correspondance des mots passe par
+`unaccent`. Les extraits rendus sont **caviardés** des passages personnels
+repérés.
+
+**Périmètre.** `recherche/`, l'onglet Recherche de l'app, migration
+`b1c5f8e34a72`.
+
+**Motif de la configuration sans accent.** Personne ne tape les accents dans un
+champ de recherche. Mesuré sur les 1 002 doléances, en tapant les termes sans
+accent : « impot » trouve **22 doléances avec `french`, 309 avec la
+configuration sans accent** ; « depute » 14 contre 260 ; « ecole » 18 contre 138.
+Le mécanisme mérite d'être noté parce qu'il n'est pas intuitif : le radicaliseur
+français supprime déjà la voyelle accentuée **finale** — « santé » et « sante »
+se rejoignent sans rien faire, et le terme « sante » donne 181 des deux côtés —
+mais il conserve les accents **intérieurs**, ceux d'impôt, école, député,
+référendum. S'y ajoute l'OCR, qui abîme les accents pour son compte : le corpus
+contient `qüe`, `qùè`, `qüé`, `qùe` pour « que ».
+
+**Effet de bord assumé.** La configuration confond « retraite » et « retraité ».
+Le radicaliseur les confondait déjà — même racine — elle n'ajoute que les
+variantes abîmées.
+
+**Motif du caviardage.** La recherche est le premier endroit où le corpus se lit
+**en vrac**, hors du cahier qui lui donnait son contexte. Un extrait rendu à qui
+interroge n'est pas la même chose qu'un texte lu par un bénévole qui annote une
+commune — c'est pourquoi la vue par commune, elle, reste en clair. L'ordre des
+opérations est l'inverse de l'intuition et il est structurant : on caviarde le
+texte entier **puis** on y découpe la fenêtre, parce que les passages sont des
+offsets dans le texte d'origine. Un terme qui ne se trouvait que dans un passage
+occulté disparaît donc de l'extrait, et le résultat s'ouvre sur le début du
+texte. C'est le bon sens de l'erreur.
+
+**Alternatives écartées.** `ts_headline` de PostgreSQL, qui fabrique l'extrait
+côté base : il rend une chaîne, pas des positions, et le caviardage par offsets
+ne s'y applique donc pas. Une colonne `tsvector` générée plutôt qu'un index
+d'expression : elle aurait dû figurer au modèle, monté sur SQLite par les tests.
+`pgvector` : l'extension n'est pas installée sur la base, et la recherche
+vectorielle répond de toute façon à une autre question.
+
+**Ce que la recherche a immédiatement montré.** Interroger les mots de la lettre
+présidentielle rend cinq résultats qui sont **la lettre du Président de la
+République**, recopiée dans six communes — pas des contributions citoyennes.
+Sans le marqueur emprunté à `doublons/`, une recherche les présenterait comme les
+textes les plus pertinents du corpus. Le champ vaut `None` quand la déduplication
+n'a pas tourné, ce qui veut dire « on ne sait pas » et non « texte unique ».
+
+**Limites consignées.** La recherche ne voit que la moitié dactylographiée du
+corpus. L'OCR défait la correspondance exacte — `mairie^ferney-voltaire.fr` avec
+un accent circonflexe pour l'arobase, `giiecs jaunes` pour « gilets jaunes » — et
+un mot mal océrisé n'est trouvé par aucune requête. Enfin, alembic ne sait pas
+comparer un index d'expression : il est nommé dans `INDEX_HORS_COMPARAISON`, sans
+quoi `alembic check` échouerait à chaque exécution sur une base pourtant à jour.
+
+**Réversibilité.** Totale : la migration se redescend, l'index et la
+configuration se recréent, rien n'est écrit dans les données.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs

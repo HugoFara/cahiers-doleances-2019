@@ -79,6 +79,40 @@ trois choses, et la troisième est bloquante :
 - **occulter les données personnelles sur l'image**, pas seulement dans la
   transcription. Sans coordonnées, c'est impossible.
 
+## Ce que coûte l'OCR
+
+**Chiffré le 2026-09-10.** L'équipe initiale avait estimé l'OCR du corpus à
+environ **1 500 €** (chiffre rapporté, non retrouvé dans le repo). Aux prix
+2026 des modèles de documents, ce chiffre est dépassé d'un facteur 50 à 100,
+et c'est un argument décisif pour reprendre le manuscrit :
+
+- **Mistral OCR 4.1** (`mistral-ocr-latest`, entreprise française) facture à la
+  page : **4 $ / 1 000 pages** en mode OCR, 5 $ / 1 000 pages en mode Document
+  AI (sortie structurée), **−50 % en batch**, +10 % pour l'endpoint régional
+  UE. Le corpus entier — 516 cahiers, 5 365 pages de contenu (~6 400 avec les
+  pages de métadonnées), dont 2 510 manuscrites — passe pour **22 à 26 $ en
+  standard, moitié en batch**. Les seules pages manuscrites : 10 $, 5 $ en
+  batch. Vitesse annoncée : 2 000 pages/min — le corpus en quelques minutes.
+  Autrement dit, plusieurs passes complètes — comparer des modèles, rejouer
+  après correctif — sont envisageables pour un coût négligeable.
+- **Alternative locale, 0 €** : `glm-ocr` (0,9B, 2,2 Go) ou `qwen3-vl`
+  (30b/32b) sur Ollama. Poids ouverts, aucune donnée ne quitte la machine, le
+  corpus tient sur un GPU standard ; seule la vitesse d'inférence diffère.
+
+Repères de qualité : Mistral OCR v1 (2503) annonçait 94,89 en overall sur son
+bench interne (GPT-4o : 89,77) et **99,20 sur le français** ; glm-ocr 94,62 sur
+OmniDocBench V1.5. Les deux benchmarks ne sont pas comparables entre eux, et
+**aucun ne publie de score sur écriture manuscrite** — pour les 2 510 pages
+`needs_ocr`, le seul juge valable reste l'échantillon de référence
+(`reference/`). C'est lui qu'il faut passer d'abord : une passe API sur
+l'échantillon se compte en centimes.
+
+Le coût ne décide pas seul : envoyer les scans bruts à une API retombe sur la
+question de la P3 (hébergement, transfert). Mistral est européen, propose un
+endpoint UE (+10 %) et du self-host sélectif ; les modèles locaux tranchent la
+question d'office. Une clé `MISTRAL_API_KEY` est en place dans `.env` pour
+essayer l'API sur l'échantillon de référence.
+
 ## Priorité 1 — faire du squelette un squelette
 
 - ~~**Runs et versions.**~~ Fait. L'app annonce la grille servie sur ses deux
@@ -118,7 +152,9 @@ trois choses, et la troisième est bloquante :
   communes muettes étant les petites. Les 2 855 pages retenues sont exactement
   les 2 855 documents analysés jusqu'ici. C'est le biais le plus lourd du projet,
   il porte sur la population que ces cahiers devaient faire entendre, et il ne se
-  lève qu'avec l'HTR. D'ici là, le taux doit accompagner tout comptage.
+  lève qu'avec l'HTR. D'ici là, le taux doit accompagner tout comptage. Le coût
+  n'est plus l'obstacle : l'OCR complet du corpus se chiffre en dizaines de
+  dollars en API, ou zéro en local — voir « Ce que coûte l'OCR » ci-dessus.
 
 ## Priorité 2 — les annotations comme couche plurielle
 
@@ -244,9 +280,11 @@ Questions à poser au prestataire, et à trancher pour notre propre app :
    prestataire, son interprétation est un monopole, quelle que soit la qualité du
    site.
 
-Côté outillage : recherche plein texte (`tsvector`, configuration `french`) et
-vectorielle ; annotations désactivables ; chaque étiquette renvoyant à sa page
-source en un clic. Les trois avertissements — part écartée, communes muettes,
+Côté outillage : la **recherche plein texte** est faite depuis le 2026-09-10
+(`recherche/`), avec une configuration indifférente aux accents — « impot » sans
+accent trouvait 22 doléances sur 309. Restent la recherche vectorielle
+(`pgvector` n'est pas installé), les annotations désactivables, et chaque
+étiquette renvoyant à sa page source en un clic. Les trois avertissements — part écartée, communes muettes,
 grille servie — sont affichés depuis le 2026-09-10, et le sélecteur de commune
 est passé au code INSEE : il en manquait 153, soit 40 % des contributions hors
 d'atteinte.
@@ -273,14 +311,16 @@ corpus. C'est ce qui rend les décisions visibles et donc contestables.
 attend, le travail humain non, et le découpage sous-coupe visiblement (753 mots
 par doléance en moyenne) sans qu'on puisse encore chiffrer de combien.
 
-Côté code, le millésime du Code officiel géographique a été tranché le
+Côté code, plus rien n'est entièrement faisable sans décision préalable : la
+recherche plein texte, dernier chantier de cette catégorie, est faite. La
+recherche vectorielle demande d'installer `pgvector` — décision d'exploitation —
+et le reste attend du travail humain ou un alignement.
+Le millésime du Code officiel géographique a été tranché le
 2026-09-10 — pivot 2019, table de passage vers le millésime courant, extraits
 versionnés — et reste révisable d'une commande si l'alignement national impose
-autre chose. Il ne reste qu'un chantier entièrement faisable sans décision
-préalable : la **recherche plein texte** (`tsvector`, configuration `french`) et
-vectorielle. Tout le reste attend soit du travail humain (annotation de
-l'étalon), soit une décision d'alignement (modèle de NER hébergé
-en UE, formats IIIF / ALTO / EAD).
+autre chose. Tout le reste attend soit du travail humain (annotation de
+l'étalon), soit une décision d'alignement (modèle de NER hébergé en UE, formats
+IIIF / ALTO / EAD).
 
 ---
 
@@ -294,7 +334,7 @@ en UE, formats IIIF / ALTO / EAD).
 | Runs et versions (grilles concurrentes, `doleance` versionnée) | fait — `database/runs.py`, table `run` |
 | Jeu de référence annoté (200-300 doléances) | outillage fait — `reference/` ; **reste à annoter** |
 | Chiffrer la part manuscrite écartée | fait — 47 % des pages, `couverture/` |
-| Reprendre le manuscrit (HTR) | à faire — **prochain**, bloqué sur l'OCR |
+| Reprendre le manuscrit (HTR) | à faire — **prochain** ; coût chiffré le 2026-09-10 (~25 $ en API, 0 € en local), restent la qualité sur manuscrit et la P3 |
 | Commune -> INSEE | fait — 459 communes contre 307 par graphie |
 | Population et coordonnées (Code officiel géographique) | fait — `insee/referentiel/`, millésime pivot 2019 |
 | Types de support et d'auteur | fait — `typologie/` ; 20 % des doléances ne sont pas des contributions |
@@ -303,7 +343,8 @@ en UE, formats IIIF / ALTO / EAD).
 | Anonymisation : NER | fait le 2026-09-11 — `anonymisation/ner.py`, CamemBERT-NER en local sur CPU ; noms 1 309 -> 3 582 sur le découpage servi |
 | Anonymisation : rappel mesuré, occultation image | à faire — **le point dur** ; le rappel attend l'étalon annoté, l'image attend la géométrie |
 | Métriques de taxonomie, catégorie « hors grille » | fait — `taxonomie/` ; 76 % de singletons |
-| Recherche plein texte et vectorielle | à faire — **le seul item encore entièrement faisable côté code** |
+| Recherche plein texte | fait — `recherche/`, configuration sans accent |
+| Recherche vectorielle | à faire — `pgvector` n'est pas installé sur la base |
 | Couverture et représentativité | fait — pondérée par population, `insee/` et `couverture/` |
 | Standards IIIF / ALTO / EAD, export en masse | à faire |
 | Avertissements et couverture affichés dans l'app | fait — les deux vues, `gradio_app/avertissements.py` |

@@ -17,6 +17,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
 - `typologie/` : ce qu'est une doléance — genre de document, genre d'auteur | [documentation](typologie/README.md)
 - `anonymisation/` : le repérage des passages personnels | [documentation](anonymisation/README.md)
 - `taxonomie/` : ce que vaut une grille de thèmes | [documentation](taxonomie/README.md)
+- `recherche/` : la recherche plein texte dans les doléances | [documentation](recherche/README.md)
 - `reference/` : le jeu de référence annoté à la main, et la mesure de ce que valent les couches | [documentation](reference/README.md)
 - `gradio_app/` : l'interface pour parcourir les contributions et les annoter | [documentation](gradio_app/README.md)
 - `topic-builder/` : l'utilitaire de découverte, structuration et annotation des thèmes abordés dans les contributions | [documentation](topic-builder/README.md)
