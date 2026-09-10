@@ -3,7 +3,7 @@
 Sans base de données : `gradio_app/communes.py` ne travaille que sur des listes.
 """
 
-from gradio_app.communes import cle_commune, regrouper
+from gradio_app.communes import cle_commune, libelle_commune, regrouper
 
 
 class TestCleCommune:
@@ -66,3 +66,19 @@ class TestRegrouper:
 
     def test_liste_vide(self):
         assert regrouper([]) == {}
+
+
+class TestLibelleCommune:
+    def test_le_nom_officiel_l_emporte(self):
+        assert libelle_commune("Vald'Yerre", "ARROU", "28012") == "Vald'Yerre (28012)"
+
+    def test_sans_nom_officiel_on_retombe_sur_la_graphie(self):
+        assert libelle_commune(None, "AHUILLÉ", "53001") == "AHUILLÉ (53001)"
+
+    def test_sans_rien_le_code_vaut_mieux_qu_un_trou(self):
+        """153 communes du corpus n'ont aucune graphie : elles étaient hors liste."""
+        assert libelle_commune(None, None, "53062") == "53062 (53062)"
+
+    def test_le_code_est_toujours_affiche(self):
+        """Deux communes peuvent porter le même nom ; le code, lui, identifie."""
+        assert libelle_commune("Saint-Denis", None, "93066").endswith("(93066)")

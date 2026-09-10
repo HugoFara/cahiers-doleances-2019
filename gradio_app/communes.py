@@ -66,3 +66,26 @@ def regrouper(graphies: list[str]) -> dict[str, list[str]]:
         representant = max(uniques, key=lambda n: (_richesse(n), -uniques.index(n)))
         affichage[representant] = uniques
     return dict(sorted(affichage.items()))
+
+
+def libelle_commune(officiel: str | None, graphie: str | None, code: str) -> str:
+    """Le nom sous lequel une commune s'affiche, du plus fiable au moins.
+
+    Le nom officiel du Code officiel géographique d'abord, la graphie de
+    l'en-tête du cahier ensuite, le code seul en dernier — jamais rien. Cent
+    cinquante-trois communes du corpus n'ont aucune graphie : sans ce dernier
+    repli, elles n'auraient pas d'entrée dans le sélecteur, et leurs
+    contributions ne seraient atteignables par aucun chemin.
+
+    Le code reste affiché entre parenthèses dans tous les cas : c'est lui
+    l'identifiant, et deux communes peuvent porter le même nom.
+
+    Args:
+        officiel: le libellé du Code officiel géographique, s'il est chargé.
+        graphie: la graphie retenue dans le corpus, si l'en-tête était lisible.
+        code: le code INSEE, toujours présent.
+
+    Returns:
+        Le libellé à afficher.
+    """
+    return f"{officiel or graphie or code} ({code})"

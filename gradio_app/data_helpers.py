@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 import pandas as pd
-from communes import regrouper
+from communes import libelle_commune, regrouper
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
@@ -24,12 +24,21 @@ engine = create_engine(
     pool_pre_ping=True,
 )
 
+# Code de remplissage employé à la source quand la commune n'est pas
+# renseignée. Ce n'est pas un code INSEE : il sert ici de valeur de sélection
+# pour les cahiers qui n'en ont pas, plutôt que de les laisser invisibles.
+SANS_COMMUNE = "00000"
+
+
 def _graphies() -> dict[str, list[str]]:
     """{graphie affichée: toutes les graphies de la même commune}.
 
     Une même commune est écrite différemment selon les PDF (« AHUILLE » /
     « AHUILLÉ ») : sans ce regroupement la liste en propose deux, dont chacune
     ne montre qu'une partie des contributions.
+
+    Ne sert plus au sélecteur, qui passe par le code INSEE, mais reste la
+    meilleure graphie disponible quand le référentiel n'a pas de nom officiel.
     """
     # la commune est parsée du PDF : elle est vide quand l'extraction a échoué.
     q = text("""
@@ -39,15 +48,48 @@ def _graphies() -> dict[str, list[str]]:
     return regrouper(pd.read_sql(q, engine)["city"].tolist())
 
 
-def list_communes() -> list[str]:
-    return list(_graphies())
+def list_communes() -> list[tuple[str, str]]:
+    """(libellé affiché, code INSEE), une entrée par commune du corpus.
+
+    **Le sélecteur repose sur le code, plus sur la graphie de l'en-tête.**
+    Celle-ci manque sur un tiers des cahiers : 153 communes n'avaient aucune
+    entrée dans la liste et 2 169 contributions sur 5 365 — 40 % — n'étaient
+    atteignables par aucun chemin de l'app. Château-Gontier-sur-Mayenne et ses
+    cent contributions en faisaient partie.
+
+    Le libellé préfère le nom officiel du Code officiel géographique, retombe
+    sur la graphie du corpus, puis sur le code seul — jamais rien.
+    """
+    q = text("""
+        SELECT k.city_code AS code,
+               max(v.official_name) AS officiel,
+               max(v.name) AS graphie,
+               count(*) AS contributions
+        FROM contribution k
+        LEFT JOIN city v ON v.code = k.city_code
+        GROUP BY k.city_code
+    """)
+    lignes = pd.read_sql(q, engine).to_dict("records")
+    communes = []
+    for ligne in lignes:
+        code = ligne["code"]
+        if code is None:
+            communes.append((
+                f"— commune non renseignée ({ligne['contributions']})",
+                SANS_COMMUNE,
+            ))
+            continue
+        communes.append((libelle_commune(ligne["officiel"], ligne["graphie"], code), code))
+    # Les cahiers sans commune en dernier : ce sont des exceptions, pas une
+    # entrée de navigation.
+    return sorted(communes, key=lambda c: (c[1] == SANS_COMMUNE, c[0]))
 
 
 
 
 
-def _rows(commune: str) -> pd.DataFrame:
-    """Les contributions d'une commune."""
+def _rows(code: str) -> pd.DataFrame:
+    """Les contributions d'une commune, désignée par son code INSEE."""
     # une seule extraction affichée par contribution : la plus récente
     q = text("""
         SELECT k.id, k.city, k.pdf_file, k.start_page, k.end_page, k.is_handwritten,
@@ -63,12 +105,12 @@ def _rows(commune: str) -> pd.DataFrame:
             SELECT max(id) FROM extraction WHERE contribution_id = k.id
         )
         LEFT JOIN annotation a ON a.contribution_id = k.id
-        WHERE k.city = ANY(:graphies)
+        WHERE (:code = '' AND k.city_code IS NULL) OR k.city_code = :code
         ORDER BY k.id
     """)
-    # toutes les graphies de la commune, pas seulement celle affichée
-    graphies = _graphies().get(commune, [commune])
-    return pd.read_sql(q, engine, params={"graphies": graphies})
+    # Chaîne vide plutôt que NULL en paramètre : `k.city_code = NULL` n'est
+    # jamais vrai, la clause aurait silencieusement rendu zéro ligne.
+    return pd.read_sql(q, engine, params={"code": "" if code == SANS_COMMUNE else code})
 
 def _topic_instances(contribution_id: int) -> pd.DataFrame:
     """Les instances de thèmes d'une contribution avec verbatim et résumé."""
@@ -105,12 +147,12 @@ def _nature(is_handwritten) -> str:
         return "N/C"
     return "Manuscrit" if is_handwritten else "Dactylographié"
 
-def list_contributions(commune: str) -> list[str]:
-    rows = _rows(commune)
+def list_contributions(code: str) -> list[str]:
+    rows = _rows(code)
     return [f"{i + 1}/{len(rows)} | {_nature(h)}" for i, h in enumerate(rows["is_handwritten"])]
 
-def get_contribution(commune: str, idx: int) -> dict:
-    rows = _rows(commune)
+def get_contribution(code: str, idx: int) -> dict:
+    rows = _rows(code)
     r = rows.iloc[idx]
     # le détail (verbatim + résumé) ne s'affiche que si l'analyse existe
     inst = _topic_instances(int(r["id"]))
@@ -142,8 +184,8 @@ def get_contribution(commune: str, idx: int) -> dict:
         "is_of_interest": bool(r["is_of_interest"]) if pd.notna(r["is_of_interest"]) else False,
     }
 
-def save_annotation(commune: str, idx: int, is_anonymized: bool, is_of_interest: bool) -> str:
-    contribution_id = int(_rows(commune).iloc[idx]["id"])
+def save_annotation(code: str, idx: int, is_anonymized: bool, is_of_interest: bool) -> str:
+    contribution_id = int(_rows(code).iloc[idx]["id"])
     with engine.begin() as conn: # begin = transaction, commit automatique
         if not is_anonymized and not is_of_interest:
             # plus rien d'activé : on supprime la ligne (contribution redevient vierge)
@@ -217,3 +259,60 @@ def charger_detections() -> pd.DataFrame:
         ORDER BY i.id
     """)
     return pd.read_sql(q, engine)
+
+
+#  avertissements : ce que l'app doit dire avant de montrer un chiffre
+#
+#  Les mesures viennent de `couverture.mesures` et `insee.cog`, pas d'un calcul
+#  refait ici : deux implémentations de la même règle divergent, et celle qui
+#  s'affiche à l'écran serait la dernière à être corrigée. Le coût est de lire
+#  les pages une fois au démarrage, ce que fait déjà `python -m couverture`.
+
+def _pages_pour_couverture() -> list:
+    """Les colonnes que `couverture.mesures.mesurer` lit, et rien d'autre.
+
+    Les `Row` de SQLAlchemy donnent l'accès par attribut : elles passent telles
+    quelles là où le module attend des lignes `page_extraction`.
+    """
+    q = text("""
+        SELECT p.pdf_name, p.city, p.needs_ocr, p.contribution_id
+        FROM page_extraction p
+    """)
+    with engine.connect() as conn:
+        return list(conn.execute(q))
+
+
+def _codes_par_contribution() -> dict[int, str]:
+    q = text("""
+        SELECT id, city_code FROM contribution WHERE city_code IS NOT NULL
+    """)
+    with engine.connect() as conn:
+        return dict(conn.execute(q).all())
+
+
+def etat_du_corpus():
+    """Ce que l'app sait de ses propres limites.
+
+    Dégrade plutôt que d'échouer : sans référentiel INSEE lisible, la
+    pondération par population et les noms officiels disparaissent de
+    l'avertissement, le reste tient.
+    """
+    from couverture.mesures import mesurer
+    from gradio_app.avertissements import Etat
+
+    codes = _codes_par_contribution()
+    try:
+        from insee.cog import lire, populations_sans_double_compte
+
+        referentiel = lire()
+        habitants = populations_sans_double_compte(set(codes.values()), referentiel)
+        noms = {c: referentiel[c].nom for c in set(codes.values()) if c in referentiel}
+    except (OSError, KeyError):
+        habitants, noms = {}, {}
+
+    return Etat(
+        couverture=mesurer(_pages_pour_couverture(), codes, habitants, noms),
+        grille=grille_servie(),
+        communes_listees=len([c for c in list_communes() if c[1] != SANS_COMMUNE]),
+        communes_du_corpus=len(set(codes.values())),
+    )

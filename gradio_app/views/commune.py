@@ -34,11 +34,11 @@ def pdf_html(pdf_file: str | None) -> str:
         return _cadre(src, src)
     return f"<em>PDF introuvable : {pdf_file}</em>"
 
-def show(commune: str, idx: int):
-    """Affiche la contribution n°idx de la commune."""
-    contribs = list_contributions(commune)
+def show(code: str, idx: int):
+    """Affiche la contribution n°idx de la commune, désignée par son code INSEE."""
+    contribs = list_contributions(code)
     idx = max(0, min(idx, len(contribs) - 1))
-    c = get_contribution(commune, idx)
+    c = get_contribution(code, idx)
     return (
         gr.update(choices=contribs, value=contribs[idx] if contribs else None),
         c["analyse"],
@@ -58,10 +58,15 @@ def render():
     """
     idx_state = gr.State(0)
 
+    # (libellé, code INSEE) : le libellé se lit, le code identifie. Le
+    # sélecteur reposait sur la graphie de l'en-tête, absente d'un tiers des
+    # cahiers — 40 % des contributions n'étaient atteignables par aucun chemin.
+    communes = list_communes()
+
     with gr.Row():
         with gr.Column(scale=1):
             commune = gr.Dropdown(
-                list_communes(), value=list_communes()[0], label="Commune", filterable=True
+                communes, value=communes[0][1], label="Commune", filterable=True
             )
             contrib = gr.Dropdown(label="Contribution", filterable=True)
             analyse = gr.Markdown()
@@ -93,4 +98,4 @@ def render():
     next_btn.click(lambda c, i: show(c, i + 1), [commune, idx_state], outputs)
     save_btn.click(save_annotation, [commune, idx_state, anonymized, of_interest], status)
 
-    return lambda: show(list_communes()[0], 0), outputs
+    return lambda: show(communes[0][1], 0), outputs
