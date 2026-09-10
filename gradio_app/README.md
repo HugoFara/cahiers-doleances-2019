@@ -9,6 +9,24 @@ Deux interfaces sur un seul serveur :
 Les données sont lues **directement dans la base PostgreSQL**, pas de fichier
 intermédiaire. Les PDF viennent de l'Object Storage Scaleway.
 
+## L'avertissement, avant tout chiffre
+
+Un repli en haut de page dit ce que le corpus n'est pas, et il est calculé, pas
+écrit en dur : la part de pages écartées, les communes sans aucune page lisible
+avec leur poids en habitants, la grille de thèmes servie parmi celles qui
+coexistent en base, et les mentions de source exigées par la Licence Ouverte 2.0.
+
+Ce n'est pas un scrupule décoratif. Un site de consultation est un acte
+éditorial : « 34 % des contributions parlent de fiscalité » sera lu comme un
+sondage si rien ne dit le contraire. La troisième condition de la Licence
+Ouverte 2.0, sous laquelle sont les données INSEE et IGN, est d'ailleurs de « ne
+pas induire en erreur quant à leur interprétation ».
+
+Les compteurs viennent de `couverture.mesures` et `insee.cog`, jamais d'un calcul
+refait dans l'app : deux implémentations de la même règle divergent, et celle qui
+s'affiche à l'écran serait la dernière corrigée. La mise en forme, elle, est dans
+`gradio_app/avertissements.py`, sans base ni Gradio, donc testée.
+
 ## Fonctionnement
 
 **Par commune** : une contribution affiche ses thèmes (`instance` reliées au
@@ -17,8 +35,15 @@ sentiments (`feeling`), le texte de sa dernière extraction (`extraction`,
 `max(id)`) et son PDF. Les deux cases cochées sont écrites dans `annotation`
 (UPSERT ; les deux décochées = ligne supprimée).
 
-Les communes au nom vide sont écartées de la liste : le parsing du PDF échoue
-parfois, ce qui ferait démarrer la vue sur une commune sans nom.
+**Le sélecteur de commune repose sur le code INSEE**, plus sur la graphie de
+l'en-tête du PDF. Ce parsing échoue sur un tiers des cahiers, et la conséquence
+n'était pas cosmétique : 153 communes n'avaient aucune entrée dans la liste et
+**2 169 contributions sur 5 365 — 40 % — n'étaient atteignables par aucun chemin
+de l'app**. Château-Gontier-sur-Mayenne et ses cent contributions en faisaient
+partie. Le libellé affiche le nom officiel du Code officiel géographique, retombe
+sur la graphie du corpus, puis sur le code seul. Les 144 contributions dont le
+cahier n'a pas de code à la source ont leur propre entrée en fin de liste, plutôt
+que de rester invisibles.
 
 **Vue graphe** : la taxonomie et ses détections sont chargées une fois au
 démarrage (6788 topics, 9579 instances) puis servies en JSON. Le graphe est une
@@ -65,6 +90,8 @@ uv run python gradio_app/app.py   # http://localhost:7860
 
 ## Limites connues
 
+- L'avertissement est calculé au démarrage, comme la taxonomie : il ne bouge pas
+  tant que l'app tourne.
 - La taxonomie est chargée au démarrage : recharger la base demande un
   redémarrage de l'app.
 - `instance.contribution_id` est NULL **pour la livraison analyse actuelle**, dont

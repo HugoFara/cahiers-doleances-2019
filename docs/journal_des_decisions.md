@@ -385,6 +385,62 @@ pas de rejouer une migration.
 
 ---
 
+## 2026-09-10 — L'app dit ce que le corpus n'est pas, avant de montrer un chiffre
+
+**Décision.** Un avertissement calculé s'affiche au-dessus des vues : part de
+pages écartées, communes sans aucune page lisible et leur poids en habitants,
+grille de thèmes servie parmi celles qui coexistent, mentions de source. Et le
+sélecteur de commune passe du nom parsé de l'en-tête au **code INSEE**.
+
+**Périmètre.** `gradio_app/`, les deux vues.
+
+**Motif.** Un site de consultation est un acte éditorial : ce qu'il affiche par
+défaut, et surtout ce qu'il tait, décide de la lecture. Tout ce qui a été mesuré
+ici depuis une semaine vivait dans des README et des sorties de commande —
+c'est-à-dire nulle part pour qui utilise l'app. « x % des contributions parlent
+de y » se lit comme un sondage tant que rien ne dit le contraire. S'y ajoute une
+obligation : la Licence Ouverte 2.0, sous laquelle sont les données INSEE et
+IGN, impose de « ne pas induire en erreur quant à l'interprétation » des
+informations.
+
+**Ce que le sélecteur cachait, mesuré.** Il reposait sur `contribution.city`, la
+graphie parsée de l'en-tête du PDF, qui manque sur un tiers des cahiers.
+Conséquence : **153 communes n'avaient aucune entrée dans la liste, et 2 169
+contributions sur 5 365 — 40 % — n'étaient atteignables par aucun chemin de
+l'app.** Château-Gontier-sur-Mayenne et ses cent contributions en faisaient
+partie. Ce n'était pas une gêne d'affichage : c'était une partie du corpus hors
+d'atteinte des bénévoles qui annotent, sans que rien ne le signale.
+
+Le rattachement INSEE existait depuis le matin et le référentiel depuis
+l'après-midi ; il ne manquait que de les brancher. Le libellé prend le nom
+officiel du Code officiel géographique, retombe sur la graphie, puis sur le code
+— jamais rien. Les 144 contributions dont le cahier n'a pas de code à la source
+ont leur propre entrée plutôt que de rester invisibles.
+
+**Alternatives écartées.** Afficher l'avertissement en pied de page (personne ne
+descend) ; l'écrire en dur (il devient faux au premier rechargement de la base et
+personne ne s'en aperçoit) ; recalculer les taux dans l'app (deux
+implémentations de la même règle divergent, et celle qui s'affiche à l'écran
+serait la dernière corrigée — les compteurs viennent donc de `couverture.mesures`
+et `insee.cog`).
+
+**Ce qui est replié et ce qui ne l'est pas.** Les trois phrases qui doivent
+accompagner tout comptage sont visibles sans clic ; les précisions et les sources
+sont dans un repli. Un avertissement trop long n'est pas lu, et ne pas être lu
+est le seul échec qui compte ici.
+
+**Limite.** L'avertissement est calculé au démarrage, comme la taxonomie : il ne
+bouge pas tant que l'app tourne. Et il ne dit rien de ce qui n'a jamais été
+déposé — les communes sans cahier du tout ne sont pas dans le corpus, donc pas
+dans ce compte.
+
+**Réversibilité.** Totale, c'est de l'affichage. Le changement de sélecteur, lui,
+ne se reviendrait pas sans reperdre 40 % des contributions.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le choix des grilles de thèmes, et le statut donné à chacune.

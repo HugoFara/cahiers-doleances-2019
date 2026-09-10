@@ -81,8 +81,9 @@ trois choses, et la troisième est bloquante :
 
 ## Priorité 1 — faire du squelette un squelette
 
-- ~~**Runs et versions.**~~ Fait. Reste à imposer l'auteur d'un run plutôt que
-  de le réclamer, et à exposer le choix de la grille dans l'app.
+- ~~**Runs et versions.**~~ Fait. L'app annonce désormais la grille servie
+  (2026-09-10). Reste à imposer l'auteur d'un run plutôt que de le réclamer, et
+  à permettre d'en changer depuis l'app.
 - **Commune → code INSEE.** Fait le 2026-09-10 (`insee/`) : le code se lit dans
   le nom du fichier, la table `city` le porte, `contribution.city_code` y
   renvoie. **459 communes au lieu de 307** — le parsing d'en-tête en manquait un
@@ -203,7 +204,10 @@ Questions à poser au prestataire, et à trancher pour notre propre app :
 
 Côté outillage : recherche plein texte (`tsvector`, configuration `french`) et
 vectorielle ; annotations désactivables ; chaque étiquette renvoyant à sa page
-source en un clic.
+source en un clic. Les trois avertissements — part écartée, communes muettes,
+grille servie — sont affichés depuis le 2026-09-10, et le sélecteur de commune
+est passé au code INSEE : il en manquait 153, soit 40 % des contributions hors
+d'atteinte.
 
 ## Le journal des décisions
 
@@ -256,6 +260,7 @@ en UE, formats IIIF / ALTO / EAD).
 | Recherche plein texte et vectorielle | à faire — **le seul item encore entièrement faisable côté code** |
 | Couverture et représentativité | fait — pondérée par population, `insee/` et `couverture/` |
 | Standards IIIF / ALTO / EAD, export en masse | à faire |
+| Avertissements et couverture affichés dans l'app | fait — `gradio_app/avertissements.py` |
 
 **Ce que le découpage donne aujourd'hui** : sur les 2 855 pages de
 `topic-builder/data/cahiers/dataset.csv`, 3 243 doléances — 11 % des pages
