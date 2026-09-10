@@ -11,9 +11,14 @@ def page(
     city: str | None = "TRIZAY",
     needs_ocr: bool | None = False,
     quality_score: float | None = 0.9,
+    contribution_id: int = 1,
 ) -> PageExtraction:
     return PageExtraction(
-        pdf_name=pdf_name, city=city, needs_ocr=needs_ocr, quality_score=quality_score
+        pdf_name=pdf_name,
+        city=city,
+        needs_ocr=needs_ocr,
+        quality_score=quality_score,
+        contribution_id=contribution_id,
     )
 
 
@@ -57,7 +62,7 @@ def test_un_cahier_entierement_manuscrit_est_muet():
     assert couverture.cahiers_muets == ["c.pdf"]
 
 
-def test_une_commune_muette_n_a_aucune_voix_dans_l_analyse(): 
+def test_une_commune_muette_n_a_aucune_voix_dans_l_analyse():
     pages = [
         page(pdf_name="a.pdf", city="TRIZAY", needs_ocr=True),
         page(pdf_name="b.pdf", city="FONTENET"),
@@ -128,3 +133,46 @@ def test_la_sensibilite_ignore_les_pages_sans_score():
 @pytest.mark.parametrize("seuils", [[], [0.3]])
 def test_la_sensibilite_sur_un_corpus_vide(seuils):
     assert all(part.taux == 0.0 for part in sensibilite_seuil([], seuils).values())
+
+
+# --- identification des communes par code INSEE ---
+
+
+def test_le_code_insee_compte_les_communes_sans_graphie():
+    """Le point du rattachement : un tiers des cahiers n'a pas de commune lisible.
+
+    Par graphie, ces communes ne sont comptées ni au numérateur ni au
+    dénominateur — elles disparaissent. Mesuré sur le corpus : 307 communes par
+    graphie, 459 par code.
+    """
+    pages = [
+        page(pdf_name="a.pdf", city="TRIZAY", contribution_id=1),
+        page(pdf_name="b.pdf", city=None, contribution_id=2),
+    ]
+    assert mesurer(pages).communes.total == 1
+    assert mesurer(pages, {1: "17452", 2: "17168"}).communes.total == 2
+
+
+def test_le_code_insee_l_emporte_sur_la_graphie():
+    """Deux graphies proches mais deux communes distinctes : le code tranche."""
+    pages = [
+        page(pdf_name="a.pdf", city="SAINT-DENIS", contribution_id=1),
+        page(pdf_name="b.pdf", city="SAINT DENIS", contribution_id=2),
+    ]
+    assert mesurer(pages).communes.total == 1
+    assert mesurer(pages, {1: "93066", 2: "97411"}).communes.total == 2
+
+
+def test_une_contribution_hors_rattachement_n_est_pas_comptee():
+    """Deux cahiers du corpus n'ont pas de code : ne pas leur en inventer un."""
+    pages = [page(contribution_id=1), page(pdf_name="b.pdf", contribution_id=2)]
+    assert mesurer(pages, {1: "17452"}).communes.total == 1
+
+
+def test_une_commune_reste_muette_par_code():
+    pages = [
+        page(pdf_name="a.pdf", city=None, needs_ocr=True, contribution_id=1),
+        page(pdf_name="b.pdf", city="FONTENET", contribution_id=2),
+    ]
+    couverture = mesurer(pages, {1: "17452", 2: "17168"})
+    assert couverture.communes_muettes == ["17452"]

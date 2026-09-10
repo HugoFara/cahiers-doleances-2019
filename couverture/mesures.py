@@ -76,11 +76,20 @@ def _ecartee(page) -> bool:
     return page.needs_ocr is True
 
 
-def mesurer(pages: list) -> Couverture:
+def mesurer(pages: list, communes: dict[int, str] | None = None) -> Couverture:
     """Calcule ce que l'exclusion des pages manuscrites retire du corpus.
+
+    **L'identification des communes change tout au troisième chiffre.** Sans
+    `communes`, on retombe sur la graphie parsée de l'en-tête — qui manque sur
+    un tiers des cahiers, si bien que ces communes ne sont pas comptées *du
+    tout*, ni au numérateur ni au dénominateur. Mesuré sur le corpus : 307
+    communes par graphie contre 459 par code INSEE. Passer `communes` donne le
+    vrai dénominateur.
 
     Args:
         pages: lignes `page_extraction`, avec `pdf_name`, `city` et `needs_ocr`.
+        communes: ``{contribution_id: code INSEE}`` (`python -m insee
+            rattacher`). À défaut, regroupement par graphie, moins fiable.
 
     Returns:
         La couverture, aux trois échelles qui comptent : la page (le volume de
@@ -92,10 +101,16 @@ def mesurer(pages: list) -> Couverture:
 
     for page in pages:
         par_cahier[page.pdf_name or "(sans cahier)"].append(page)
-        if page.city:
+        cle = (communes or {}).get(page.contribution_id) if communes else None
+        if cle is None and not communes and page.city:
             cle = cle_commune(page.city)
-            par_commune[cle].append(page)
+        if cle is None:
+            continue
+        par_commune[cle].append(page)
+        if page.city:
             ville_affichee.setdefault(cle, page.city)
+        else:
+            ville_affichee.setdefault(cle, cle)
 
     cahiers_muets = sorted(
         nom for nom, p in par_cahier.items() if all(_ecartee(x) for x in p)
