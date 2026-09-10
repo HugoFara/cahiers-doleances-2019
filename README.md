@@ -9,6 +9,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
 - `database/` : le modèle de données et les migrations qui structurent la base PostgreSQL | [documentation](database/README.md)
 - `extraction/` : les pipelines d'extraction de texte depuis les PDFs
   - `extraction/without_ocr/` : extraction du texte natif, sans OCR | [documentation](extraction/without_ocr/README.md)
+  - `extraction/with_ocr/` : transcription des pages par OCR (Mistral, Ollama) — le manuscrit | [documentation](extraction/with_ocr/README.md)
 - `segmentation/` : le découpage des cahiers en doléances individuelles | [documentation](segmentation/README.md)
 - `analyse/` : l'échange avec l'analyse — le corpus qui sort, la grille de thèmes qui revient | [documentation](analyse/README.md)
 - `couverture/` : ce que le corpus analysé laisse dehors | [documentation](couverture/README.md)
@@ -106,6 +107,26 @@ Le script parcourt tous les PDFs de `PATH_TO_DATA`, extrait chaque page et la pe
 en base. Les PDFs déjà extraits sont ignorés (supprimer les rows existants pour
 ré-extraire). À la fin il affiche un récapitulatif : nombre de PDFs traités, échecs
 éventuels et identifiants des contributions créées.
+
+### Transcrire le manuscrit (OCR)
+
+Le texte natif ne couvre que la moitié dactylographiée du corpus. Le module
+`extraction/with_ocr/` rend l'image de la page et la fait transcrire par un modèle
+OCR — Mistral (API, ~4 $ / 1 000 pages, géométrie ligne à ligne) ou Ollama (local,
+zéro coût). La passe est un run de genre `transcription`, persisté dans
+`page_transcription` sans écraser le squelette ; `--run-id` reprend une passe
+interrompue.
+
+```bash
+uv run python -m extraction.with_ocr --limite 5    # essai sur 5 pages
+uv run python -m extraction.with_ocr               # les 2 510 pages manuscrites
+```
+
+À l'essai du 2026-09-10, le wordfreq des pages manuscrites passe de 0,13 à
+0,90 ± 0,05 — l'API lit le manuscrit, et le corpus entier coûterait 22 à 26 $.
+Avant la passe complète : mesurer sur l'échantillon de référence (`reference/`)
+et trancher la question P3 (scans bruts envoyés à une API). Détail dans
+[extraction/with_ocr/README.md](extraction/with_ocr/README.md).
 
 Une fois l'extraction terminée, les contributions sont visibles dans l'app Gradio que
 vous pouvez lancer avec :

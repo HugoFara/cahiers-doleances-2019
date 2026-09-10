@@ -132,6 +132,50 @@ class PageExtraction(Base):
     city = Column(String)  # ville extraite
 
 
+class PageTranscription(Base):
+    """La transcription OCR d'une page, pour une passe donnée.
+
+    Couche 3 du plan : la transcription dépend d'un modèle, de sa version, du
+    rendu (DPI) et d'une consigne — c'est une lecture de l'image, pas une
+    propriété de la page. Comme `embedding`, `typologie` ou `pii_span`, elle
+    vit dans une table à part, versionnée par un run ; deux passes coexistent
+    pour être comparées, et le squelette (`page_extraction.text`) n'est jamais
+    écrasé.
+
+    `layout` conserve la géométrie ligne à ligne quand le backend la donne
+    (Mistral OCR renvoie texte et polygones) : concaténer reste toujours
+    possible, retrouver les coordonnées jamais. C'est le préalable du plan —
+    découpage sur le blanc vertical, verbatim lié au scan, occultation sur
+    l'image. NULL pour les backends qui ne rendent que du texte.
+
+    `text` est la version diplomatique : l'orthographe d'origine n'est pas
+    touchée, seulement la syntaxe markdown du backend retirée. La version
+    normalisée ne sert qu'à la recherche et se produit à la lecture.
+    """
+
+    __tablename__ = "page_transcription"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id", "page_extraction_id", name="uq_page_transcription_run_page"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("run.id"))
+    # Indexé : « la transcription de cette page » est la question la plus
+    # posée, et la passe se relit page par page.
+    page_extraction_id = Column(
+        Integer, ForeignKey("page_extraction.id"), index=True
+    )
+    # Indexé : la relecture et le rejeu se font cahier par cahier, comme
+    # `doleance`.
+    pdf_name = Column(String, index=True)
+    page_number = Column(Integer)
+    text = Column(Text)  # transcription normalisée, orthographe d'origine
+    layout = Column(JSON)  # lignes et coordonnées, si le backend les donne
+    quality_score = Column(Float)  # wordfreq de la transcription
+
+
 class Run(Base):
     """Une production de couche interprétative : un découpage, une livraison d'analyse.
 

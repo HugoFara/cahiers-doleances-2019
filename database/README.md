@@ -108,6 +108,7 @@ erDiagram
 | `contribution` | métadonnées : commune, fichier, pages, manuscrit | équipe séparation |
 | `extraction` | texte extrait une ligne par essai d'OCR | équipe extraction |
 | `page_extraction` | texte extrait page par page (OCR-free) avec score de qualité et flag `needs_ocr` | équipe extraction |
+| `page_transcription` | transcription OCR d'une page pour une passe donnée : texte, géométrie ligne à ligne, score wordfreq | `extraction/with_ocr/` |
 | `run` | une production de couche interprétative : un découpage, une grille | `database/runs.py` |
 | `doleance` | le texte d'un contributeur, découpé du cahier | `segmentation/` |
 | `topic` | taxonomie des thèmes, hiérarchie via `parent_id` | équipe analyse |
@@ -137,8 +138,9 @@ seule grille pouvait exister à la fois**, et rien ne disait de quel modèle ni 
 quel prompt elle venait. Charger une grille pour la comparer détruisait
 l'ancienne.
 
-Six genres aujourd'hui : `segmentation`, `analyse`, `doublons`,
-`anonymisation`, `embeddings` et `typologie`. Dans chaque genre, un seul
+Sept genres aujourd'hui : `segmentation`, `analyse`, `doublons`,
+`anonymisation`, `embeddings`, `typologie` et `transcription`. Dans chaque
+genre, un seul
 run est `active` — c'est celui que l'app et les exports servent — garanti par un
 index unique partiel, pas seulement par le code appelant. Les autres restent en
 base, lisibles et comparables.

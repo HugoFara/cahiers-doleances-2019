@@ -373,7 +373,7 @@ IIIF / ALTO / EAD).
 | Runs et versions (grilles concurrentes, `doleance` versionnée) | fait — `database/runs.py`, table `run` |
 | Jeu de référence annoté (200-300 doléances) | outillage fait — `reference/` ; **reste à annoter** |
 | Chiffrer la part manuscrite écartée | fait — 47 % des pages, `couverture/` |
-| Reprendre le manuscrit (HTR) | à faire — **prochain** ; essai Mistral OCR concluant le 2026-09-10 (manuscrit : wordfreq 0,13 → 0,90 sur 15 pages, corpus ~25 $) ; restent l'étalon de qualité et la P3 |
+| Reprendre le manuscrit (HTR) | outillage fait — `extraction/with_ocr/` (Mistral + Ollama), essai concluant le 2026-09-10 (wordfreq 0,13 → 0,90 sur 15 pages, corpus ~25 $) ; reste la passe complète, mesurée sur l'étalon et cadrée P3 |
 | Commune -> INSEE | fait — 459 communes contre 307 par graphie |
 | Population et coordonnées (Code officiel géographique) | fait — `insee/referentiel/`, millésime pivot 2019 |
 | Types de support et d'auteur | fait — `typologie/` ; 20 % des doléances ne sont pas des contributions |
