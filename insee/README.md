@@ -156,6 +156,7 @@ rapprochement qui, elles, évolueront.
 
 | Fichier | Rôle |
 |---|---|
+| `communes.py` | regroupement des graphies d'une même commune (sans base) |
 | `codes.py` | lecture du code dans chaque source, département, rapprochement |
 | `rattachement.py` | remplissage de `city` et des clés étrangères |
 | `cog.py` | lecture des extraits, enrichissement de `city`, pondération |

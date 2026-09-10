@@ -2,7 +2,7 @@
 
 La commune est aujourd'hui une chaîne parsée de l'en-tête du PDF, et la même
 commune n'y est pas toujours écrite pareil — d'où le regroupement de graphies de
-`gradio_app/communes.py`, qui rattrape après coup ce qui aurait dû être une clé.
+`insee/communes.py`, qui rattrape après coup ce qui aurait dû être une clé.
 Le code INSEE est cette clé : stable, officiel, et il porte le département.
 
 Il est présent **deux fois** dans les données, ce qui est une chance :

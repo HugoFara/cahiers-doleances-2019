@@ -8,6 +8,11 @@ contributions.
 
 Les fonctions ici sont volontairement sans base de données : elles travaillent
 sur la liste des graphies, ce qui les rend testables sans PostgreSQL.
+
+Ce module a vécu dans `gradio_app/` parce que la liste déroulante fut son
+premier usage ; mais `couverture/` et `insee/rattachement.py` s'en servent aussi,
+et l'app doit consommer les passes, pas les fonder. Une graphie de commune est
+une question de référentiel géographique : sa place est ici.
 """
 
 import unicodedata

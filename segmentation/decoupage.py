@@ -1,7 +1,7 @@
 """Découpage du texte d'un cahier en doléances, sans base de données.
 
 Le module travaille sur des lignes numérotées par page, ce qui le rend testable
-sur des chaînes littérales — comme `gradio_app/communes.py`, et pour la même
+sur des chaînes littérales — comme `insee/communes.py`, et pour la même
 raison : la logique intéressante n'a pas besoin de PostgreSQL pour être vérifiée.
 
 **Invariant** : le découpage partitionne les lignes, il n'en supprime aucune.

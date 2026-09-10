@@ -20,7 +20,7 @@ compteurs.
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from gradio_app.communes import cle_commune
+from insee.communes import cle_commune
 
 
 @dataclass(frozen=True)

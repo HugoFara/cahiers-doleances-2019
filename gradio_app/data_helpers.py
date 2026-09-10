@@ -2,10 +2,11 @@ import os
 from pathlib import Path
 
 import pandas as pd
-from communes import libelle_commune, regrouper
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
+
+from insee.communes import libelle_commune, regrouper
 
 # Constantes
 ROOT = Path(__file__).resolve().parent.parent

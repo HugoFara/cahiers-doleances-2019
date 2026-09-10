@@ -114,7 +114,7 @@ publiable.
 
 Les communes sont comptées par leur code INSEE dès que `python -m insee
 rattacher` a tourné ; à défaut, `mesurer` retombe sur le regroupement de
-graphies de `gradio_app/communes.py` et le rapport le signale, parce que le
+graphies de `insee/communes.py` et le rapport le signale, parce que le
 compte est alors sous-estimé d'environ un tiers. L'import depuis `gradio_app/`
 est une entorse assumée — le module y est sans dépendance à Gradio ni à la base
 — plutôt que de dupliquer une logique qui a déjà produit un bug (187d133).

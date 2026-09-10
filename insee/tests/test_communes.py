@@ -1,9 +1,9 @@
 """Tests du regroupement des graphies de communes.
 
-Sans base de données : `gradio_app/communes.py` ne travaille que sur des listes.
+Sans base de données : `insee/communes.py` ne travaille que sur des listes.
 """
 
-from gradio_app.communes import cle_commune, libelle_commune, regrouper
+from insee.communes import cle_commune, libelle_commune, regrouper
 
 
 class TestCleCommune:

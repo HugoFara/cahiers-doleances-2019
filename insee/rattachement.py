@@ -18,8 +18,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from database.models import City, Contribution
-from gradio_app.communes import cle_commune, regrouper
 from insee.codes import code_du_nom_de_fichier, departement
+from insee.communes import cle_commune, regrouper
 
 
 @dataclass
@@ -44,7 +44,7 @@ class Rapport:
 def graphie_retenue(graphies: list[str]) -> str | None:
     """La graphie la plus riche rencontrée pour une commune.
 
-    Délègue à `gradio_app.communes.regrouper`, qui applique déjà ce critère à la
+    Délègue à `insee.communes.regrouper`, qui applique déjà ce critère à la
     liste déroulante de l'app : on affiche « TORCÉ-VIVIERS-EN-CHARNIE » plutôt
     que « TORCE VIVIERS EN CHARNIE ». Réimplémenter le critère ici le ferait
     diverger de l'app à la première retouche.
