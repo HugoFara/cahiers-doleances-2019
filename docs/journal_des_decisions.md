@@ -1084,6 +1084,53 @@ personnelles sur les scans, et c'est à demander à l'étape OCR/HTR.
 
 ---
 
+## 2026-09-10 — On change de grille de thèmes depuis l'app
+
+**Décision.** La vue graphe sert n'importe quelle grille de thèmes présente en
+base, choisie dans un sélecteur. La logique de grille sort de l'état de module de
+`views/graph.py` et devient une classe `Grille` (`views/grille.py`) qui reçoit
+des lignes et ne connaît ni SQLAlchemy ni Plotly ; `views/graph.py` n'en garde
+que le dessin et le service, avec un cache par run.
+
+**Périmètre.** La vue graphe (`/graphe`). La vue commune sert toujours la grille
+active.
+
+**Motif.** La base est faite pour que plusieurs grilles coexistent : c'est ce qui
+rend le choix de l'une visible et donc discutable. L'app annonçait laquelle était
+servie sans permettre d'en essayer une autre, ce qui rendait cette pluralité
+théorique. Il fallait activer l'autre run en base et redémarrer.
+
+**Alternatives écartées.** Recharger la page avec un paramètre d'URL : plus
+simple, mais l'état de module aurait été recalculé à chaque changement, et
+surtout rien n'aurait été testable. Passer la grille en argument à chaque
+fonction sans classe : vingt-cinq signatures à rallonger pour le même résultat.
+
+**Conséquence mesurée.** Cette vue était **la seule du dépôt sans aucun test** —
+un état construit à l'import depuis une connexion PostgreSQL ne se monte pas dans
+un test. Elle en a maintenant vingt-quatre, et le premier essai sur une petite
+grille a fait tomber une erreur que la grille livrée masquait : `_html_apercu`
+indexait la liste triée des hauteurs d'une strate sans la tester, et levait
+`IndexError` dès qu'une strate était vide. Les trois strates de la grille d'août
+sont peuplées, le bug était donc invisible — et certain dès qu'on ouvre une
+grille plus petite, ce que l'app permet désormais. C'est l'argument du
+refactoring en une ligne : ce n'est pas le sélecteur qui valait le coût, c'est de
+pouvoir enfin regarder ce que ce code fait.
+
+**Réversibilité.** Totale : aucune donnée n'est écrite, c'est de la lecture et de
+l'affichage.
+
+**Ce que cela ne règle pas.** Une grille est lue une fois puis gardée en mémoire :
+recharger une livraison demande toujours un redémarrage. Le sélecteur n'apparaît
+que s'il y a plusieurs grilles en base — avec une seule, il n'offrirait aucun
+choix. Et il n'y en a qu'une aujourd'hui : la grille émergente d'août. La
+deuxième que le plan demande — « cadrage gouvernemental 2019 », reprenant les
+thèmes du Grand Débat — reste à construire, et c'est elle qui donnera au
+sélecteur son intérêt.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs

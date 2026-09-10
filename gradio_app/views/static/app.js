@@ -1,7 +1,10 @@
 // Le serveur renvoie l'état complet (figure, panneau, sélecteurs) ; on l'affiche.
 
-let CONFIG = { apercu: "", strates: [] };
+let CONFIG = { apercu: "", strates: [], grilles: [], grille: null };
 let strate = null;
+// Grille de thèmes affichée. La base en porte plusieurs à dessein : pouvoir en
+// changer ici est ce qui rend le choix de l'une visible et discutable.
+let grille = null;
 
 const $ = (id) => document.getElementById(id);
 const etat = (texte) => { $("etat").textContent = texte; };
@@ -20,6 +23,14 @@ async function poste(route, corps) {
 function dessineBarre(niveaux) {
   const barre = $("barre");
   barre.innerHTML = "";
+  if (CONFIG.grilles.length > 1) {
+    barre.appendChild(
+      champ("Grille de thèmes", CONFIG.grilles, grille, (v) => {
+        grille = Number(v);
+        chargeApercu(CONFIG.strates[0].value);
+      }),
+    );
+  }
   barre.appendChild(
     champ("Strate d'entrée", CONFIG.strates, strate, (v) => chargeApercu(v)),
   );
@@ -54,7 +65,7 @@ function champ(label, options, valeur, surChangement) {
     opt.value = objet ? o.value : o;
     opt.textContent = objet ? o.label : o;
     opt.title = opt.textContent;
-    if (opt.value === valeur) opt.selected = true;
+    if (opt.value === String(valeur)) opt.selected = true;
     sel.appendChild(opt);
   }
   sel.onchange = (e) => surChangement(e.target.value);
@@ -85,6 +96,7 @@ function applique(reponse) {
     return;
   }
   strate = reponse.strate;
+  grille = reponse.grille;
   dessineGraphe(reponse.figure);
   dessineBarre(reponse.niveaux);
   $("panneau").innerHTML = reponse.description + reponse.occurrences;
@@ -93,16 +105,17 @@ function applique(reponse) {
 async function chargeApercu(cle) {
   strate = cle;
   etat(`Strate ${cle} — clique un nœud pour entrer dedans.`);
-  applique(await poste("/graphe/api/apercu", { strate: cle }));
+  applique(await poste("/graphe/api/apercu", { strate: cle, grille }));
 }
 
 async function chargeNoeud(nom) {
   etat(`Sélection : ${nom}`);
-  applique(await poste("/graphe/api/noeud", { nom }));
+  applique(await poste("/graphe/api/noeud", { nom, grille }));
 }
 
 async function demarre() {
   CONFIG = await (await fetch("/graphe/api/config")).json();
+  grille = CONFIG.grille;
   await chargeApercu(CONFIG.strates[0].value);
 }
 

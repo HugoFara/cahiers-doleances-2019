@@ -53,6 +53,15 @@ sur la graphie du corpus, puis sur le code seul. Les 144 contributions dont le
 cahier n'a pas de code à la source ont leur propre entrée en fin de liste, plutôt
 que de rester invisibles.
 
+**On peut changer de grille de thèmes depuis la vue graphe.** La base est faite
+pour que plusieurs coexistent — c'est ce qui rend le choix de l'une visible et
+discutable — mais l'app n'en servait qu'une, calculée à l'import. La logique de
+grille est maintenant dans `views/grille.py`, une classe qui reçoit des lignes et
+ne connaît ni la base ni Plotly ; `views/graph.py` en tient un cache par run.
+Effet secondaire du refactoring, et pas le moindre : cette vue était **la seule
+du dépôt sans aucun test**, et le premier essai sur une petite grille a fait
+tomber un `IndexError` que la grille livrée masquait — une strate sans arbre.
+
 **Chaque étiquette renvoie à sa page source, en un clic.** Le visualiseur PDF
 s'ouvre sur la page de la contribution affichée plutôt qu'en couverture, les
 thèmes détectés portent leur page et sont cliquables, et chaque résultat de
@@ -123,14 +132,14 @@ uv run python gradio_app/app.py   # http://localhost:7860
 
 - L'avertissement de la vue commune est calculé au démarrage, comme la
   taxonomie ; celui de la vue graphe est recalculé à chaque requête.
-- **On ne peut pas changer de grille depuis l'app**, seulement savoir laquelle
-  est servie. Le faire demanderait de sortir la taxonomie de l'état de module de
-  `views/graph.py` — environ cinq cents lignes calculées à l'import — pour la
-  paramétrer par run. C'est un refactoring, pas un câblage : il est listé au plan
-  comme tel plutôt que fait à moitié. En attendant, on change de grille en
-  activant l'autre run en base et en redémarrant.
-- La taxonomie est chargée au démarrage : recharger la base demande un
-  redémarrage de l'app.
+- Le sélecteur de grille n'apparaît que s'il y en a plusieurs en base : avec une
+  seule, il n'offrirait aucun choix. L'avertissement, lui, annonce toujours
+  laquelle est servie. La grille « cadrage gouvernemental 2019 »
+  (`analyse/grilles/`) se charge sans détections : le sélecteur la liste, la vue
+  l'affiche vide et dit pourquoi.
+- Une grille est lue au premier accès puis gardée en mémoire : recharger une
+  livraison en base demande un redémarrage de l'app (ou un appel à
+  `graph.oublier_les_grilles()`).
 - `instance.contribution_id` est NULL **pour la livraison analyse actuelle**, dont
   les documents sont numérotés par l'équipe analyse (`doc 73`) sans correspondance
   en base : la vue graphe affiche cet identifiant source, et la vue commune

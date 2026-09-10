@@ -56,13 +56,13 @@ def graphe_config():
 
 
 @app.post("/graphe/api/apercu")
-def graphe_apercu(strate: str = Body(..., embed=True)):
-    return graph.apercu(strate)
+def graphe_apercu(strate: str = Body(...), grille: int | None = Body(None)):
+    return graph.apercu(strate, grille)
 
 
 @app.post("/graphe/api/noeud")
-def graphe_noeud(nom: str = Body(..., embed=True)):
-    return graph.noeud(nom)
+def graphe_noeud(nom: str = Body(...), grille: int | None = Body(None)):
+    return graph.noeud(nom, grille)
 
 
 @app.get("/graphe/plotly.js")

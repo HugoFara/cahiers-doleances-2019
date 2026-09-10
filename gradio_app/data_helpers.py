@@ -254,41 +254,80 @@ def save_annotation(code: str, idx: int, is_anonymized: bool, is_of_interest: bo
 
 
 def grille_servie() -> dict | None:
-    """La grille de thèmes actuellement affichée, pour l'annoncer à l'écran."""
+    """La grille de thèmes servie par défaut, pour l'annoncer à l'écran."""
     q = text("SELECT id, label, created_at FROM run WHERE kind = 'analyse' AND active")
     lignes = pd.read_sql(q, engine).to_dict("records")
     return lignes[0] if lignes else None
 
 
-def charger_taxonomie() -> pd.DataFrame:
-    """Les topics de la grille servie, parent résolu par nom.
+def grilles() -> list[dict]:
+    """Toutes les grilles de thèmes en base, la servie d'abord.
+
+    La base est faite pour que plusieurs coexistent — c'est ce qui rend le choix
+    de l'une visible et discutable. Les lister est le premier pas pour pouvoir
+    en changer sans redémarrer l'app.
+    """
+    q = text("""
+        SELECT r.id, r.label, r.active, r.created_at, r.model, r.author,
+               (SELECT count(*) FROM topic WHERE run_id = r.id) AS topics,
+               (SELECT count(*) FROM instance WHERE run_id = r.id) AS detections
+        FROM run r
+        WHERE r.kind = 'analyse'
+        ORDER BY r.active DESC, r.id DESC
+    """)
+    return pd.read_sql(q, engine).to_dict("records")
+
+
+def _clause_grille(run_id: int | None) -> tuple[str, dict]:
+    """La grille demandée, ou la servie quand aucune n'est nommée.
+
+    Écrit en sous-requête pour le cas par défaut : sans grille active, la
+    comparaison n'est jamais vraie et la vue est vide — l'état normal d'une base
+    migrée mais pas encore chargée, sans branchement supplémentaire.
+    """
+    if run_id is None:
+        return GRILLE_SERVIE, {}
+    return ":run_id", {"run_id": int(run_id)}
+
+
+def charger_taxonomie(run_id: int | None = None) -> pd.DataFrame:
+    """Les topics d'une grille, parent résolu par nom.
 
     Les noms sont uniques **dans une grille**, ce qui suffit au graphe puisqu'il
-    n'en affiche qu'une.
+    n'en affiche qu'une à la fois.
+
+    Args:
+        run_id: la grille à lire ; ``None`` prend celle qui est servie.
     """
+    cible, params = _clause_grille(run_id)
     q = text(f"""
         SELECT t.id, t.external_id, t.name, t.description, t.level, p.name AS parent_nom
         FROM topic t
         LEFT JOIN topic p ON p.id = t.parent_id AND p.run_id = t.run_id
-        WHERE t.run_id = {GRILLE_SERVIE}
+        WHERE t.run_id = {cible}
     """)
-    return pd.read_sql(q, engine)
+    return pd.read_sql(q, engine, params=params)
 
 
-def charger_detections() -> pd.DataFrame:
-    """Les instances de la grille servie, rattachées au nom de leur topic.
+def charger_detections(run_id: int | None = None) -> pd.DataFrame:
+    """Les instances d'une grille, rattachées au nom de leur topic.
 
     `external_doc_id` est l'identifiant du document dans la livraison analyse :
-    le rapprochement avec `contribution` n'est pas résolu, on affiche cet id tel quel.
+    le rapprochement avec `contribution` n'est pas résolu pour la livraison
+    d'août, on affiche cet id tel quel.
+
+    Args:
+        run_id: la grille à lire ; ``None`` prend celle qui est servie.
     """
+    cible, params = _clause_grille(run_id)
     q = text(f"""
         SELECT t.name AS topic, i.verbatim, i.summary, i.external_doc_id
         FROM instance i
         JOIN topic t ON t.id = i.topic_id
-        WHERE i.run_id = {GRILLE_SERVIE}
+        WHERE i.run_id = {cible}
         ORDER BY i.id
     """)
-    return pd.read_sql(q, engine)
+    return pd.read_sql(q, engine, params=params)
 
 
 #  avertissements : ce que l'app doit dire avant de montrer un chiffre

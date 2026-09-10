@@ -119,9 +119,11 @@ essayer l'API sur l'échantillon de référence.
   pages (2026-09-10), et la vue commune la filtre enfin — elle cumulait toutes
   les grilles. L'auteur n'est plus réclamé mais **imposé** depuis le 2026-09-10 :
   `run.author` est `NOT NULL` et `creer_run` le résout d'office
-  (`database/auteur.py`). Reste à permettre d'**en changer** depuis l'app : cela
-  demande de sortir la taxonomie de l'état de module de `views/graph.py`, un
-  refactoring et non un câblage.
+  (`database/auteur.py`). Et l'app sait **en changer** depuis le 2026-09-10 : la
+  logique de grille est sortie de l'état de module de `views/graph.py` dans une
+  classe `Grille` qui ne connaît ni la base ni Plotly, et que l'on peut donc
+  enfin tester — le premier essai sur une petite grille a fait tomber une erreur
+  que la grille livrée masquait.
 - **Commune → code INSEE.** Fait le 2026-09-10 (`insee/`) : le code se lit dans
   le nom du fichier, la table `city` le porte, `contribution.city_code` y
   renvoie. **459 communes au lieu de 307** — le parsing d'en-tête en manquait un
@@ -354,7 +356,7 @@ IIIF / ALTO / EAD).
 | Couverture et représentativité | fait — pondérée par population, `insee/` et `couverture/` |
 | Standards IIIF / ALTO / EAD, export en masse | à faire |
 | Avertissements et couverture affichés dans l'app | fait — les deux vues, `gradio_app/avertissements.py` |
-| Changer de grille depuis l'app | à faire — demande de paramétrer `views/graph.py` par run |
+| Changer de grille depuis l'app | fait — `views/grille.py`, cache par run |
 | Grille « cadrage gouvernemental 2019 » | définie — `analyse/grilles/`, 4 thèmes, 20 questions ; détections **par mots-clés** depuis le 2026-09-11 (`analyse/mots_cles.py`, run à part : 65 % des doléances, 7,4 questions chacune — étalon bas) ; un modèle attend la P3 |
 
 **Ce que le découpage donne aujourd'hui** : sur les 2 855 pages de
