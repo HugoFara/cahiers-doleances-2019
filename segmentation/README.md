@@ -53,9 +53,22 @@ Deux garde-fous, tous deux couverts par des tests :
 Recoller les doléances redonne exactement le texte d'entrée. C'est ce qui permet
 de rejouer un découpage plus fin plus tard sans avoir perdu de texte.
 
-Mesure sur les 2 855 pages de `topic-builder/data/cahiers/dataset.csv` :
-3 243 doléances, **11 % des pages contiennent plus d'un contributeur** repérable.
-C'est un plancher : ce qui n'est pas marqué dans le texte n'est pas vu.
+**Mesure sur le corpus réel** (516 cahiers, 2 855 pages lisibles) : le pipeline
+produit **1 002 doléances** dans 469 cahiers, soit 2,1 par cahier, dont 622 à
+cheval sur plusieurs pages. Les signaux qui coupent : apostrophe 188, clôture
+160, date 126, filet 59.
+
+Moyenne de **753 mots par doléance** — c'est long pour ce qu'a écrit une
+personne, et cela dit probablement que le découpage **sous-coupe**. C'est un
+plancher assumé : ce qui n'est pas marqué dans le texte n'est pas vu, et sans
+géométrie de ligne le blanc vertical et le changement d'écriture sont invisibles.
+Seul le [jeu de référence](../reference/README.md) pourra chiffrer l'écart.
+
+> Une mesure antérieure annonçait « 3 243 doléances, 11 % des pages portent plus
+> d'un contributeur ». Elle avait été obtenue en découpant chaque page
+> *séparément*, ce que le pipeline ne fait pas : il regroupe par cahier, si bien
+> qu'une doléance peut couvrir plusieurs pages. Les 11 % restent vrais des pages
+> prises isolément ; les 3 243 ne sont pas la sortie du pipeline.
 
 ## Organisation
 

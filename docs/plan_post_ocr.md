@@ -98,10 +98,11 @@ trois choses, et la troisième est bloquante :
 - **Types de support et d'auteur** (couche 2). À poser dès maintenant, même
   renseignés à la main sur un échantillon : ils conditionnent l'interprétation de
   tout comptage.
-- **Déduplication.** Tracts collés, lettres-types diffusées par des associations,
-  pétitions, PDF scannés deux fois. MinHash/SimHash au niveau doléance, dans une
-  table `duplicate_group` — sans écraser : « ce texte apparaît dans 47 communes »
-  est un résultat, pas du bruit.
+- **Déduplication.** Fait le 2026-09-10 (`doublons/`) : MinHash + LSH au niveau
+  doléance, groupes conservés avec le nombre de communes touchées. **13 groupes,
+  33 doléances sur 1 002 (3 %).** Le plus gros n'est pas un tract citoyen mais la
+  lettre présidentielle qui ouvre les registres, encore présente dans onze
+  doléances — à écarter avant tout comptage de thèmes.
 - **Reprendre le manuscrit.** `export_dataset.py` et `segmentation/` écartent les
   pages `needs_ocr` : le corpus analysé est *la partie dactylographiée
   seulement*. **Chiffré le 2026-09-10 : 47 % des pages écartées, 37 communes sans
@@ -230,14 +231,16 @@ corpus. C'est ce qui rend les décisions visibles et donc contestables.
   occultée que l'autre. À vérifier avant de figer quoi que ce soit.
 
 **Par où continuer** : faire annoter l'échantillon de référence — l'outillage
-attend, le travail humain non. Côté code, le millésime du Code officiel
-géographique a été tranché le 2026-09-10 — pivot 2019, table de passage vers le
-millésime courant, extraits versionnés — et reste révisable d'une commande si
-l'alignement national impose autre chose. Restent entièrement faisables sans
-décision préalable : la déduplication, les métriques de taxonomie et la catégorie
-« hors grille », la **recherche plein texte** (`tsvector`, configuration
-`french`) et vectorielle. Tout le reste attend soit du travail humain
-(annotation de l'étalon), soit une décision d'alignement (modèle de NER hébergé
+attend, le travail humain non, et le découpage sous-coupe visiblement (753 mots
+par doléance en moyenne) sans qu'on puisse encore chiffrer de combien.
+
+Côté code, le millésime du Code officiel géographique a été tranché le
+2026-09-10 — pivot 2019, table de passage vers le millésime courant, extraits
+versionnés — et reste révisable d'une commande si l'alignement national impose
+autre chose. Restent entièrement faisables sans décision préalable : les
+métriques de taxonomie et la catégorie « hors grille », la **recherche plein
+texte** (`tsvector`, configuration `french`) et vectorielle. Tout le reste
+attend soit du travail humain (annotation de l'étalon), soit une décision d'alignement (modèle de NER hébergé
 en UE, formats IIIF / ALTO / EAD).
 
 ---
@@ -256,7 +259,7 @@ en UE, formats IIIF / ALTO / EAD).
 | Commune -> INSEE | fait — 459 communes contre 307 par graphie |
 | Population et coordonnées (Code officiel géographique) | fait — `insee/referentiel/`, millésime pivot 2019 |
 | Types de support et d'auteur | à faire |
-| Déduplication | à faire |
+| Déduplication | fait — 3 % des doléances, `doublons/` |
 | Anonymisation (texte + image), rappel mesuré | à faire |
 | Métriques de taxonomie, catégorie « hors grille » | à faire |
 | Recherche plein texte et vectorielle | à faire — **le seul item encore entièrement faisable côté code** |

@@ -12,6 +12,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
 - `segmentation/` : le découpage des cahiers en doléances individuelles | [documentation](segmentation/README.md)
 - `couverture/` : ce que le corpus analysé laisse dehors | [documentation](couverture/README.md)
 - `insee/` : le rattachement des contributions au code INSEE de leur commune, et le référentiel géographique | [documentation](insee/README.md)
+- `doublons/` : les textes qui reviennent — tracts, lettres-types, campagnes | [documentation](doublons/README.md)
 - `reference/` : le jeu de référence annoté à la main, et la mesure de ce que valent les couches | [documentation](reference/README.md)
 - `gradio_app/` : l'interface pour parcourir les contributions et les annoter | [documentation](gradio_app/README.md)
 - `topic-builder/` : l'utilitaire de découverte, structuration et annotation des thèmes abordés dans les contributions | [documentation](topic-builder/README.md)
@@ -151,6 +152,21 @@ Le découpage est heuristique et **versionné** : il appartient à la couche
 d'annotation, pas au squelette du corpus, donc deux découpages peuvent coexister
 et se comparer (`--nouveau-run`). Ses règles et leurs limites sont documentées
 dans [segmentation/README.md](segmentation/README.md).
+
+## Doublons
+
+Les registres portent des tracts collés et des lettres-types recopiées, qui
+gonflent les fréquences de thèmes si on les compte comme autant de contributions
+distinctes :
+
+```bash
+uv run python -m doublons --auteur "prénom nom"
+```
+
+13 groupes, 33 doléances sur 1 002 (3 %). Rien n'est supprimé : « ce texte
+apparaît dans six communes » est un résultat, pas du bruit. C'est d'ailleurs
+ainsi qu'on a découvert que la lettre du Président de la République figure encore
+dans onze doléances — voir [doublons/README.md](doublons/README.md).
 
 ## Mesurer le découpage
 

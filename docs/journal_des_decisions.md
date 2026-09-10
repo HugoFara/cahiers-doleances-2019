@@ -32,11 +32,18 @@ n'a pas de réponse juste.
 entier (pire) ; un découpage par LLM (coûteux, non déterministe, et surtout non
 mesurable tant qu'il n'y a pas de jeu de référence).
 
-**Conséquence mesurée.** Sur les 2 855 pages de
-`topic-builder/data/cahiers/dataset.csv` : 3 243 doléances, 11 % des pages
-contiennent plus d'un contributeur repérable. C'est un **plancher** : les règles
-ne lisent que le texte, elles ne voient ni le blanc vertical ni le changement
-d'écriture, qui sont les deux vrais séparateurs d'un registre.
+**Conséquence mesurée** (corrigée le 2026-09-10, voir plus bas). Sur les 516
+cahiers du corpus, 2 855 pages lisibles : le pipeline produit **1 002 doléances**
+dans 469 cahiers, soit 2,1 par cahier, moyenne de 753 mots. C'est un **plancher**
+et probablement une sous-coupe : les règles ne lisent que le texte, elles ne
+voient ni le blanc vertical ni le changement d'écriture, qui sont les deux vrais
+séparateurs d'un registre.
+
+*Correction : la première version de cette entrée annonçait 3 243 doléances et
+11 % de pages à plusieurs contributeurs. Ce chiffre venait d'un découpage de
+chaque page prise séparément, alors que le pipeline regroupe par cahier — une
+doléance peut couvrir plusieurs pages, et 622 le font. Les 11 % restent vrais des
+pages isolées ; les 3 243 ne sont pas la sortie du pipeline.*
 
 **Réversibilité.** Bonne, et garantie par un invariant testé : le découpage
 partitionne les lignes sans en supprimer aucune, recoller les doléances redonne
@@ -450,6 +457,43 @@ le corpus, donc pas dans ce compte.
 
 **Réversibilité.** Totale, c'est de l'affichage. Le changement de sélecteur, lui,
 ne se reviendrait pas sans reperdre 40 % des contributions.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
+## 2026-09-10 — Les doublons sont groupés, pas écrasés
+
+**Décision.** Les doléances quasi identiques sont regroupées (MinHash + LSH,
+similarité de Jaccard ≥ 0,8) dans `duplicate_group`, avec le nombre de communes
+distinctes que chaque groupe touche. **Aucune n'est supprimée.**
+
+**Motif.** Tracts collés, lettres-types, pétitions, cahiers scannés deux fois :
+comptés comme autant de contributions, ils gonflent les fréquences de thèmes.
+Mais les écraser ferait disparaître une information : un texte présent dans six
+communes est une campagne organisée, ce qui n'est pas la même chose qu'une
+écriture individuelle. `cities` porte cette distinction, et c'est aux lectures en
+aval de décider ce qu'elles en font.
+
+**Mesuré.** 13 groupes, 33 doléances sur 1 002 (3 %). Sensibilité douce : 1 % à
+0,9, 6 % à 0,7, 10 % à 0,5.
+
+**Trouvaille non cherchée.** Le plus gros groupe — 6 doléances, 6 communes,
+2 217 mots — est la **lettre du Président de la République** qui ouvre les
+registres, pas une contribution citoyenne. Onze doléances la portent, environ
+21 000 mots, 2,8 % du corpus en volume. L'extraction saute les deux premières
+pages de chaque cahier, ce qui l'élimine le plus souvent ; ces onze sont passées.
+Un thème détecté dans ce texte n'est pas une doléance : à écarter avant tout
+comptage.
+
+**Limite consignée.** Le seuil ne peut pas descendre sous 0,5. Le filtre de
+paires candidates est réglé pour la similarité haute — il ne propose qu'une paire
+sur quatre à 0,3 de similarité — si bien qu'un seuil plus bas rendrait *moins* de
+doublons, sans le dire. La commande refuse plutôt que de produire un résultat
+silencieusement incomplet.
+
+**Réversibilité.** Totale : rien n'est supprimé, et chaque exécution est un run
+de plus.
 
 **Auteur.** Équipe technique — *à nommer avant publication*.
 
