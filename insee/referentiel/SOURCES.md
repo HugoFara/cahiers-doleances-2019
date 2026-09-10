@@ -28,7 +28,6 @@ correction.
 - **Noms et périmètres** : Code officiel géographique au 1ᵉʳ janvier 2019, INSEE,
   fichier `communes-01012019.csv` —
   <https://www.insee.fr/fr/information/3720946>.
-  Licence Ouverte (déclarée par l'INSEE sur data.gouv.fr pour le COG).
 - **Population** : populations légales **millésimées 2017**, fichier d'ensemble,
   colonne `PMUN` — <https://www.insee.fr/fr/statistiques/4265429>.
 
@@ -79,9 +78,48 @@ entité déjà déléguée ou associée au 1ᵉʳ janvier 2019, c'est son **abso
 antérieure au pivot : le corpus contient deux cahiers déposés sous un code qui
 avait déjà cessé de désigner une commune.
 
-## À confirmer avant publication
+## Licences — vérifié le 2026-09-10
 
-La licence exacte de chaque fichier auprès de son producteur. Le COG est déclaré
-en Licence Ouverte par l'INSEE sur data.gouv.fr ; les populations légales et
-ADMIN EXPRESS relèvent des mêmes conditions générales mais cela n'a pas été
-vérifié fichier par fichier ici.
+Les trois sources sont sous **Licence Ouverte / Open Licence version 2.0**
+(Etalab). Vérifié aux sources plutôt qu'admis :
+
+| Fichier produit | Source | Licence | Où c'est écrit |
+|---|---|---|---|
+| `communes_2019.csv` (noms) | COG, insee.fr | LO 2.0 | mentions légales de l'INSEE |
+| `communes_2019.csv` (population) | populations légales, insee.fr | LO 2.0 | idem |
+| `geometrie.csv` | ADMIN EXPRESS (IGN), via geo.api.gouv.fr | LO 2.0 | fiche IGN sur data.gouv.fr |
+| `passage.csv` | COG, insee.fr | LO 2.0 | mentions légales de l'INSEE |
+
+Les [mentions légales de l'INSEE](https://www.insee.fr/fr/information/2008466)
+couvrent explicitement ce que nous téléchargeons : « Sauf mention contraire, les
+informations publiques diffusées sur ce site (données, bases de données,
+publications, fichiers téléchargeables) sont mises à disposition sous la Licence
+Ouverte / Open Licence version 2.0 (Etalab) ». C'est cette page qui fait foi ici,
+et non la fiche data.gouv.fr du COG, encore étiquetée en version 1.0 — un
+étiquetage hérité, alors que 99 des 100 jeux publiés par l'INSEE sur ce portail
+sont en 2.0.
+
+**Le point qu'il fallait vérifier et qui n'était pas acquis** : les coordonnées.
+`geo.api.gouv.fr` ne publie pas de licence pour son découpage administratif, et
+api.gouv.fr liste OpenStreetMap parmi ses partenaires — ce qui aurait signifié
+**ODbL**, donc une obligation de partage à l'identique incompatible avec le
+reste. Le générateur des contours
+([`etalab/contours-administratifs`](https://github.com/etalab/contours-administratifs))
+tranche : les communes viennent d'**ADMIN EXPRESS**, et OpenStreetMap n'est
+utilisé que pour les collectivités d'outre-mer. Les quatre départements du corpus
+sont en métropole : aucune donnée ODbL n'entre ici.
+
+## Ce que la licence oblige à faire
+
+La LO 2.0 permet la réutilisation, y compris commerciale, à trois conditions —
+qui s'appliqueront à toute publication du corpus, pas seulement à ce dossier :
+
+1. mentionner la source, sous la forme « Source : Insee » et « Source : IGN » ;
+2. mentionner la date de dernière mise à jour des données quand elle est connue —
+   ici les millésimes ci-dessus et la date d'extraction ;
+3. ne pas altérer le sens des informations ni induire en erreur quant à leur
+   interprétation.
+
+La troisième n'est pas une formalité pour ce projet : c'est exactement le risque
+que la pondération par population fait courir si elle est publiée sans dire ce
+qu'elle mesure.

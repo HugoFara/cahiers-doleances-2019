@@ -109,6 +109,15 @@ Rien de tout cela ne dit que le corpus est représentatif. Il dit quelle part de
 la population a un cahier quelque part, ce qui est une autre question, et la
 seule à laquelle ces chiffres répondent.
 
+## Licences
+
+Les trois sources sont sous **Licence Ouverte 2.0**, vérifié aux sources et
+consigné dans [`referentiel/SOURCES.md`](referentiel/SOURCES.md) — y compris le
+point qui n'était pas acquis, les coordonnées : elles viennent d'ADMIN EXPRESS
+(IGN) et non d'OpenStreetMap, dont la licence ODbL aurait imposé un partage à
+l'identique. Toute publication du corpus devra porter « Source : Insee » et
+« Source : IGN », avec les millésimes.
+
 ## Ce qui reste NULL
 
 `city.name` est la graphie la plus riche rencontrée dans le corpus, pas le nom

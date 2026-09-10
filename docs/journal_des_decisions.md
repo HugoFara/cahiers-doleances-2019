@@ -359,11 +359,27 @@ dépend. Trois communes du corpus disparues depuis n'y figurent pas et restent
 sans coordonnées ; on ne leur prête pas le centre de la commune qui les a
 absorbées.
 
+**Licences, vérifiées le 2026-09-10.** Les trois sources sont sous **Licence
+Ouverte 2.0** (Etalab), d'après les mentions légales de l'INSEE — qui couvrent
+nommément les fichiers téléchargeables du site — et la fiche ADMIN EXPRESS de
+l'IGN. Un point méritait la vérification : `geo.api.gouv.fr` ne publie aucune
+licence pour son découpage administratif et api.gouv.fr cite OpenStreetMap parmi
+ses partenaires, ce qui aurait signifié de l'ODbL et une obligation de partage à
+l'identique. Le générateur des contours tranche : ADMIN EXPRESS pour la
+métropole, OpenStreetMap seulement pour les collectivités d'outre-mer, absentes
+du corpus.
+
+La LO 2.0 impose trois obligations qui vaudront pour la publication du corpus et
+pas seulement pour ce dossier : citer « Source : Insee » et « Source : IGN »,
+donner la date de mise à jour des données, et **ne pas altérer le sens des
+informations ni induire en erreur quant à leur interprétation**. La troisième
+n'est pas une formalité ici : c'est exactement ce que la pondération par
+population fait courir comme risque si elle est publiée sans dire ce qu'elle
+mesure.
+
 **Réversibilité.** Totale. Les extraits sont dans le dépôt, `python -m insee cog`
 est idempotent, et changer de millésime pivot demande de rejouer une commande —
-pas de rejouer une migration. La licence exacte de chaque fichier reste à
-confirmer auprès de son producteur avant publication (voir
-`insee/referentiel/SOURCES.md`).
+pas de rejouer une migration.
 
 **Auteur.** Équipe technique — *à nommer avant publication*.
 
