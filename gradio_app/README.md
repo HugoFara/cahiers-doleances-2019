@@ -4,6 +4,7 @@ Deux interfaces sur un seul serveur :
 
     /          Par commune  parcourir les contributions (texte extrait + PDF) et
                activer deux variables (Anonymisé, Contribution d'intérêt)
+               Recherche    chercher dans le texte des doléances
     /graphe    Vue graphe des thèmes  explorer la taxonomie en cliquant les nœuds
 
 Les données sont lues **directement dans la base PostgreSQL**, pas de fichier
@@ -51,6 +52,13 @@ partie. Le libellé affiche le nom officiel du Code officiel géographique, reto
 sur la graphie du corpus, puis sur le code seul. Les 144 contributions dont le
 cahier n'a pas de code à la source ont leur propre entrée en fin de liste, plutôt
 que de rester invisibles.
+
+**Recherche** : plein texte sur les doléances (`recherche/`). Ses extraits sont
+**caviardés**, quand la vue par commune montre le texte brut — et l'écart est
+voulu : la recherche est le premier endroit où le corpus se lit en vrac, hors du
+cahier qui lui donnait son contexte. Les doublons y sont signalés, sans quoi une
+recherche présenterait la lettre présidentielle comme les cinq contributions les
+plus pertinentes du corpus.
 
 **Une seule grille servie.** Plusieurs grilles de thèmes coexistent en base
 (`database/runs.py`) ; sans filtre l'app les empilerait, et les noms de thèmes —

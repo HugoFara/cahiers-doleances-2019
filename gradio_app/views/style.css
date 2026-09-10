@@ -53,3 +53,43 @@
   cursor: pointer;
   font-weight: 600;
 }
+
+/* --- onglet de recherche --- */
+.resultats {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.resultat {
+  border-top: 1px solid #e5e7eb;
+  padding: 10px 0;
+}
+
+.resultat .ou {
+  font-weight: 600;
+}
+
+.resultat .ref {
+  font-weight: 400;
+  color: #71717a;
+  font-size: 13px;
+  margin-left: 6px;
+}
+
+.resultat .recopie {
+  margin-left: 10px;
+  font-weight: 400;
+  font-size: 13px;
+  color: #b45309;
+}
+
+.resultat .extrait {
+  margin: 5px 0 0;
+  line-height: 1.55;
+}
+
+.aide {
+  color: #52525b;
+  font-size: 14px;
+}

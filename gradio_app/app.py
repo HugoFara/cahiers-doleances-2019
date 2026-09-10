@@ -7,7 +7,7 @@ from avertissements import html as avertissement_html
 from data_helpers import PDF_DIR, etat_du_corpus
 from fastapi import Body
 from fastapi.responses import FileResponse, HTMLResponse, Response
-from views import commune, graph
+from views import commune, graph, recherche
 
 STYLE = Path(__file__).parent / "views" / "style.css"
 
@@ -37,6 +37,9 @@ with gr.Blocks(title="Cahiers de doléances") as demo:
 
     with gr.Tab("Par commune"):
         load_fn, load_outputs = commune.render()
+
+    with gr.Tab("Recherche"):
+        recherche.render()
 
     demo.load(load_fn, None, load_outputs)
 

@@ -319,3 +319,20 @@ def etat_du_corpus():
         communes_listees=len([c for c in list_communes() if c[1] != SANS_COMMUNE]),
         communes_du_corpus=len(set(codes.values())),
     )
+
+
+def chercher_doleances(requete: str, limite: int = 20):
+    """(total, résultats) pour une requête plein texte.
+
+    Ouvre une session ORM le temps de la requête : `recherche.requetes` prend
+    une `Session`, quand le reste de ce module travaille en SQL brut via pandas.
+    """
+    from sqlalchemy.orm import Session
+
+    from recherche.requetes import RequeteVide, chercher, compter
+
+    with Session(engine) as session:
+        try:
+            return compter(session, requete), chercher(session, requete, limite)
+        except RequeteVide:
+            return 0, []
