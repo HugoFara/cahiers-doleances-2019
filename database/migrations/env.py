@@ -19,6 +19,21 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
+# Index qu'alembic ne sait pas comparer, et qui feraient donc échouer
+# `alembic check` à chaque exécution sans qu'aucune ligne n'ait bougé.
+#
+# `ix_doleance_recherche` porte une expression — `to_tsvector(...)` — et non des
+# colonnes. Alembic ne compare pas les expressions textuelles : il voit toujours
+# un « drop » suivi d'un « add », des deux côtés d'une base pourtant à jour. On
+# le sort donc de la comparaison, en le nommant plutôt qu'en filtrant sur une
+# forme, pour que la liste reste lisible et courte.
+INDEX_HORS_COMPARAISON = {"ix_doleance_recherche"}
+
+
+def include_object(objet, nom, type_, reflete, compare_a) -> bool:
+    """Filtre ce qu'alembic compare entre le modèle et la base."""
+    return not (type_ == "index" and nom in INDEX_HORS_COMPARAISON)
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -41,6 +56,7 @@ def run_migrations_offline() -> None:
     context.configure(
         url=url,
         target_metadata=target_metadata,
+        include_object=include_object,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -59,7 +75,11 @@ def run_migrations_online() -> None:
     connectable = create_engine(get_url(), poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_object,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

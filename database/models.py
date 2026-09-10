@@ -159,6 +159,17 @@ class Doleance(Base):
     """
 
     __tablename__ = "doleance"
+    __table_args__ = (
+        # Index d'expression, pas colonne générée : une colonne `tsvector` sur
+        # le modèle casserait les tests, qui montent le schéma sur SQLite.
+        # `ddl_if` réserve sa création à PostgreSQL tout en le laissant dans les
+        # métadonnées, ce qui garde `alembic check` d'accord avec la base.
+        Index(
+            "ix_doleance_recherche",
+            text("to_tsvector('public.francais_sans_accent', coalesce(text, \'\'))"),
+            postgresql_using="gin",
+        ).ddl_if(dialect="postgresql"),
+    )
 
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("run.id"))  # découpage qui l'a produite
