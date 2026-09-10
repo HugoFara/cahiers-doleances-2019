@@ -29,6 +29,18 @@ engine = create_engine(
 # pour les cahiers qui n'en ont pas, plutôt que de les laisser invisibles.
 SANS_COMMUNE = "00000"
 
+#  Plusieurs grilles de thèmes coexistent en base (voir database/runs.py) : sans
+#  filtre, l'app les afficherait empilées, et les noms de thèmes — uniques dans
+#  une grille, pas dans la table — se confondraient d'une grille à l'autre. On
+#  ne sert donc que la grille active, dans **toutes** les vues : la vue commune
+#  n'avait pas ce filtre et cumulait les détections de toutes les grilles.
+#
+#  Écrit en sous-requête plutôt qu'en paramètre Python : quand aucune grille
+#  n'est active, la sous-requête vaut NULL, la comparaison n'est jamais vraie et
+#  les vues sont vides — exactement ce qu'on veut sur une base pas encore
+#  chargée, sans branchement supplémentaire.
+GRILLE_SERVIE = "(SELECT id FROM run WHERE kind = 'analyse' AND active)"
+
 
 def _graphies() -> dict[str, list[str]]:
     """{graphie affichée: toutes les graphies de la même commune}.
@@ -91,13 +103,14 @@ def list_communes() -> list[tuple[str, str]]:
 def _rows(code: str) -> pd.DataFrame:
     """Les contributions d'une commune, désignée par son code INSEE."""
     # une seule extraction affichée par contribution : la plus récente
-    q = text("""
+    q = text(f"""
         SELECT k.id, k.city, k.pdf_file, k.start_page, k.end_page, k.is_handwritten,
                e.ocr, e.text, e.num_words, e.num_lines,
                a.is_anonymized, a.is_of_interest,
                (SELECT string_agg(r.name, ', ') FROM instance t
                  JOIN topic r ON r.id = t.topic_id
-                 WHERE t.contribution_id = k.id) AS topics,
+                 WHERE t.contribution_id = k.id
+                   AND t.run_id = {GRILLE_SERVIE}) AS topics,
                (SELECT string_agg(name, ', ') FROM feeling
                  WHERE contribution_id = k.id) AS feelings
         FROM contribution k
@@ -114,10 +127,11 @@ def _rows(code: str) -> pd.DataFrame:
 
 def _topic_instances(contribution_id: int) -> pd.DataFrame:
     """Les instances de thèmes d'une contribution avec verbatim et résumé."""
-    q = text("""
+    q = text(f"""
         SELECT r.name, t.verbatim, t.summary
         FROM instance t JOIN topic r ON r.id = t.topic_id
         WHERE t.contribution_id = :cid
+          AND t.run_id = {GRILLE_SERVIE}
         ORDER BY t.id
     """)
     return pd.read_sql(q, engine, params={"cid": contribution_id})
@@ -209,18 +223,6 @@ def save_annotation(code: str, idx: int, is_anonymized: bool, is_of_interest: bo
     return f"Enregistré (contribution {idx + 1})."
 
 
-#  vue graphe : la taxonomie et ses détections, lues une fois au démarrage
-#
-#  Plusieurs grilles de thèmes coexistent en base (voir database/runs.py) : sans
-#  filtre, l'app les afficherait empilées, et les noms de thèmes — uniques dans
-#  une grille, pas dans la table — se confondraient d'une grille à l'autre. On
-#  ne sert donc que la grille active.
-#
-#  Écrit en sous-requête plutôt qu'en paramètre Python : quand aucune grille
-#  n'est active, la sous-requête vaut NULL, la comparaison n'est jamais vraie et
-#  les vues sont vides — exactement ce qu'on veut sur une base pas encore
-#  chargée, sans branchement supplémentaire.
-GRILLE_SERVIE = "(SELECT id FROM run WHERE kind = 'analyse' AND active)"
 
 
 def grille_servie() -> dict | None:
