@@ -16,17 +16,23 @@ Mesuré sur les 516 cahiers de `data/raw/pdfs` (5 365 pages extraites) :
 |---|---|---|
 | pages | 2 510 / 5 365 | **47 %** |
 | cahiers touchés (au moins une page perdue) | 445 / 516 | 86 % |
-| communes touchées | 269 / 307 | 88 % |
+| communes touchées | 402 / 459 | 88 % |
 | cahiers entièrement écartés | 47 | |
-| **communes sans aucune page lisible** | **24** | |
+| **communes sans aucune page lisible** | **37** | |
 
 Les 2 855 pages retenues sont exactement les 2 855 documents de
 `topic-builder/data/cahiers/dataset.csv` : le corpus analysé jusqu'ici, c'est
 cette moitié-là.
 
-Vingt-quatre communes n'ont **aucune voix** dans l'analyse. Ce n'est pas la même
+Trente-sept communes n'ont **aucune voix** dans l'analyse. Ce n'est pas la même
 chose qu'être partiellement lue : leur cahier existe, il a été numérisé, et il ne
 compte pour rien dans les comptages de thèmes.
+
+> Les chiffres de communes publiés le 10 septembre — 24 muettes sur 307 —
+> comptaient les communes par la graphie de leur en-tête, absente sur un tiers
+> des cahiers : ces communes n'étaient comptées ni au numérateur ni au
+> dénominateur. Le rattachement au code INSEE donne le vrai compte. Les chiffres
+> de pages et de cahiers, eux, n'ont pas bougé.
 
 ## Le seuil tient-il ?
 
@@ -54,8 +60,9 @@ Ce n'est pas une mesure de la représentativité du corpus au sens statistique.
 Elle ne dit rien de qui a écrit, ni de quelles communes ont ouvert un registre,
 ni de ce qui a été conservé aux Archives. Elle dit seulement ce que la chaîne
 technique perd entre le scan et l'analyse. La couverture au sens de la
-représentativité — part des communes, pondérée par la population, par
-département — reste à faire, et demande le rattachement au code INSEE.
+représentativité — part des communes, pondérée par la population — demande la
+population de chaque commune, donc le Code officiel géographique : voir
+[insee/README.md](../insee/README.md).
 
 ## Utilisation
 
@@ -76,11 +83,12 @@ comptage.
 | `mesures.py` | les mesures, sans base de données — testables sur des lignes |
 | `__main__.py` | le rapport et son export JSON |
 
-Le regroupement des graphies de communes est repris de
-`gradio_app/communes.py` : sans lui, AHUILLE et AHUILLÉ compteraient pour deux
-communes (cf. commit 187d133). L'import depuis `gradio_app/` est une entorse
-assumée — le module y est sans dépendance à Gradio ni à la base — plutôt que de
-dupliquer une logique qui a déjà produit un bug.
+Les communes sont comptées par leur code INSEE dès que `python -m insee
+rattacher` a tourné ; à défaut, `mesurer` retombe sur le regroupement de
+graphies de `gradio_app/communes.py` et le rapport le signale, parce que le
+compte est alors sous-estimé d'environ un tiers. L'import depuis `gradio_app/`
+est une entorse assumée — le module y est sans dépendance à Gradio ni à la base
+— plutôt que de dupliquer une logique qui a déjà produit un bug (187d133).
 
 ## Tester
 

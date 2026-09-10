@@ -83,11 +83,12 @@ trois choses, et la troisième est bloquante :
 
 - ~~**Runs et versions.**~~ Fait. Reste à imposer l'auteur d'un run plutôt que
   de le réclamer, et à exposer le choix de la grille dans l'app.
-- **Commune → code INSEE.** Le TODO est dans `models.py`, le commit 187d133 le
-  contourne dans l'app. Table `city` clé INSEE, FK depuis `contribution`. On y
-  gagne le département, la population, le rural/urbain, les coordonnées — donc
-  la carte, l'analyse de couverture, et l'arbitrage sur les petites communes
-  (voir réidentification).
+- **Commune → code INSEE.** Fait le 2026-09-10 (`insee/`) : le code se lit dans
+  le nom du fichier, la table `city` le porte, `contribution.city_code` y
+  renvoie. **459 communes au lieu de 307** — le parsing d'en-tête en manquait un
+  tiers. Reste la population et les coordonnées, qui demandent le Code officiel
+  géographique : sans elles, pas de pondération par population, donc pas de
+  mesure de représentativité, et pas de carte.
 - **Types de support et d'auteur** (couche 2). À poser dès maintenant, même
   renseignés à la main sur un échantillon : ils conditionnent l'interprétation de
   tout comptage.
@@ -219,9 +220,9 @@ corpus. C'est ce qui rend les décisions visibles et donc contestables.
   occultée que l'autre. À vérifier avant de figer quoi que ce soit.
 
 **Par où continuer** : faire annoter l'échantillon de référence — l'outillage
-attend, le travail humain non. Côté code, le rattachement au code INSEE, qui
-débloque la couverture au sens de la représentativité (part des communes,
-pondérée par la population) et la carte.
+attend, le travail humain non. Côté code, importer le Code officiel géographique
+pour donner à `city` sa population et ses coordonnées : c'est ce qui manque à la
+mesure de représentativité et à la carte.
 
 ---
 
@@ -236,7 +237,9 @@ pondérée par la population) et la carte.
 | Jeu de référence annoté (200-300 doléances) | outillage fait — `reference/` ; **reste à annoter** |
 | Chiffrer la part manuscrite écartée | fait — 47 % des pages, `couverture/` |
 | Reprendre le manuscrit (HTR) | à faire — **prochain**, bloqué sur l'OCR |
-| Commune -> INSEE, types de support et d'auteur | à faire |
+| Commune -> INSEE | fait — 459 communes contre 307 par graphie |
+| Population et coordonnées (Code officiel géographique) | à faire — **prochain** |
+| Types de support et d'auteur | à faire |
 | Déduplication | à faire |
 | Anonymisation (texte + image), rappel mesuré | à faire |
 | Métriques de taxonomie, catégorie « hors grille » | à faire |

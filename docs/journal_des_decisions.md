@@ -76,14 +76,20 @@ population que ces cahiers étaient censés faire entendre.
 |---|---|---|
 | pages | 2 510 / 5 365 | **47 %** |
 | cahiers touchés | 445 / 516 | 86 % |
-| communes touchées | 269 / 307 | 88 % |
+| communes touchées | 402 / 459 | 88 % |
 | cahiers entièrement écartés | 47 | |
-| **communes sans aucune page lisible** | **24** | |
+| **communes sans aucune page lisible** | **37** | |
 
 Les 2 855 pages retenues sont exactement les 2 855 documents de
 `topic-builder/data/cahiers/dataset.csv` : le corpus analysé jusqu'ici, c'est
-cette moitié-là. Vingt-quatre communes n'ont aucune voix dans l'analyse — leur
+cette moitié-là. Trente-sept communes n'ont aucune voix dans l'analyse — leur
 cahier existe, il a été numérisé, il ne compte pour rien.
+
+*Corrigé le 2026-09-10 : la première version de cette entrée annonçait 24
+communes muettes sur 307. Les communes y étaient comptées par la graphie de leur
+en-tête, absente sur un tiers des cahiers — celles-là n'étaient comptées ni au
+numérateur ni au dénominateur. Le rattachement au code INSEE donne 37 sur 459.
+Les chiffres de pages et de cahiers n'ont pas bougé.*
 
 **Le seuil tient.** `needs_ocr` se déclenche sous 0,3, ce qui est un réglage. La
 distribution est bimodale (2 070 pages sous 0,2, 1 591 au-dessus de 0,9, un creux
@@ -234,6 +240,44 @@ pour l'éviter que les deux sont affichés côte à côte plutôt qu'un seul.
 découpage très différent redistribuerait les strates, et les poids d'un
 échantillon tiré sous l'ancien ne vaudraient plus. Retirer un échantillon si le
 découpage change radicalement.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
+## 2026-09-10 — La commune est identifiée par son code INSEE, lu dans le nom du fichier
+
+**Décision.** `contribution.city_code` référence une table `city` clé INSEE. Le
+code est lu dans le **nom du fichier** (`CC_<cp>_<AAMMJJ>_<INSEE>_MD_<id>.pdf`).
+L'en-tête du PDF, qui le porte aussi, sert à auditer et non à rattacher.
+
+**Motif.** La commune n'était qu'une graphie parsée de l'en-tête. Sur les 516
+cahiers, ce parsing échoue **182 fois (35 %)** — et 180 de ces cahiers portent
+pourtant leur code dans leur nom de fichier. Conséquence mesurée : 307 communes
+identifiées par graphie contre **459 par code**. Un tiers des communes du corpus
+était invisible, y compris dans les mesures de couverture publiées le matin même.
+
+**Pourquoi le nom de fichier et pas l'en-tête.** Les deux sources concordent sur
+339 cahiers (66 %), le nom de fichier est seul disponible sur 174 (34 %), et
+elles se contredisent une fois. Ce désaccord unique tranche la question : l'en-tête
+portait `GHANA Y - 01420`, c'est-à-dire Chanay mal océrisé suivi de son **code
+postal**, quand le nom de fichier portait 01082, son vrai code INSEE. Le nom de
+fichier vient du système qui a déposé le cahier ; l'en-tête est un champ rempli à
+la main puis passé dans une extraction de texte.
+
+**Ce qui n'est pas rattaché.** Deux cahiers portent `00000` : leur commune n'est
+pas renseignée **à la source**, l'un étant remis sans commune et l'autre ayant un
+en-tête illisible. Leur `city_code` reste NULL — on ne leur invente pas une
+commune.
+
+**Ce qui reste NULL.** `city.name` est la graphie la plus riche rencontrée, pas
+le nom officiel. `population`, `latitude` et `longitude` sont vides : elles
+demandent le Code officiel géographique, absent du dépôt. Sans population, pas de
+mesure de représentativité pondérée ; sans coordonnées, pas de carte. C'est la
+prochaine dépendance externe à régler.
+
+**Réversibilité.** Totale : `rattacher` est idempotent et ne dépend que des noms
+de fichiers déjà en base. Rien d'irremplaçable n'est produit ici.
 
 **Auteur.** Équipe technique — *à nommer avant publication*.
 

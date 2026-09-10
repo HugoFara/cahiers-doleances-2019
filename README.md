@@ -11,6 +11,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
   - `extraction/without_ocr/` : extraction du texte natif, sans OCR | [documentation](extraction/without_ocr/README.md)
 - `segmentation/` : le découpage des cahiers en doléances individuelles | [documentation](segmentation/README.md)
 - `couverture/` : ce que le corpus analysé laisse dehors | [documentation](couverture/README.md)
+- `insee/` : le rattachement des contributions au code INSEE de leur commune | [documentation](insee/README.md)
 - `reference/` : le jeu de référence annoté à la main, et la mesure de ce que valent les couches | [documentation](reference/README.md)
 - `gradio_app/` : l'interface pour parcourir les contributions et les annoter | [documentation](gradio_app/README.md)
 - `topic-builder/` : l'utilitaire de découverte, structuration et annotation des thèmes abordés dans les contributions | [documentation](topic-builder/README.md)
@@ -110,13 +111,19 @@ uv run python gradio_app/app.py
 ## Ce que le corpus analysé contient
 
 Avant tout comptage : **47 % des pages du corpus sont écartées** par le filtre
-`needs_ocr`, c'est-à-dire l'écriture manuscrite. Vingt-quatre communes n'ont
+`needs_ocr`, c'est-à-dire l'écriture manuscrite. Trente-sept communes n'ont
 aucune page lisible. Le corpus analysé jusqu'ici est sa moitié dactylographiée —
 lettres de maires, associations, textes tapés.
 
 ```bash
-uv run python -m couverture   # le chiffre, à jour, avec sa sensibilité au seuil
+uv run python -m insee rattacher   # d'abord : identifier les communes par leur code
+uv run python -m couverture        # le chiffre, avec sa sensibilité au seuil
 ```
+
+Le rattachement INSEE vient en premier parce qu'il change le compte : la commune
+n'était identifiée que par la graphie de son en-tête, absente sur un tiers des
+cahiers. 459 communes par code contre 307 par graphie — voir
+[insee/README.md](insee/README.md).
 
 Détail et méthode dans [couverture/README.md](couverture/README.md). Ce taux doit
 accompagner toute statistique tirée du corpus, sans quoi elle se lit comme
