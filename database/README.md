@@ -239,6 +239,15 @@ résolu **et** `contribution_id` est repris de la doléance : les vues de l'app
 joignent sur `contribution_id`, elles continuent de fonctionner sans connaître le
 nouveau niveau.
 
+**La livraison d'août ne décrit pas ce corpus.** `load_analysis.py` vérifie que
+les verbatims d'une livraison se retrouvent bien dans le texte visé, et refuse le
+rattachement en dessous de 30 % : c'est ce garde-fou qui laisse
+`instance.contribution_id` à NULL. Mesuré le 10 septembre 2026, la raison est
+plus profonde qu'un décalage d'identifiants — sur les 9 579 extraits de cette
+livraison, **3,8 % seulement** se retrouvent dans les 6,4 millions de caractères
+de `page_extraction`, et **24 % de son vocabulaire y est absent**. Elle porte sur
+une autre extraction, ou un autre périmètre. Aucun rattachement par verbatim ne
+la sauvera : il faut refaire l'analyse sur le corpus actuel.
 
 ## Commandes
 

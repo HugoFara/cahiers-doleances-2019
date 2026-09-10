@@ -140,8 +140,14 @@ trois choses, et la troisième est bloquante :
   grille ne généralise pas, elle réécrit le corpus — ce que les 32 passes de
   factorisation ne pouvaient pas montrer, faute d'instrument. La **couverture**
   (« hors grille ») fonctionne dès qu'une livraison est produite par
-  `export_dataset.py` ; elle n'est pas mesurable sur la livraison d'août, dont les
-  identifiants désignent un autre corpus.
+  `export_dataset.py` ; elle n'est pas mesurable sur la livraison d'août.
+  **Mesuré le 2026-09-10 : cette livraison ne décrit pas le corpus qui est en
+  base.** Ce n'est pas seulement que ses identifiants sont des rangs de CSV
+  (0 à 1523) — sur ses 9 579 extraits, **3,8 % seulement** se retrouvent dans les
+  6,4 millions de caractères de `page_extraction`, et **24 % de son vocabulaire y
+  est absent**. Elle ne peut donc pas être rerattachée, même en cherchant ses
+  verbatims : il faut refaire l'analyse sur le corpus actuel, ce qui suppose un
+  LLM et donc la décision d'hébergement de la P3.
 - **Le jeu de référence** de 200-300 doléances annotées à la main reste le
   chaînon manquant : les métriques comparent deux grilles entre elles, seul un
   étalon dit laquelle est juste. L'outillage existe (`reference/`) — tirage
