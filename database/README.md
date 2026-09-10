@@ -150,6 +150,15 @@ run_actif(session, ANALYSE)   # la grille servie, ou None sur une base vierge
 runs(session, ANALYSE)        # toutes les grilles, de la plus récente à la plus ancienne
 ```
 
+**Un run est toujours attribué.** `run.author` est `NOT NULL` depuis le
+10 septembre 2026 : `creer_run` résout l'auteur d'office quand la commande ne le
+donne pas — `--auteur`, puis la variable `CAHIER_DOLEANCES_AUTEUR`, puis la
+configuration git du dépôt, puis le compte système (`database/auteur.py`). Avant
+cela l'auteur était seulement *réclamé*, par un message imprimé en fin de
+commande ; la base porte encore quatre runs anonymes, comblés en `inconnu` par la
+migration, pour montrer ce que valait le rappel. Une couche interprétative qu'on
+ne peut rattacher à personne ne se discute pas, elle se subit.
+
 `run_actif` renvoyant `None` est un **état normal** (base migrée mais pas encore
 chargée) : les lectures le traitent comme « couche vide », pas comme une erreur.
 L'app l'exprime en SQL — `WHERE t.run_id = (SELECT id FROM run WHERE kind='analyse' AND active)`

@@ -85,7 +85,7 @@ def main(
 
         # Lus avant le commit : la session expire ses objets ensuite, et le run
         # devient inaccessible une fois sortie du `with`.
-        sans_auteur = run.author is None
+        run_auteur = run.author
         session.commit()
 
     print(f"{traites} cahier(s) découpé(s) · {total} doléance(s) écrite(s)")
@@ -94,8 +94,7 @@ def main(
             f"{ignores} cahier(s) déjà couvert(s) par ce run, ignoré(s) — "
             "--nouveau-run pour redécouper tout le corpus ailleurs"
         )
-    if sans_auteur:
-        print("run sans auteur : renseigner --auteur avant publication")
+    print(f"run attribué à : {run_auteur}")
     return 0
 
 
@@ -108,7 +107,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--auteur",
-        help="qui lance ce découpage (consigné dans le run, requis avant publication)",
+        help="qui lance ce découpage (défaut : la configuration git du dépôt)",
     )
     parser.add_argument(
         "--keep-ocr-pages",

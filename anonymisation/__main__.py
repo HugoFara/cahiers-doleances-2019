@@ -64,6 +64,7 @@ def main(auteur: str | None = None) -> int:
                 "repérés et le rappel n'est pas mesuré."
             ),
         )
+        run_auteur = run.author
         comptes = detecter_tout(session, run.id, textes)
         session.commit()
 
@@ -80,13 +81,15 @@ def main(auteur: str | None = None) -> int:
     for genre, n in sorted(comptes.items(), key=lambda c: -c[1]):
         print(f"    {genre:14} {n:5d}")
     print(AVERTISSEMENT)
-    if auteur is None:
-        print("\nrun sans auteur : renseigner --auteur avant publication")
+    print(f"\nrun attribué à : {run_auteur}")
     return 0
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--auteur", help="qui lance cette passe")
+    parser.add_argument(
+        "--auteur",
+        help="qui lance cette passe (défaut : la configuration git du dépôt)",
+    )
     args = parser.parse_args()
     sys.exit(main(args.auteur))

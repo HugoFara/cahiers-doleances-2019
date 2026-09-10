@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from database import auteur as auteur_module
 from database.models import Base, Run, Topic
 from database.runs import (
     ANALYSE,
@@ -100,6 +101,19 @@ def test_le_run_porte_de_quoi_le_rejouer(session):
     assert relu.model == "qwen3-4b-instruct-fp8"
     assert relu.parameters == {"seuil": 0.3}
     assert relu.created_at is not None
+
+
+def test_un_run_est_toujours_attribue(session, monkeypatch):
+    """Aucun chemin ne crée un run anonyme, même sans --auteur."""
+    monkeypatch.setattr(auteur_module, "par_defaut", lambda: "camille")
+    run = creer_run(session, ANALYSE, label="v4")
+    assert run.author == "camille"
+
+
+def test_un_run_ne_se_cree_pas_quand_personne_ne_peut_etre_nomme(session, monkeypatch):
+    monkeypatch.setattr(auteur_module, "par_defaut", lambda: None)
+    with pytest.raises(auteur_module.AuteurInconnu):
+        creer_run(session, ANALYSE, label="v4")
 
 
 def test_deux_grilles_peuvent_reutiliser_le_meme_uuid_de_livraison(session):

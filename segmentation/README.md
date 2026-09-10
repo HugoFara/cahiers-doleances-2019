@@ -99,8 +99,10 @@ Crée un run et y redécoupe tout le corpus. Le précédent reste en base, intac
 comparable : on ne détruit plus un découpage pour en essayer un autre. C'est le
 nouveau run qui devient servi — par l'export, et par tout ce qui lit la couche.
 
-`--auteur` n'est pas obligatoire mais la commande le réclame : un run sans auteur
-n'est pas publiable. Les pages `needs_ocr` sont écartées, comme à l'export
+`--auteur` reste facultatif à la ligne de commande, mais le run est attribué
+d'office : à défaut d'argument, l'auteur est lu dans la variable
+`CAHIER_DOLEANCES_AUTEUR`, puis dans la configuration git du dépôt. La colonne
+est `NOT NULL` — il n'existe plus de run anonyme. Les pages `needs_ocr` sont écartées, comme à l'export
 (`--keep-ocr-pages` pour les inclure) — c'est une décision consignée au
 [journal](../docs/journal_des_decisions.md), pas un détail technique.
 

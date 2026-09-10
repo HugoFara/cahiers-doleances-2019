@@ -83,9 +83,11 @@ trois choses, et la troisième est bloquante :
 
 - ~~**Runs et versions.**~~ Fait. L'app annonce la grille servie sur ses deux
   pages (2026-09-10), et la vue commune la filtre enfin — elle cumulait toutes
-  les grilles. Reste à imposer l'auteur d'un run plutôt que de le réclamer, et à
-  permettre d'**en changer** depuis l'app : cela demande de sortir la taxonomie
-  de l'état de module de `views/graph.py`, un refactoring et non un câblage.
+  les grilles. L'auteur n'est plus réclamé mais **imposé** depuis le 2026-09-10 :
+  `run.author` est `NOT NULL` et `creer_run` le résout d'office
+  (`database/auteur.py`). Reste à permettre d'**en changer** depuis l'app : cela
+  demande de sortir la taxonomie de l'état de module de `views/graph.py`, un
+  refactoring et non un câblage.
 - **Commune → code INSEE.** Fait le 2026-09-10 (`insee/`) : le code se lit dans
   le nom du fichier, la table `city` le porte, `contribution.city_code` y
   renvoie. **459 communes au lieu de 307** — le parsing d'en-tête en manquait un
@@ -280,8 +282,12 @@ en UE, formats IIIF / ALTO / EAD).
 | Changer de grille depuis l'app | à faire — demande de paramétrer `views/graph.py` par run |
 
 **Ce que le découpage donne aujourd'hui** : sur les 2 855 pages de
-`topic-builder/data/cahiers/dataset.csv`, 3 243 doléances — 11 % des pages
-contiennent plus d'un contributeur repérable. C'est un plancher assumé : les
+`topic-builder/data/cahiers/dataset.csv`, **1 002 doléances** dans 469 cahiers,
+soit 2,1 par cahier et 753 mots de moyenne — 622 d'entre elles courent sur
+plusieurs pages. (Une mesure antérieure annonçait 3 243 doléances et 11 % de
+pages à plusieurs contributeurs : elle découpait chaque page isolément, alors que
+le pipeline regroupe par cahier. Les 11 % restent vrais des pages prises seules.)
+C'est un plancher assumé : les
 règles ne lisent que le texte, elles ne voient ni le blanc vertical ni le
 changement d'écriture. Le chiffre à surveiller après le passage à l'OCR complet
 est celui-là ; s'il ne monte pas franchement, c'est que la géométrie manque

@@ -74,6 +74,7 @@ def main(seuil: float = SEUIL, auteur: str | None = None) -> int:
             corpus=f"{len(textes)} doléance(s) · découpage #{decoupage.id}",
             author=auteur,
         )
+        run_auteur = run.author
         groupees = enregistrer(session, run.id, groupes, communes)
         session.commit()
 
@@ -104,8 +105,7 @@ def main(seuil: float = SEUIL, auteur: str | None = None) -> int:
             "c'est une\n  campagne organisée, ce qui est autre chose qu'une "
             "écriture individuelle.\n  Les groupes sont conservés, pas écrasés."
         )
-    if auteur is None:
-        print("\nrun sans auteur : renseigner --auteur avant publication")
+    print(f"\nrun attribué à : {run_auteur}")
     return 0
 
 
@@ -114,6 +114,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seuil", type=float, default=SEUIL, help=f"similarité minimale (défaut : {SEUIL})"
     )
-    parser.add_argument("--auteur", help="qui lance cette déduplication")
+    parser.add_argument(
+        "--auteur",
+        help="qui lance cette déduplication (défaut : la configuration git du dépôt)",
+    )
     args = parser.parse_args()
     sys.exit(main(args.seuil, args.auteur))

@@ -135,7 +135,10 @@ class Run(Base):
     prompt_version = Column(String)
     parameters = Column(JSON)  # seuils et config, tels qu'appliqués
     corpus = Column(String)  # ce sur quoi le run a tourné
-    author = Column(String)  # humain ou machine ; à renseigner avant publication
+    # NOT NULL : une couche interprétative anonyme ne se discute pas. L'auteur
+    # est résolu d'office par `creer_run` (voir `database/auteur.py`), il n'est
+    # plus réclamé après coup.
+    author = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     active = Column(Boolean)  # run servi par défaut pour ce genre
     notes = Column(Text)

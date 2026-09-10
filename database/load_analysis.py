@@ -350,7 +350,7 @@ def main(
             nb_documents=len(documents),
         )
         run_id = run.id
-        sans_auteur = run.author is None
+        run_auteur = run.author
 
         ids = charger_topics(session, topics, run_id)
         print(f"  topics synchronisés : {len(ids)}")
@@ -394,8 +394,7 @@ def main(
             print(f"{modele_orm.__tablename__}: {dans_le_run} lignes dans ce run "
                   f"· {total} au total (toutes grilles)")
 
-    if sans_auteur:
-        print("run sans auteur : renseigner --auteur avant publication")
+    print(f"run attribué à : {run_auteur}")
 
 
 if __name__ == "__main__":
@@ -409,7 +408,10 @@ if __name__ == "__main__":
         "--nouveau-run", action="store_true",
         help="charger en une grille de plus au lieu de mettre à jour celle de ce dossier",
     )
-    parser.add_argument("--auteur", help="qui a produit la livraison")
+    parser.add_argument(
+        "--auteur",
+        help="qui a produit la livraison (défaut : la configuration git du dépôt)",
+    )
     parser.add_argument("--modele", help="modèle LLM ayant produit la grille")
     parser.add_argument("--version-prompt", help="version du prompt employé")
     args = parser.parse_args()

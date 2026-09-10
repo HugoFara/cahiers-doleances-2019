@@ -543,6 +543,53 @@ le dit à chaque exécution.
 
 ---
 
+## 2026-09-10 — Un run est attribué d'office, il n'est plus réclamé
+
+**Décision.** `run.author` passe en `NOT NULL`. `creer_run` résout l'auteur
+lui-même quand la commande ne le donne pas : `--auteur`, puis la variable
+`CAHIER_DOLEANCES_AUTEUR`, puis l'identité git du dépôt, puis le compte système.
+Si aucune source ne répond, la passe s'arrête au lieu d'écrire un run anonyme
+(`database/auteur.py`).
+
+**Périmètre.** Les cinq genres de runs : segmentation, analyse, doublons,
+anonymisation, embeddings.
+
+**Motif.** L'attribution est la contrepartie de la réversibilité. Une couche
+qu'on peut retirer mais pas rattacher à quelqu'un ne se discute pas, elle se
+subit — et c'est exactement ce que ce dépôt reproche à la synthèse officielle de
+2019. Or l'auteur n'était jusqu'ici que *réclamé* : chaque commande imprimait
+« run sans auteur : renseigner --auteur avant publication » et écrivait le run
+quand même. Un avertissement qu'on lit une fois puis plus jamais ne tient pas
+lieu de contrainte.
+
+**Alternatives écartées.** Rendre `--auteur` obligatoire à la ligne de commande :
+plus strict en apparence, mais une obligation qui gêne se contourne — on tape
+`--auteur x` et le champ ment. Laisser la colonne nullable en n'ajoutant qu'un
+test : le test garde le code du dépôt, pas les runs créés depuis un notebook ou
+une console.
+
+**Conséquence mesurée.** Les quatre runs de la base de développement étaient
+attribués, mais par un `--auteur` tapé à la main à chaque fois ; le run d'analyse
+hérité, créé avant la table, porte `inconnu`. La migration comble en `inconnu`
+tout run resté anonyme — elle n'invente pas d'auteur après coup, elle écrit ce
+qu'on sait. Sur un poste sans `user.name` ni `user.email`, la chaîne de repli
+répond ce que git déduit du système (`login <login@hôte>`) — donc l'identité
+sous laquelle les commits partent déjà.
+
+**Réversibilité.** Bonne : la migration inverse rouvre la colonne. Les `inconnu`
+posés à l'aller ne sont pas remis à NULL au retour, parce qu'un run les portait
+légitimement avant.
+
+**Ce que cela ne règle pas.** Les entrées de ce journal restent signées « Équipe
+technique — *à nommer avant publication* ». La base sait maintenant qui a produit
+chaque couche ; le journal, lui, attend toujours une décision sur les noms à
+publier. Les deux attributions ne sont pas la même : l'une dit qui a lancé une
+passe, l'autre qui a pris une décision.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le choix des grilles de thèmes, et le statut donné à chacune.
