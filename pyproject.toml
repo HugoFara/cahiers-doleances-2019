@@ -37,7 +37,7 @@ dependencies = [
 dev = ["pytest", "ruff", "ty"]
 
 [tool.setuptools.packages.find]
-include = ["database*", "extraction*", "gradio_app*", "reference*", "segmentation*"]
+include = ["couverture*", "database*", "extraction*", "gradio_app*", "reference*", "segmentation*"]
 
 # Sans section [tool.ruff], le lint suit les règles par défaut de ruff, qui
 # changent d'une version à l'autre : le repo passait en 0.15 et sortait 12
@@ -53,5 +53,5 @@ select = ["E4", "E7", "E9", "F", "I"]
 [tool.pytest.ini_options]
 # `topic-builder/` est un projet uv autonome (dépendances et lockfile séparés) :
 # il se teste depuis son propre dossier, pas depuis la racine.
-testpaths = ["extraction", "database", "gradio_app", "reference", "segmentation"]
+testpaths = ["couverture", "extraction", "database", "gradio_app", "reference", "segmentation"]
 pythonpath = ["."]
