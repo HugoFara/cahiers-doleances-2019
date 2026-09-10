@@ -7,6 +7,15 @@
     uv run python -m insee auditer
         rouvre les PDF de PATH_TO_DATA et croise les deux sources du code — le
         nom du fichier et l'en-tête — pour dire ce que vaut le rattachement.
+
+    uv run python -m insee cog
+        renseigne nom officiel, population et coordonnées depuis les extraits
+        versionnés de `insee/referentiel/`, et pèse le corpus en habitants.
+        Idempotent, sans réseau.
+
+    uv run python -m insee referentiel --departements 01 28 39 53
+        reconstruit ces extraits depuis l'INSEE. **Sort sur le réseau** et
+        réécrit des fichiers versionnés : à ne lancer que délibérément.
 """
 
 import argparse
@@ -14,15 +23,26 @@ import sys
 from pathlib import Path
 
 import fitz
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from database.db import check_connection, get_engine
+from database.models import City
 from extraction.without_ocr.config import ExtractionConfig
 from extraction.without_ocr.settings import settings
 from insee.codes import code_de_l_entete, code_du_nom_de_fichier, rapprocher
+from insee.cog import (
+    REFERENTIEL,
+    communes_par_departement,
+    enrichir,
+    lire,
+    population_par_departement,
+    population_totale,
+)
 from insee.rattachement import couverture_par_departement, rattacher
 
 CAHIERS_MONTRES = 5
+DEPARTEMENTS_DU_CORPUS = ("01", "28", "39", "53")
 
 
 def commande_rattacher() -> int:
@@ -57,9 +77,8 @@ def commande_rattacher() -> int:
 
     print(
         "\n  `city.name` est la graphie la plus riche rencontrée, pas le nom "
-        "officiel.\n  Population et coordonnées restent NULL : elles demandent "
-        "le Code officiel\n  géographique, sans lequel il n'y a ni pondération "
-        "par population ni carte."
+        "officiel.\n  `python -m insee cog` ajoute le nom officiel, la "
+        "population et les coordonnées."
     )
     return 0
 
@@ -117,14 +136,136 @@ def commande_auditer(dossier: Path | None) -> int:
     return 0
 
 
+def commande_cog() -> int:
+    referentiel = lire()
+    engine = get_engine()
+    check_connection(engine)
+    with Session(engine) as session:
+        rapport = enrichir(session, referentiel)
+        codes = {code for (code,) in session.execute(select(City.code))}
+        session.commit()
+
+    if not rapport.communes:
+        print(
+            "Aucune commune en base. Lancer `python -m insee rattacher` ?",
+            file=sys.stderr,
+        )
+        return 1
+
+    for ligne in rapport.resume():
+        print(f"  {ligne}")
+
+    if rapport.deleguees:
+        print(
+            "\n  Codes qui ne désignaient déjà plus une commune de plein exercice"
+            "\n  au 1er janvier 2019 — le cahier a été déposé sous un code périmé :"
+        )
+        for code in rapport.deleguees:
+            commune = referentiel[code]
+            print(
+                f"    {code} {commune.nom} → {commune.code_courant} "
+                f"{commune.nom_courant}"
+            )
+    if rapport.disparues:
+        print("\n  Communes du corpus disparues depuis 2019 :")
+        for code in rapport.disparues:
+            commune = referentiel[code]
+            print(
+                f"    {code} {commune.nom} → {commune.code_courant} "
+                f"{commune.nom_courant}"
+            )
+    if rapport.renommees:
+        print("\n  Communes renommées depuis 2019 (le code n'a pas bougé) :")
+        for code in rapport.renommees:
+            commune = referentiel[code]
+            print(f"    {code} {commune.nom} → {commune.nom_courant}")
+    if rapport.doubles:
+        print(
+            "\n  Doubles comptes de population — une commune déléguée et sa"
+            "\n  parente sont toutes deux dans le corpus, leurs habitants se"
+            "\n  recouvrent. Ils ne sont comptés qu'une fois :"
+        )
+        for delegue, parent in rapport.doubles:
+            print(
+                f"    {delegue} {referentiel[delegue].nom} ⊂ "
+                f"{parent} {referentiel[parent].nom}"
+            )
+
+    print("\n  Couverture par département, en communes et en habitants :")
+    communes_totales = communes_par_departement(referentiel)
+    populations_totales = population_par_departement(referentiel)
+    for departement in sorted(communes_totales):
+        du_corpus = {
+            code
+            for code in codes
+            if (commune := referentiel.get(code))
+            and commune.departement == departement
+        }
+        total_communes = communes_totales[departement]
+        total_population = populations_totales[departement]
+        habitants = population_totale(du_corpus, referentiel)
+        print(
+            f"    {departement} : {len(du_corpus):4d}/{total_communes:4d} communes "
+            f"({len(du_corpus) / total_communes:3.0%})"
+            f" · {habitants:7d}/{total_population:7d} habitants "
+            f"({habitants / total_population:3.0%})"
+        )
+
+    print(
+        "\n  La part en habitants est ce qui manquait : 459 communes sur 1 494 ne"
+        "\n  dit rien tant qu'une commune de 90 habitants y pèse autant qu'une de"
+        "\n  16 000. Elle ne dit toujours pas que le corpus est représentatif —"
+        "\n  seulement quelle part de la population a un cahier quelque part."
+    )
+    return 0
+
+
+def commande_referentiel(departements: list[str], cache: Path) -> int:
+    from insee.telecharger import construire
+
+    print(
+        f"  Téléchargement depuis l'INSEE — départements "
+        f"{' '.join(departements)}.\n  Les fichiers de insee/referentiel/ vont "
+        f"être réécrits.\n"
+    )
+    rapport = construire(REFERENTIEL, departements, cache)
+    for ligne in rapport.resume():
+        print(f"  {ligne}")
+    if rapport.sans_population:
+        print(f"\n  Sans population légale : {' '.join(rapport.sans_population)}")
+    print(
+        "\n  Penser à mettre à jour la date d'extraction dans"
+        "\n  insee/referentiel/SOURCES.md."
+    )
+    return 0
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sous = parser.add_subparsers(dest="commande", required=True)
     sous.add_parser("rattacher", help="remplir city et contribution.city_code")
+    sous.add_parser("cog", help="renseigner city depuis le référentiel INSEE")
+    p_ref = sous.add_parser("referentiel", help="reconstruire les extraits (réseau)")
+    p_ref.add_argument(
+        "--departements",
+        nargs="+",
+        default=list(DEPARTEMENTS_DU_CORPUS),
+        help="départements à retenir (défaut : ceux du corpus)",
+    )
+    p_ref.add_argument(
+        "--cache",
+        type=Path,
+        default=Path("data/cache_insee"),
+        help="où garder les fichiers bruts téléchargés",
+    )
     p_audit = sous.add_parser("auditer", help="croiser les deux sources du code")
     p_audit.add_argument("--dossier", type=Path, help="dossier des PDF (défaut : PATH_TO_DATA)")
 
     args = parser.parse_args()
     if args.commande == "rattacher":
         sys.exit(commande_rattacher())
+    if args.commande == "cog":
+        sys.exit(commande_cog())
+    if args.commande == "referentiel":
+        sys.exit(commande_referentiel(args.departements, args.cache))
     sys.exit(commande_auditer(args.dossier))

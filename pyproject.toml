@@ -39,6 +39,11 @@ dev = ["pytest", "ruff", "ty"]
 [tool.setuptools.packages.find]
 include = ["couverture*", "database*", "extraction*", "gradio_app*", "insee*", "reference*", "segmentation*"]
 
+# `insee/referentiel/` n'est pas un package mais des extraits de référentiels
+# publics, versionnés pour que le chargement soit reproductible hors ligne.
+[tool.setuptools.package-data]
+insee = ["referentiel/*.csv", "referentiel/*.md"]
+
 # Sans section [tool.ruff], le lint suit les règles par défaut de ruff, qui
 # changent d'une version à l'autre : le repo passait en 0.15 et sortait 12
 # erreurs en 0.16 sans qu'une ligne de code ait bougé. On fige donc l'intention.
