@@ -107,11 +107,19 @@ Scaleway : certains PDF font 43 Mo, ils ne transitent pas par l'app. Repli sur
 |---|---|
 | `app.py` | assemble le Blocks, expose les routes du graphe, monte le tout |
 | `views/commune.py` | vue « Par commune » : navigation + annotation |
-| `views/graph.py` | vue graphe : strates, couleurs, layout, réponses JSON |
+| `views/recherche.py` | vue « Recherche » : plein texte, extraits caviardés, lien vers la page |
+| `views/graph.py` | vue graphe : dessin Plotly et réponses JSON, une grille par run |
+| `views/grille.py` | la grille de thèmes comme objet — sans base ni Plotly, donc testée |
 | `views/static/` | page du graphe (`index.html`, `style.css`, `app.js`) |
 | `views/style.css` | styles du Blocks, chargé via `css_paths` |
 | `data_helpers.py` | requêtes SQL (SQLAlchemy + pandas) et écriture des annotations |
+| `source.py` | le retour à la source : URL du cahier avec l'ancre `#page=N` |
+| `avertissements.py` | ce que le corpus n'est pas, calculé depuis la base, sans Gradio |
 | `s3_helpers.py` | index des PDF et URL présignées |
+
+`gradio_app` est un paquet comme les autres : il s'importe en `gradio_app.…`
+partout, et se lance par `python -m gradio_app.app`. Il consomme les passes
+(`couverture`, `insee`, `recherche`) et n'en fonde aucune.
 
 ## Prérequis
 
@@ -125,7 +133,7 @@ Scaleway : certains PDF font 43 Mo, ils ne transitent pas par l'app. Repli sur
 ## Lancer
 
 ```bash
-uv run python gradio_app/app.py   # http://localhost:7860
+uv run python -m gradio_app.app   # http://localhost:7860
 ```
 
 ## Limites connues

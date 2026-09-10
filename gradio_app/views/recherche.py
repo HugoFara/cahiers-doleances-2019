@@ -14,8 +14,9 @@ annoter, pas à diffuser.
 import html
 
 import gradio as gr
-from data_helpers import chercher_doleances
-from source import libelle_page, lien_source
+
+from gradio_app.data_helpers import chercher_doleances
+from gradio_app.source import libelle_page, lien_source
 
 PLACEHOLDER = "éoliennes · \"pouvoir d'achat\" · impôt -taxe"
 

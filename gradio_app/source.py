@@ -19,6 +19,8 @@ lien plutôt qu'un lien mort.
 
 from pathlib import Path
 
+from gradio_app.s3_helpers import url_pdf
+
 ROOT = Path(__file__).resolve().parent.parent
 PDF_DIR = ROOT / "data" / "raw" / "pdfs"
 
@@ -51,17 +53,7 @@ def avec_page(url: str, page: int | None) -> str:
 
 
 def _url_presignee(cahier: str) -> str | None:
-    """L'URL S3 du cahier, en passant par le nom que l'import sait résoudre.
-
-    Les modules de `gradio_app/` s'importent à plat quand Gradio sert l'app
-    depuis ce dossier, et en paquet quand pytest part de la racine. Cette
-    indirection porte les deux cas — et donne aux tests un seul point à
-    remplacer pour couper S3.
-    """
-    try:
-        from s3_helpers import url_pdf
-    except ModuleNotFoundError:  # pytest, depuis la racine du dépôt
-        from gradio_app.s3_helpers import url_pdf
+    """L'URL S3 du cahier — le seul point à remplacer, dans les tests, pour couper S3."""
     return url_pdf(cahier)
 
 

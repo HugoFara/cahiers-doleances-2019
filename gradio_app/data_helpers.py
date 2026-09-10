@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 from dotenv import load_dotenv
-from source import libelle_page, lien_source
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 
+from gradio_app.source import libelle_page, lien_source
 from insee.communes import libelle_commune, regrouper
 
 # Constantes

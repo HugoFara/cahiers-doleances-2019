@@ -19,8 +19,9 @@ from pathlib import Path
 
 import networkx as nx
 import plotly.graph_objects as go
-from data_helpers import charger_detections, charger_taxonomie, grilles
-from views.grille import (
+
+from gradio_app.data_helpers import charger_detections, charger_taxonomie, grilles
+from gradio_app.views.grille import (
     APERCU,
     LIBELLE_STRATE,
     PROF_APERCU,

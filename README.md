@@ -51,7 +51,7 @@ Ou préfixez vos commandes par `uv run` :
 
 ```bash
 uv run python -m database.seed_mock # remplit la base avec le seed de démo
-uv run python gradio_app/app.py # lance l'app
+uv run python -m gradio_app.app # lance l'app
 ```
 
 ## Base de données
@@ -111,7 +111,7 @@ Une fois l'extraction terminée, les contributions sont visibles dans l'app Grad
 vous pouvez lancer avec :
 
 ```bash
-uv run python gradio_app/app.py
+uv run python -m gradio_app.app
 ```
 
 ## Ce que le corpus analysé contient

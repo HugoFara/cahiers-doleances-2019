@@ -1,11 +1,12 @@
 import gradio as gr
-from data_helpers import (
+
+from gradio_app.data_helpers import (
     get_contribution,
     list_communes,
     list_contributions,
     save_annotation,
 )
-from source import libelle_page, lien_source
+from gradio_app.source import libelle_page, lien_source
 
 
 def _cadre(src: str, lien: str, page: str) -> str:
