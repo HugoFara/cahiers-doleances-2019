@@ -6,8 +6,14 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from database.export_dataset import construire_documents, ecrire_dataset, lire_pages
-from database.models import Base, PageExtraction
+from database.export_dataset import (
+    construire_documents,
+    construire_documents_doleances,
+    ecrire_dataset,
+    lire_doleances,
+    lire_pages,
+)
+from database.models import Base, Doleance, PageExtraction
 
 
 def page(contribution_id: int, page_number: int, text: str, needs_ocr: bool = False) -> PageExtraction:
@@ -113,3 +119,49 @@ def test_ecrit_un_csv_relisible_par_topic_builder(tmp_path):
     with chemin.open(encoding="utf-8", newline="") as f:
         lignes = list(csv.DictReader(f))
     assert lignes == [{"id": "1", "content": "ligne un\nligne deux"}]
+
+
+# --- niveau doleance ---
+
+
+def doleance(
+    doleance_id: int,
+    text: str,
+    position: int = 0,
+    pdf_name: str = "cahier.pdf",
+) -> Doleance:
+    return Doleance(
+        id=doleance_id,
+        contribution_id=1,
+        pdf_name=pdf_name,
+        city="Trizay",
+        position=position,
+        start_page=3,
+        end_page=3,
+        text=text,
+    )
+
+
+def test_une_doleance_donne_un_document_prefixe():
+    """Le préfixe évite qu'une livraison sur les doléances soit rechargée
+    comme si ses ids désignaient des contributions."""
+    assert construire_documents_doleances([doleance(42, "un texte")]) == [
+        {"id": "d42", "content": "un texte"}
+    ]
+
+
+@pytest.mark.parametrize("texte_vide", ["", "   ", "\n\n"])
+def test_ecarte_les_doleances_sans_texte(texte_vide):
+    assert construire_documents_doleances([doleance(1, texte_vide)]) == []
+
+
+def test_lire_doleances_suit_l_ordre_de_lecture_des_cahiers(session):
+    session.add_all(
+        [
+            doleance(3, "b2", position=1),
+            doleance(2, "b1", position=0),
+            doleance(1, "a", position=0, pdf_name="autre.pdf"),
+        ]
+    )
+    session.flush()
+    assert [d.text for d in lire_doleances(session)] == ["a", "b1", "b2"]

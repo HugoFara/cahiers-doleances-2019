@@ -13,10 +13,18 @@ contribution comme identifiant de document, `load_analysis.py` peut résoudre
 `instance.contribution_id` au lieu de le laisser à NULL — ce qui est
 aujourd'hui la limite connue de la vue graphe et de la vue par commune.
 
-Une ligne CSV = une contribution, ses pages concaténées dans l'ordre.
+Deux niveaux d'export, `--niveau` :
+
+- `contribution` (défaut) : une ligne = une contribution, ses pages concaténées.
+  C'est une page dans le pipeline actuel — plusieurs contributeurs peuvent s'y
+  côtoyer, et une doléance longue y est coupée en deux.
+- `doleance` : une ligne = le texte d'un contributeur, tel que `segmentation/`
+  l'a découpé. C'est la bonne unité d'analyse ; les ids y sont préfixés `d`
+  (voir `database/identifiants.py`).
 
 Utilisation :
     uv run python -m database.export_dataset --output dataset.csv
+    uv run python -m database.export_dataset --niveau doleance --output dataset.csv
 """
 
 import argparse
@@ -29,7 +37,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from database.db import check_connection, get_engine
-from database.models import PageExtraction
+from database.identifiants import CONTRIBUTION, DOLEANCE, NIVEAUX, id_document
+from database.models import Doleance, PageExtraction
 
 DEFAUT = Path("data/dataset.csv")
 
@@ -68,9 +77,31 @@ def construire_documents(pages: list[PageExtraction]) -> list[dict[str, str]]:
             par_contribution[page.contribution_id].append(page.text.strip())
 
     return [
-        {"id": str(contribution_id), "content": "\n".join(textes)}
+        {"id": id_document(CONTRIBUTION, contribution_id), "content": "\n".join(textes)}
         for contribution_id, textes in par_contribution.items()
         if textes
+    ]
+
+
+def lire_doleances(session: Session) -> list[Doleance]:
+    """Lit les doléances découpées, dans l'ordre de lecture des cahiers.
+
+    Pas de filtre `needs_ocr` ici : le découpage a déjà travaillé sur les pages
+    retenues par `segmentation/`, refiltrer n'aurait rien à filtrer.
+    """
+    return list(
+        session.scalars(
+            select(Doleance).order_by(Doleance.pdf_name, Doleance.position)
+        )
+    )
+
+
+def construire_documents_doleances(doleances: list[Doleance]) -> list[dict[str, str]]:
+    """Une ligne `id,content` par doléance, les vides écartées."""
+    return [
+        {"id": id_document(DOLEANCE, d.id), "content": d.text.strip()}
+        for d in doleances
+        if d.text and d.text.strip()
     ]
 
 
@@ -83,25 +114,39 @@ def ecrire_dataset(documents: list[dict[str, str]], chemin: Path) -> None:
         writer.writerows(documents)
 
 
-def main(chemin: Path = DEFAUT, garder_pages_ocr: bool = False) -> int:
+def main(
+    chemin: Path = DEFAUT,
+    garder_pages_ocr: bool = False,
+    niveau: str = CONTRIBUTION,
+) -> int:
     engine = get_engine()
     check_connection(engine)
 
     with Session(engine) as session:
-        pages = lire_pages(session, garder_pages_ocr)
-    documents = construire_documents(pages)
+        if niveau == DOLEANCE:
+            doleances = lire_doleances(session)
+            documents = construire_documents_doleances(doleances)
+            lues = f"{len(doleances)} doléance(s) lue(s)"
+            vide = (
+                "Aucune doléance à exporter. Les cahiers ont-ils été découpés "
+                "(uv run python -m segmentation) ?"
+            )
+        else:
+            pages = lire_pages(session, garder_pages_ocr)
+            documents = construire_documents(pages)
+            lues = f"{len(pages)} page(s) lue(s)"
+            vide = (
+                "Aucun texte à exporter. La table page_extraction est-elle remplie "
+                "(uv run python -m extraction.without_ocr) ?"
+            )
 
     if not documents:
-        print(
-            "Aucun texte à exporter. La table page_extraction est-elle remplie "
-            "(uv run python -m extraction.without_ocr) ?",
-            file=sys.stderr,
-        )
+        print(vide, file=sys.stderr)
         return 1
 
     ecrire_dataset(documents, chemin)
     mots = sum(len(d["content"].split()) for d in documents)
-    print(f"{len(documents)} contribution(s) · {len(pages)} page(s) lue(s) · {mots} mots -> {chemin}")
+    print(f"{len(documents)} document(s) « {niveau} » · {lues} · {mots} mots -> {chemin}")
     return 0
 
 
@@ -115,5 +160,11 @@ if __name__ == "__main__":
         action="store_true",
         help="inclure aussi les pages manuscrites (needs_ocr), du bruit par défaut écarté",
     )
+    parser.add_argument(
+        "--niveau",
+        choices=NIVEAUX,
+        default=CONTRIBUTION,
+        help="unité exportée (défaut : contribution ; doleance = texte d'un contributeur)",
+    )
     args = parser.parse_args()
-    sys.exit(main(args.output, args.keep_ocr_pages))
+    sys.exit(main(args.output, args.keep_ocr_pages, args.niveau))

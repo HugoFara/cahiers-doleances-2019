@@ -4,13 +4,22 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from database.identifiants import CONTRIBUTION, DOLEANCE
 from database.load_analysis import (
+    Cibles,
     charger_instances,
     mesurer_correspondance,
-    resoudre_contribution,
+    resoudre_document,
     taux_correspondance,
 )
-from database.models import Base, Contribution, Instance, PageExtraction, Topic
+from database.models import (
+    Base,
+    Contribution,
+    Doleance,
+    Instance,
+    PageExtraction,
+    Topic,
+)
 
 
 @pytest.fixture
@@ -19,6 +28,11 @@ def session() -> Session:
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
+
+def cibles(contributions=(), doleances=None) -> Cibles:
+    """Ce que la base est censée connaître, sans avoir à la remplir."""
+    return Cibles(contributions=set(contributions), doleances=dict(doleances or {}))
 
 
 def document(doc_id, *noms_de_topics) -> dict:
@@ -31,22 +45,33 @@ def document(doc_id, *noms_de_topics) -> dict:
     }
 
 
-# --- resoudre_contribution ---
+# --- resoudre_document ---
 
 
 def test_resout_un_id_de_document_qui_est_un_id_de_contribution():
     """Cas des livraisons produites depuis database/export_dataset.py."""
-    assert resoudre_contribution("42", {41, 42, 43}) == 42
+    assert resoudre_document("42", cibles({41, 42, 43})) == (CONTRIBUTION, 42)
+
+
+def test_resout_un_id_prefixe_comme_une_doleance():
+    """Livraison produite avec --niveau doleance : les ids portent un « d »."""
+    assert resoudre_document("d42", cibles(doleances={42: 7})) == (DOLEANCE, 42)
+
+
+def test_un_id_de_doleance_ne_designe_jamais_une_contribution():
+    """Sans le préfixe, `d42` et `42` se confondraient : deux corpus mélangés."""
+    assert resoudre_document("d42", cibles({42})) is None
+    assert resoudre_document("42", cibles(doleances={42: 7})) is None
 
 
 def test_ne_resout_pas_un_id_absent_de_la_base():
-    assert resoudre_contribution("99", {1, 2}) is None
+    assert resoudre_document("99", cibles({1, 2})) is None
 
 
 @pytest.mark.parametrize("valeur", ["doc 73", "", "abc", "3.5"])
 def test_ne_resout_pas_un_id_non_numerique(valeur):
     """Les livraisons antérieures numérotent les documents à leur façon."""
-    assert resoudre_contribution(valeur, {1, 2, 73}) is None
+    assert resoudre_document(valeur, cibles({1, 2, 73})) is None
 
 
 # --- charger_instances ---
@@ -57,7 +82,7 @@ def test_rattache_les_instances_a_leur_contribution(session):
     session.add(Topic(id=1, name="fiscalité"))
     session.flush()
 
-    inconnus, rattachees = charger_instances(session, [document(7, "fiscalité")], {"fiscalité": 1}, {7})
+    inconnus, rattachees = charger_instances(session, [document(7, "fiscalité")], {"fiscalité": 1}, cibles({7}))
 
     assert (inconnus, rattachees) == (0, 1)
     instance = session.query(Instance).one()
@@ -70,7 +95,7 @@ def test_conserve_external_doc_id_quand_le_rapprochement_echoue(session):
     session.add(Topic(id=1, name="fiscalité"))
     session.flush()
 
-    inconnus, rattachees = charger_instances(session, [document("73", "fiscalité")], {"fiscalité": 1}, set())
+    inconnus, rattachees = charger_instances(session, [document("73", "fiscalité")], {"fiscalité": 1}, cibles())
 
     assert (inconnus, rattachees) == (0, 0)
     instance = session.query(Instance).one()
@@ -84,7 +109,7 @@ def test_ignore_les_labels_dont_le_topic_est_inconnu(session):
     session.flush()
 
     inconnus, rattachees = charger_instances(
-        session, [document(7, "fiscalité", "thème fantôme")], {"fiscalité": 1}, {7}
+        session, [document(7, "fiscalité", "thème fantôme")], {"fiscalité": 1}, cibles({7})
     )
 
     assert (inconnus, rattachees) == (1, 1)
@@ -96,9 +121,26 @@ def test_remplace_les_instances_existantes(session):
     session.add(Instance(id=99, external_doc_id="ancienne", topic_id=1))
     session.flush()
 
-    charger_instances(session, [document("73", "fiscalité")], {"fiscalité": 1}, set())
+    charger_instances(session, [document("73", "fiscalité")], {"fiscalité": 1}, cibles())
 
     assert [i.external_doc_id for i in session.query(Instance).all()] == ["73"]
+
+
+def test_rattache_une_instance_de_doleance_a_sa_doleance_et_a_sa_contribution(session):
+    """La doléance porte le lien fin, la contribution reste renseignée pour l'app."""
+    session.add(Contribution(id=7, city="Trizay"))
+    session.add(Doleance(id=42, contribution_id=7, text="un texte"))
+    session.add(Topic(id=1, name="fiscalité"))
+    session.flush()
+
+    inconnus, rattachees = charger_instances(
+        session, [document("d42", "fiscalité")], {"fiscalité": 1}, cibles(doleances={42: 7})
+    )
+
+    assert (inconnus, rattachees) == (0, 1)
+    instance = session.query(Instance).one()
+    assert (instance.doleance_id, instance.contribution_id) == (42, 7)
+    assert instance.external_doc_id == "d42"
 
 
 # --- taux_correspondance ---
@@ -144,7 +186,7 @@ def contribution_avec_texte(session, contribution_id: int, texte: str) -> None:
 def test_mesure_detecte_une_livraison_qui_parle_du_bon_corpus(session):
     contribution_avec_texte(session, 7, "je demande la proportionnelle aux élections")
     doc = {"id": 7, "labels": [{"name": "vote", "extract": "je demande la proportionnelle"}]}
-    taux, testes = mesurer_correspondance(session, [doc], {7})
+    taux, testes = mesurer_correspondance(session, [doc], cibles({7}))
     assert (taux, testes) == (1.0, 1)
 
 
@@ -152,13 +194,21 @@ def test_mesure_detecte_une_livraison_qui_parle_dun_autre_corpus(session):
     """Cas du dump POC : les id sont des positions dans un CSV, pas des contributions."""
     contribution_avec_texte(session, 7, "un texte sur les routes départementales")
     doc = {"id": 7, "labels": [{"name": "fiscalité", "extract": "supprimer la CSG"}]}
-    taux, testes = mesurer_correspondance(session, [doc], {7})
+    taux, testes = mesurer_correspondance(session, [doc], cibles({7}))
     assert taux == 0.0 and testes == 1
+
+
+def test_mesure_cherche_le_verbatim_dans_le_texte_de_la_doleance(session):
+    """Le garde-fou doit valoir aussi pour une livraison au niveau doléance."""
+    session.add(Doleance(id=42, contribution_id=7, text="je demande la proportionnelle"))
+    session.flush()
+    doc = {"id": "d42", "labels": [{"name": "vote", "extract": "je demande la proportionnelle"}]}
+    assert mesurer_correspondance(session, [doc], cibles(doleances={42: 7})) == (1.0, 1)
 
 
 def test_mesure_sans_aucun_id_resolu(session):
     doc = {"id": 999, "labels": [{"name": "x", "extract": "y"}]}
-    assert mesurer_correspondance(session, [doc], {1, 2}) == (0.0, 0)
+    assert mesurer_correspondance(session, [doc], cibles({1, 2})) == (0.0, 0)
 
 
 def test_charger_instances_sans_rattachement_laisse_contribution_id_null(session):
@@ -167,7 +217,7 @@ def test_charger_instances_sans_rattachement_laisse_contribution_id_null(session
     topic = Topic(external_id="t1", name="vote")
     session.add(topic)
     session.flush()
-    charger_instances(session, [document(3, "vote")], {"vote": topic.id}, {3}, False)
+    charger_instances(session, [document(3, "vote")], {"vote": topic.id}, cibles({3}), False)
     session.flush()
     instances = session.query(Instance).all()
     assert len(instances) == 1

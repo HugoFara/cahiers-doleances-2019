@@ -49,6 +49,37 @@ class PageExtraction(Base):
     city = Column(String)  # ville extraite
 
 
+class Doleance(Base):
+    """Le texte d'un contributeur : l'unité d'analyse réelle du corpus.
+
+    Une page de registre porte souvent plusieurs contributeurs, et une doléance
+    longue court sur plusieurs pages : ni ``page_extraction`` ni ``contribution``
+    ne délimitent « ce qu'a écrit une personne ». Cette table le fait, en
+    découpant le texte d'un cahier (``pdf_name``) sur les signaux de rupture
+    visibles dans le texte (voir ``segmentation/``).
+
+    Le découpage est heuristique et assumé comme tel : ``signal`` conserve la
+    règle qui a ouvert la doléance, pour pouvoir mesurer la qualité du découpage
+    et rejouer le corpus quand l'OCR fournira la géométrie des lignes.
+    """
+
+    __tablename__ = "doleance"
+
+    id = Column(Integer, primary_key=True)
+    # Contribution de la page où la doléance commence : garde le lien vers la
+    # commune et les annotations existantes. NULL si la page était orpheline.
+    contribution_id = Column(Integer, ForeignKey("contribution.id"))
+    # Indexé : le découpage se relit et se rejoue cahier par cahier.
+    pdf_name = Column(String, index=True)
+    city = Column(String)
+    position = Column(Integer)  # rang dans le cahier, à partir de 0
+    start_page = Column(Integer)
+    end_page = Column(Integer)
+    text = Column(Text)
+    signal = Column(String)  # règle de découpage ayant ouvert la doléance
+    num_words = Column(Integer)
+
+
 # Référentiel des thèmes, alimenté depuis la livraison de l'équipe analyse.
 class Topic(Base):
     __tablename__ = "topic"
@@ -72,6 +103,10 @@ class Instance(Base):
     # id du document dans la livraison analyse ; le rapprochement avec
     # contribution reste à faire, on conserve la clé source en attendant
     external_doc_id = Column(String)
+    # Renseigné quand la livraison porte sur des doléances (ids « d<id> » de
+    # export_dataset --niveau doleance) ; contribution_id reste renseigné aussi,
+    # repris de la doléance, pour ne pas casser les vues qui joignent dessus.
+    doleance_id = Column(Integer, ForeignKey("doleance.id"))
     topic_id = Column(Integer, ForeignKey("topic.id"))
     verbatim = Column(Text)
     summary = Column(Text)
