@@ -2,7 +2,8 @@ from pathlib import Path
 
 import gradio as gr
 import plotly.offline
-from avertissements import markdown
+from avertissements import details, essentiel, liste_markdown
+from avertissements import html as avertissement_html
 from data_helpers import PDF_DIR, etat_du_corpus
 from fastapi import Body
 from fastapi.responses import FileResponse, HTMLResponse, Response
@@ -24,9 +25,15 @@ with gr.Blocks(title="Cahiers de doléances") as demo:
 
     # L'avertissement est au-dessus des onglets, pas dans l'un d'eux : ce qu'un
     # site affiche par défaut décide de la lecture, et ces trois phrases valent
-    # pour tout ce que la page montre ensuite.
-    with gr.Accordion("Ce que ce corpus n'est pas — à lire avant tout chiffre", open=False):
-        gr.Markdown(markdown(etat_du_corpus()), elem_classes="avertissement")
+    # pour tout ce que la page montre ensuite. Elles sont visibles sans clic —
+    # un avertissement qu'il faut déplier n'est pas un avertissement.
+    _etat = etat_du_corpus()
+    gr.Markdown(
+        "### Ce que ce corpus n'est pas\n\n" + liste_markdown(essentiel(_etat)),
+        elem_classes="avertissement",
+    )
+    with gr.Accordion("Précisions et sources", open=False):
+        gr.Markdown(liste_markdown(details(_etat)))
 
     with gr.Tab("Par commune"):
         load_fn, load_outputs = commune.render()
@@ -82,8 +89,11 @@ def graphe_style_css():
 
 @app.get("/graphe")
 def graphe_index():
+    # L'avertissement est injecté au service plutôt qu'écrit dans le HTML : ses
+    # chiffres viennent de la base et doivent suivre le corpus.
+    page = (graph.STATIC / "index.html").read_text(encoding="utf-8")
     return HTMLResponse(
-        (graph.STATIC / "index.html").read_text(encoding="utf-8"),
+        page.replace("<!--avertissement-->", avertissement_html(etat_du_corpus())),
         headers=_NO_STORE
     )
 

@@ -167,3 +167,37 @@ tr.ici {
 }
 
 .nav-lien:hover { background: #eef2ff; border-color: #c7d2fe; }
+
+/* --- avertissement sur les limites du corpus --- */
+.avertissement {
+  border-left: 3px solid #f59e0b;
+  padding: 2px 0 2px 14px;
+  margin: 0 0 14px;
+  max-width: 90ch;
+}
+
+.avertissement h2 {
+  font-size: 17px;
+  margin: 0 0 6px;
+}
+
+.avertissement ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.avertissement li {
+  margin-bottom: 5px;
+  line-height: 1.5;
+}
+
+.avertissement details {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #52525b;
+}
+
+.avertissement summary {
+  cursor: pointer;
+  font-weight: 600;
+}

@@ -7,7 +7,7 @@ compteurs déjà calculés.
 import pytest
 
 from couverture.mesures import Couverture, Part
-from gradio_app.avertissements import Etat, details, essentiel, markdown
+from gradio_app.avertissements import Etat, details, essentiel, html, liste_markdown
 
 
 def couverture(
@@ -117,12 +117,23 @@ def test_porte_les_mentions_obligatoires(source):
 # --- le rendu ---
 
 
-def test_les_details_sont_replies():
-    rendu = markdown(etat())
-    assert "<details>" in rendu and "</details>" in rendu
+def test_la_liste_markdown_est_une_liste():
+    assert liste_markdown(["a", "b"]) == "- a\n- b"
 
 
-def test_l_essentiel_est_hors_du_repli():
-    """Ce qui doit être lu ne doit pas demander un clic."""
-    rendu = markdown(etat())
+def test_le_html_replie_les_details_pas_l_essentiel():
+    """Un avertissement qu'il faut déplier n'est pas un avertissement."""
+    rendu = html(etat())
     assert rendu.index("sondage") < rendu.index("<details>")
+
+
+def test_le_html_convertit_le_gras():
+    """La page graphe est servie hors de Gradio : le Markdown n'y est pas rendu."""
+    rendu = html(etat())
+    assert "<strong>" in rendu and "**" not in rendu
+
+
+def test_le_html_est_bien_ferme():
+    rendu = html(etat())
+    for balise in ("section", "ul", "details"):
+        assert rendu.count(f"<{balise}") == rendu.count(f"</{balise}>")

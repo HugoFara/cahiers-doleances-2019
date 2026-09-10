@@ -118,13 +118,36 @@ def details(etat: Etat) -> list[str]:
     return lignes
 
 
-def markdown(etat: Etat) -> str:
-    """L'avertissement complet, en Markdown, replié sur ses détails."""
-    corps = "\n".join(f"- {ligne}" for ligne in essentiel(etat))
-    reste = "\n".join(f"- {ligne}" for ligne in details(etat))
+def _gras(ligne: str) -> str:
+    """`**x**` en `<strong>x</strong>`, pour la page graphe qui n'est pas du Markdown.
+
+    Les lignes sont écrites dans ce module et nulle part ailleurs : la
+    conversion n'a pas à traiter le Markdown en général, seulement celui-là.
+    """
+    morceaux = ligne.split("**")
+    return "".join(
+        m if i % 2 == 0 else f"<strong>{m}</strong>" for i, m in enumerate(morceaux)
+    )
+
+
+def liste_markdown(lignes: list[str]) -> str:
+    return "\n".join(f"- {ligne}" for ligne in lignes)
+
+
+def html(etat: Etat) -> str:
+    """L'avertissement complet en HTML, pour la vue graphe.
+
+    Cette page-là est servie hors de Gradio, et c'est la plus interprétative des
+    deux : elle montre une taxonomie, c'est-à-dire une lecture du corpus. Elle
+    n'affichait aucun avertissement.
+    """
+    essentielles = "".join(f"<li>{_gras(ligne)}</li>" for ligne in essentiel(etat))
+    precisions = "".join(f"<li>{_gras(ligne)}</li>" for ligne in details(etat))
     return (
-        "### Ce que ce corpus n'est pas\n\n"
-        f"{corps}\n\n"
-        "<details><summary>Précisions et sources</summary>\n\n"
-        f"{reste}\n\n</details>"
+        '<section class="avertissement">'
+        "<h2>Ce que ce corpus n\u2019est pas</h2>"
+        f"<ul>{essentielles}</ul>"
+        "<details><summary>Précisions et sources</summary>"
+        f"<ul>{precisions}</ul></details>"
+        "</section>"
     )
