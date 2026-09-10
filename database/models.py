@@ -26,21 +26,34 @@ class City(Base):
     échoue sur un tiers du corpus. Le code INSEE est la clé qui manquait —
     stable, officielle, et elle porte le département.
 
-    `name` est la graphie la plus riche rencontrée dans le corpus, pas le nom
-    officiel : celui-ci demande le Code officiel géographique, qui apportera
-    aussi la population et les coordonnées, restées NULL en attendant. Sans
-    elles, pas de pondération par population ni de carte.
+    Deux noms, et la distinction compte : `name` est la graphie la plus riche
+    rencontrée **dans le corpus** — ce qu'a écrit l'en-tête du cahier — quand
+    `official_name` est celui du Code officiel géographique. Le premier est un
+    fait de provenance, le second un référentiel ; écraser l'un par l'autre
+    perdrait de l'information dans les deux sens.
+
+    **Le millésime pivot est 2019**, celui du dépôt des cahiers. `code` ne bouge
+    jamais : `current_code` porte le code actuel comme une annotation, et non
+    comme une correction. Voir `insee/referentiel/SOURCES.md`.
     """
 
     __tablename__ = "city"
 
-    code = Column(String(5), primary_key=True)  # INSEE ; 2A/2B pour la Corse
-    name = Column(String)
+    code = Column(String(5), primary_key=True)  # INSEE 2019 ; 2A/2B pour la Corse
+    name = Column(String)  # graphie rencontrée dans le corpus
+    official_name = Column(String)  # libellé du COG au millésime pivot
     # Indexé : la couverture se lit par département, échelle des Archives.
     department = Column(String, index=True)  # dérivé du code, Corse et outre-mer compris
-    population = Column(Integer)  # demande le COG
-    latitude = Column(Float)  # demande le COG
-    longitude = Column(Float)  # demande le COG
+    # COM (plein exercice), COMD (déléguée), COMA (associée) au millésime pivot.
+    # Deux cahiers du corpus portent le code d'une commune déjà absorbée.
+    cog_type = Column(String(4))
+    parent_code = Column(String(5))  # commune absorbante, si cog_type != COM
+    current_code = Column(String(5))  # millésime courant, via la table de passage
+    # Population municipale (PMUN). Celle d'une commune déléguée est **incluse**
+    # dans celle de sa commune parente : les sommer compte deux fois.
+    population = Column(Integer)
+    latitude = Column(Float)
+    longitude = Column(Float)
 
 
 class Contribution(Base):
