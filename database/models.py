@@ -216,6 +216,32 @@ class DuplicateMember(Base):
     doleance_id = Column(Integer, ForeignKey("doleance.id"), index=True)
 
 
+class PiiSpan(Base):
+    """Un passage d'une doléance susceptible d'identifier une personne.
+
+    **Des offsets, pas une copie caviardée du texte.** Le texte d'origine reste
+    intact et fait foi ; le caviardage est un rendu, produit à la lecture. C'est
+    ce qui permet de corriger une détection, d'en ajouter une, ou de changer la
+    politique de caviardage sans avoir abîmé la source.
+
+    `confirmed` est la file de relecture : NULL tant qu'aucun humain n'a tranché,
+    vrai pour une donnée personnelle réelle, faux pour un faux positif. Un faux
+    positif ne coûte presque rien, un nom manqué est une fuite : c'est le rappel
+    qu'il faut mesurer, pas la précision.
+    """
+
+    __tablename__ = "pii_span"
+
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("run.id"))
+    doleance_id = Column(Integer, ForeignKey("doleance.id"), index=True)
+    start = Column(Integer)  # offset de caractère dans doleance.text
+    end = Column(Integer)
+    kind = Column(String)  # email, telephone, iban, url, adresse, nom, role_public
+    detector = Column(String)  # règle qui l'a produit, pour auditer sa qualité
+    confirmed = Column(Boolean)  # relecture humaine ; NULL = non relu
+
+
 # Référentiel des thèmes, alimenté depuis la livraison de l'équipe analyse.
 class Topic(Base):
     __tablename__ = "topic"
