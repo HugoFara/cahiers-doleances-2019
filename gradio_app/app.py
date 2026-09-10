@@ -2,7 +2,8 @@ from pathlib import Path
 
 import gradio as gr
 import plotly.offline
-from data_helpers import PDF_DIR
+from avertissements import markdown
+from data_helpers import PDF_DIR, etat_du_corpus
 from fastapi import Body
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from views import commune, graph
@@ -20,6 +21,12 @@ with gr.Blocks(title="Cahiers de doléances") as demo:
         '<a class="nav-lien" href="/graphe">Vue graphe des thèmes →</a>'
         "</div>"
     )
+
+    # L'avertissement est au-dessus des onglets, pas dans l'un d'eux : ce qu'un
+    # site affiche par défaut décide de la lecture, et ces trois phrases valent
+    # pour tout ce que la page montre ensuite.
+    with gr.Accordion("Ce que ce corpus n'est pas — à lire avant tout chiffre", open=False):
+        gr.Markdown(markdown(etat_du_corpus()), elem_classes="avertissement")
 
     with gr.Tab("Par commune"):
         load_fn, load_outputs = commune.render()

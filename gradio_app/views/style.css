@@ -31,3 +31,25 @@
   background: #eef2ff;
   border-color: #c7d2fe;
 }
+
+/* --- avertissement sur les limites du corpus, au-dessus des onglets --- */
+.avertissement {
+  border-left: 3px solid #f59e0b;
+  padding-left: 14px;
+}
+
+.avertissement li {
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.avertissement details {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #52525b;
+}
+
+.avertissement summary {
+  cursor: pointer;
+  font-weight: 600;
+}
