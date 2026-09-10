@@ -13,6 +13,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
 - `couverture/` : ce que le corpus analysé laisse dehors | [documentation](couverture/README.md)
 - `insee/` : le rattachement des contributions au code INSEE de leur commune, et le référentiel géographique | [documentation](insee/README.md)
 - `doublons/` : les textes qui reviennent — tracts, lettres-types, campagnes | [documentation](doublons/README.md)
+- `anonymisation/` : le repérage des passages personnels | [documentation](anonymisation/README.md)
 - `reference/` : le jeu de référence annoté à la main, et la mesure de ce que valent les couches | [documentation](reference/README.md)
 - `gradio_app/` : l'interface pour parcourir les contributions et les annoter | [documentation](gradio_app/README.md)
 - `topic-builder/` : l'utilitaire de découverte, structuration et annotation des thèmes abordés dans les contributions | [documentation](topic-builder/README.md)
@@ -217,6 +218,21 @@ extraction  ->  page_extraction  ->  segmentation  ->  doleance
                           topic / instance  <-  load_analysis  <-  taxonomy.json
                                                                    instances.json
 ```
+
+## Données personnelles
+
+```bash
+uv run python -m anonymisation --auteur "prénom nom"
+```
+
+**88 % des doléances contiennent au moins un passage repéré** — nom, courriel,
+téléphone, adresse. Ce n'est pas une anonymisation : les noms cités sans
+marqueur ne sont pas vus, le rappel n'est pas mesuré, et rien n'est occulté sur
+les images. Rien ici ne permet de déclarer une doléance publiable ; voir
+[anonymisation/README.md](anonymisation/README.md) pour ce qui manque.
+
+La table ne contient que des offsets — le texte d'origine reste intact et fait
+foi, le caviardage est produit à la lecture.
 
 ## Qualité et sécurité du code (pre-commit)
 

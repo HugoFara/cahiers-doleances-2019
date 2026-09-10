@@ -181,7 +181,17 @@ restent protégés : occultation, ou publication de la seule référence.
 
 Techniquement : une table `pii_span` d'offsets et de boîtes — pas une copie
 caviardée du texte — une file de relecture humaine, et deux rendus (brut en
-interne, caviardé en public).
+interne, caviardé en public). **Fait le 2026-09-10** pour la partie « formes »
+(`anonymisation/`) : courriels, téléphones, IBAN, adresses, noms marqués par une
+civilité ou posés en signature, et distinction des fonctions publiques et des
+adresses institutionnelles, qui n'ont pas à être occultées. **88 % des doléances
+contiennent au moins un passage repéré.**
+
+Ce qui reste est le plus dur, et aucune partie n'est une question de code seule :
+la reconnaissance d'entités nommées (choix d'un modèle hébergé en UE), la mesure
+du rappel (échantillon annoté à la main), l'occultation sur l'image (demande la
+géométrie de l'OCR), et la réidentification contextuelle, à laquelle aucune règle
+de forme n'accède.
 
 ## Priorité 4 — diffusion, et ce qu'elle décide
 
@@ -260,7 +270,8 @@ en UE, formats IIIF / ALTO / EAD).
 | Population et coordonnées (Code officiel géographique) | fait — `insee/referentiel/`, millésime pivot 2019 |
 | Types de support et d'auteur | à faire |
 | Déduplication | fait — 3 % des doléances, `doublons/` |
-| Anonymisation (texte + image), rappel mesuré | à faire |
+| Anonymisation : passe de formes | fait — `anonymisation/` ; 88 % des doléances touchées |
+| Anonymisation : NER, rappel mesuré, occultation image | à faire — **le point dur** |
 | Métriques de taxonomie, catégorie « hors grille » | à faire |
 | Recherche plein texte et vectorielle | à faire — **le seul item encore entièrement faisable côté code** |
 | Couverture et représentativité | fait — pondérée par population, `insee/` et `couverture/` |

@@ -499,6 +499,50 @@ de plus.
 
 ---
 
+## 2026-09-10 — Le caviardage est un rendu, pas une transformation du texte
+
+**Décision.** `pii_span` ne contient que des **offsets de caractères**. Le texte
+d'origine n'est ni copié ni modifié : le caviardage est produit à la lecture, à
+partir des passages et de leur état de relecture.
+
+**Motif.** Stocker une copie caviardée fige une politique dans les données. Toute
+correction — une détection ratée, un faux positif, un changement d'arbitrage sur
+les personnalités publiques — obligerait à repartir de la source, si tant est
+qu'on l'ait gardée. Avec des offsets, la source fait foi et la politique reste
+révisable.
+
+**Politique de rendu, explicite parce que discutable.** Un passage **non relu est
+caviardé** : tant que le doute existe, il profite à la personne. Un faux positif
+relevé à la relecture ne l'est pas. Les genres `role_public` et `institution` ne
+le sont pas non plus — un ministre cité dans sa fonction, l'adresse d'une mairie
+ou celle du dispositif sont publics par destination, et les occulter viderait les
+textes de leur objet. Le maire nommément **accusé** relève de la relecture
+humaine : la règle ne sait pas faire la différence.
+
+**Mesuré.** 4 164 passages dans 884 doléances sur 1 002 — **88 %**.
+
+**Ce que ce chiffre n'est pas.** Il est à la fois un plancher et une
+surestimation. Plancher : un nom cité sans marqueur n'est pas vu, et c'est le cas
+le plus fréquent. Surestimation : une part des courriels et téléphones sont ceux
+des mairies ; `institution` en isole 217, mais `accueil@ma-commune.fr` est une adresse
+de mairie que rien dans sa forme ne distingue d'une adresse privée. L'OCR aggrave
+la seconde — `reunionslocales@qranddebat.fr` avec un `q` pour un `g` échappe à la
+règle institutionnelle tout en restant repéré comme courriel, donc sur-protégé.
+
+**Ce qui n'est pas fait, et qui est le point dur.** La reconnaissance d'entités
+nommées (le choix du modèle est une décision : la passe doit tourner en local ou
+chez un sous-traitant européen, ces textes étant des opinions politiques
+nominatives), la mesure du rappel (échantillon annoté à la main), l'occultation
+sur l'image (demande la géométrie de l'OCR), et la réidentification contextuelle
+— « je suis la seule infirmière du village » identifie sans aucun nom.
+
+**Rien de ce module ne permet de déclarer une doléance publiable**, et la commande
+le dit à chaque exécution.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le choix des grilles de thèmes, et le statut donné à chacune.
