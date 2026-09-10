@@ -10,6 +10,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
 - `extraction/` : les pipelines d'extraction de texte depuis les PDFs
   - `extraction/without_ocr/` : extraction du texte natif, sans OCR | [documentation](extraction/without_ocr/README.md)
 - `segmentation/` : le découpage des cahiers en doléances individuelles | [documentation](segmentation/README.md)
+- `reference/` : le jeu de référence annoté à la main, et la mesure de ce que valent les couches | [documentation](reference/README.md)
 - `gradio_app/` : l'interface pour parcourir les contributions et les annoter | [documentation](gradio_app/README.md)
 - `topic-builder/` : l'utilitaire de découverte, structuration et annotation des thèmes abordés dans les contributions | [documentation](topic-builder/README.md)
 - `docs/` : les notes de cadrage — [le plan d'après-OCR](docs/plan_post_ocr.md) et le
@@ -121,6 +122,24 @@ Le découpage est heuristique et **versionné** : il appartient à la couche
 d'annotation, pas au squelette du corpus, donc deux découpages peuvent coexister
 et se comparer (`--nouveau-run`). Ses règles et leurs limites sont documentées
 dans [segmentation/README.md](segmentation/README.md).
+
+## Mesurer le découpage
+
+Les runs permettent de faire coexister deux découpages ; encore faut-il un
+étalon pour dire lequel vaut mieux. `reference/` tire un échantillon stratifié
+de cahiers, produit un fichier à annoter à la main, et mesure le découpage servi
+contre ces annotations :
+
+```bash
+uv run python -m reference --nom v1 tirer --taille 60  # échantillon à annoter
+uv run python -m reference --nom v1 figer              # étalon commitable
+uv run python -m reference --nom v1 evaluer            # précision, rappel, WindowDiff
+```
+
+Le fichier à annoter porte le texte des cahiers et reste dans `data/`, ignoré par
+git ; l'étalon figé n'en garde que des empreintes, ce qui le rend versionnable
+sans publier d'écrits nominatifs. Détail dans
+[reference/README.md](reference/README.md).
 
 ## Analyse des thèmes
 

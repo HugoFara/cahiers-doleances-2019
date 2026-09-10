@@ -158,6 +158,63 @@ signalent son absence — mais rien ne l'impose encore.
 
 ---
 
+## 2026-09-10 — L'étalon est versionné sans le texte des cahiers
+
+**Décision.** Le jeu de référence annoté vit en deux fichiers : le fichier de
+travail, qui porte le texte des cahiers ligne à ligne et reste dans `/data`
+(ignoré par git) ; l'étalon figé, où chaque ligne est réduite à une empreinte
+SHA-256 tronquée, commité dans `reference/etalon/`.
+
+**Motif.** L'étalon doit être versionné — c'est la référence contre laquelle
+tout est mesuré, elle doit voyager avec le code et son évolution doit être
+lisible. Mais il porte 200 à 300 contributions citoyennes verbatim : le commiter
+tel quel publierait des écrits nominatifs de personnes privées dans un dépôt
+public, ce que tout le reste du plan s'emploie à éviter. L'empreinte tranche :
+elle ne permet pas de relire le texte, elle permet de vérifier qu'il n'a pas
+changé.
+
+**Conséquence utile.** Le contrôle d'alignement n'est pas qu'une précaution de
+confidentialité. Si l'extraction évolue et que les lignes se décalent, un étalon
+désaligné produirait des scores parfaitement crédibles et parfaitement faux —
+`evaluer` refuse alors de mesurer plutôt que de mentir.
+
+**Réversibilité.** Le fichier de travail est régénérable depuis la base tant que
+le corpus n'a pas bougé ; les annotations, elles, ne le sont pas. Sauvegarder les
+fichiers de travail hors dépôt.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
+## 2026-09-10 — L'échantillon de référence est stratifié, pas uniforme
+
+**Décision.** Les cahiers à annoter sont tirés par strates selon le nombre de
+doléances que le découpage servi y trouve (une / deux / trois et plus), avec un
+plancher de 10 cahiers par strate non vide. Le poids de chaque strate est
+conservé et `evaluer` affiche systématiquement deux chiffres : celui de la
+population (pondéré) et celui de l'échantillon (non pondéré).
+
+**Motif.** 89 % des pages ne portent qu'une doléance repérable. Un tirage
+uniforme donnerait un étalon qui ne dit rien des cas qui comptent — ceux où
+plusieurs contributeurs se succèdent, exactement ceux où le découpage peut
+échouer.
+
+**Ce qu'il faut savoir en lisant les scores.** L'échantillon n'est **pas**
+représentatif du corpus, délibérément. Le chiffre non pondéré mesure la
+performance sur les cas difficiles ; seul le chiffre pondéré vaut pour le
+corpus. Publier le premier pour le second serait une erreur de lecture, et c'est
+pour l'éviter que les deux sont affichés côte à côte plutôt qu'un seul.
+
+**Limite.** La strate vient du découpage servi : elle dépend donc de ce qu'on
+évalue. Cela ne biaise pas les mesures — l'étalon reste indépendant — mais un
+découpage très différent redistribuerait les strates, et les poids d'un
+échantillon tiré sous l'ancien ne vaudraient plus. Retirer un échantillon si le
+découpage change radicalement.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le choix des grilles de thèmes, et le statut donné à chacune.

@@ -120,7 +120,10 @@ trois choses, et la troisième est bloquante :
   Instruments : distributions thèmes/document et documents/thème, stabilité entre
   deux runs sur la même entrée, part hors grille, et un **jeu de référence** de
   200-300 doléances annotées à la main. Sans lui on ne peut pas dire si la v5 vaut
-  mieux que la v4 — ni ce que vaut le découpage en doléances.
+  mieux que la v4 — ni ce que vaut le découpage en doléances. L'outillage existe
+  depuis le 2026-09-10 (`reference/`) : tirage stratifié reproductible, étalon
+  versionnable sans le texte, précision/rappel et WindowDiff. **Il reste à
+  annoter** — c'est du travail humain, personne ne peut le produire à la place.
 - **Coût et passage à l'échelle.** Embeddings d'abord (une passe, peu chère),
   clustering, appel LLM sur les représentants ; ou distillation d'un petit
   classifieur. Les mêmes vecteurs servent à la recherche sémantique et aux
@@ -214,9 +217,9 @@ corpus. C'est ce qui rend les décisions visibles et donc contestables.
   les leurs évite deux versions incompatibles des mêmes cahiers, l'une plus
   occultée que l'autre. À vérifier avant de figer quoi que ce soit.
 
-**Par où continuer** : le jeu de référence annoté (200-300 doléances). C'est
-lui qui manque pour savoir ce que valent le découpage et les grilles — les runs
-permettent maintenant de comparer deux couches, encore faut-il un étalon.
+**Par où continuer** : faire annoter l'échantillon — l'outillage attend, le
+travail humain non. En parallèle, chiffrer la part manuscrite écartée du corpus :
+c'est le biais le plus lourd du projet et il n'est même pas mesuré.
 
 ---
 
@@ -228,8 +231,8 @@ permettent maintenant de comparer deux couches, encore faut-il un étalon.
 | Export et chargement au niveau doléance | fait — `--niveau doleance`, `instance.doleance_id` |
 | Journal des décisions | ouvert — `docs/journal_des_decisions.md` |
 | Runs et versions (grilles concurrentes, `doleance` versionnée) | fait — `database/runs.py`, table `run` |
-| Jeu de référence annoté (200-300 doléances) | à faire — **prochain** |
-| Chiffrer et reprendre la part manuscrite écartée | à faire |
+| Jeu de référence annoté (200-300 doléances) | outillage fait — `reference/` ; **reste à annoter** |
+| Chiffrer et reprendre la part manuscrite écartée | à faire — **prochain** |
 | Commune -> INSEE, types de support et d'auteur | à faire |
 | Déduplication | à faire |
 | Anonymisation (texte + image), rappel mesuré | à faire |
