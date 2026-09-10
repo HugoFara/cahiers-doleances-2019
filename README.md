@@ -22,11 +22,12 @@ uv sync
 ```
 
 Cela installe la bonne version de Python, crée l'environnement virtuel et installe les
-dépendances. La version est épinglée à **3.12** dans `.python-version` : `psycopg2-binary`
-ne publie pas encore de wheel pour Python 3.14, et sans cette épingle `uv` choisit
-l'interpréteur le plus récent de la machine puis échoue à compiler psycopg2 depuis les
-sources (`pg_config executable not found`). C'est aussi la version qu'utilise
-`topic-builder/`.
+dépendances. La version est épinglée à **3.14** dans `.python-version` (le projet accepte
+3.12 à 3.14) : toutes les dépendances y ont un wheel, plus rien ne se compile à
+l'installation. L'épingle reste utile : sans elle, `uv` prend l'interpréteur qu'il préfère
+sur la machine, et sur une machine où le seul 3.14 géré par uv est la variante
+*free-threaded* c'est elle qu'il choisit — variante pour laquelle les wheels manquent encore.
+`topic-builder/` reste sur 3.12, avec son propre lockfile.
 
 Sous VSCode l'environnement s'active automatiquement ; sinon :
 
