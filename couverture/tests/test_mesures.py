@@ -176,3 +176,70 @@ def test_une_commune_reste_muette_par_code():
     ]
     couverture = mesurer(pages, {1: "17452", 2: "17168"})
     assert couverture.communes_muettes == ["17452"]
+
+
+# --- pondération par population ---
+
+
+COMMUNES = {"01033": 16423, "01039": 454, "01205": 0}
+
+
+def test_sans_populations_il_n_y_a_pas_de_ponderation():
+    """Le rapport perd la pondération, pas les autres mesures."""
+    assert mesurer([page()], {1: "01033"}).habitants is None
+
+
+def test_la_part_en_habitants_dit_autre_chose_que_la_part_en_communes():
+    """Une commune muette de 454 habitants pèse 3 % là où elle pèse 50 % en communes."""
+    pages = [
+        page(pdf_name="a.pdf", contribution_id=1),
+        page(pdf_name="b.pdf", needs_ocr=True, contribution_id=2),
+    ]
+    couverture = mesurer(pages, {1: "01033", 2: "01039"}, COMMUNES)
+    assert couverture.communes.taux == 0.5
+    assert couverture.habitants.total == 16423 + 454
+    assert couverture.habitants.ecartes == 454
+
+
+def test_une_deleguee_a_zero_ne_gonfle_pas_le_total():
+    """Ses habitants sont déjà dans ceux de sa parente : `insee.cog` l'a mis à 0."""
+    pages = [
+        page(pdf_name="a.pdf", contribution_id=1),
+        page(pdf_name="b.pdf", contribution_id=2),
+    ]
+    couverture = mesurer(pages, {1: "01033", 2: "01205"}, COMMUNES)
+    assert couverture.habitants.total == 16423
+
+
+def test_une_commune_absente_du_referentiel_pese_zero():
+    """Ne pas lui inventer une population, et ne pas faire échouer la mesure."""
+    couverture = mesurer([page()], {1: "99999"}, COMMUNES)
+    assert couverture.habitants.total == 0
+
+
+def test_la_ponderation_apparait_dans_le_resume():
+    couverture = mesurer([page(needs_ocr=True)], {1: "01039"}, COMMUNES)
+    assert any("habitants" in ligne for ligne in couverture.resume())
+
+
+# --- noms officiels ---
+
+
+NOMS = {"01039": "Béon", "28012": "Vald'Yerre"}
+
+
+def test_le_nom_officiel_l_emporte_sur_la_graphie_du_cahier():
+    """Cette liste est faite pour être publiée : « Vald'Yerre » s'y lit mieux."""
+    pages = [page(city="COMMUNE NOUVELLE D ARROU", needs_ocr=True, contribution_id=1)]
+    couverture = mesurer(pages, {1: "28012"}, None, NOMS)
+    assert couverture.communes_muettes == ["Vald'Yerre"]
+
+
+def test_sans_nom_officiel_on_retombe_sur_la_graphie():
+    pages = [page(city="TRIZAY", needs_ocr=True, contribution_id=1)]
+    assert mesurer(pages, {1: "17452"}, None, NOMS).communes_muettes == ["TRIZAY"]
+
+
+def test_sans_graphie_ni_nom_officiel_le_code_vaut_mieux_que_rien():
+    pages = [page(city=None, needs_ocr=True, contribution_id=1)]
+    assert mesurer(pages, {1: "17452"}, None, NOMS).communes_muettes == ["17452"]

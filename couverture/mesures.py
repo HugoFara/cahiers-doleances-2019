@@ -54,15 +54,25 @@ class Couverture:
     # voix dans l'analyse, ce qui est autre chose qu'être partiellement lue.
     cahiers_muets: list[str] = field(default_factory=list)
     communes_muettes: list[str] = field(default_factory=list)
+    # Population des communes du corpus, et celle des communes muettes. Compter
+    # les communes met une commune de 90 habitants au même rang qu'une de
+    # 16 000 : la part en habitants dit tout autre chose, et les deux ensemble
+    # disent où penche le manque.
+    habitants: Part | None = None
 
     def resume(self) -> list[str]:
-        return [
+        lignes = [
             self.pages.resume("pages"),
             self.cahiers.resume("cahiers"),
             self.communes.resume("communes"),
             f"cahiers entièrement écartés : {len(self.cahiers_muets)}",
             f"communes sans aucune page lisible : {len(self.communes_muettes)}",
         ]
+        if self.habitants is not None:
+            lignes.append(
+                self.habitants.resume("habitants des communes muettes")
+            )
+        return lignes
 
 
 def _ecartee(page) -> bool:
@@ -76,7 +86,12 @@ def _ecartee(page) -> bool:
     return page.needs_ocr is True
 
 
-def mesurer(pages: list, communes: dict[int, str] | None = None) -> Couverture:
+def mesurer(
+    pages: list,
+    communes: dict[int, str] | None = None,
+    populations: dict[str, int] | None = None,
+    noms: dict[str, str] | None = None,
+) -> Couverture:
     """Calcule ce que l'exclusion des pages manuscrites retire du corpus.
 
     **L'identification des communes change tout au troisième chiffre.** Sans
@@ -90,6 +105,16 @@ def mesurer(pages: list, communes: dict[int, str] | None = None) -> Couverture:
         pages: lignes `page_extraction`, avec `pdf_name`, `city` et `needs_ocr`.
         communes: ``{contribution_id: code INSEE}`` (`python -m insee
             rattacher`). À défaut, regroupement par graphie, moins fiable.
+        populations: ``{code INSEE: population municipale}`` (`python -m insee
+            cog`), **déjà purgé des doubles comptes** — une commune déléguée
+            dont la parente est là doit y valoir 0, faute de quoi ses habitants
+            sont comptés deux fois. `insee.cog.populations_sans_double_compte`
+            produit ce dictionnaire ; ce module ne connaît pas la règle.
+        noms: ``{code INSEE: nom officiel}``, pour la liste des communes
+            muettes. Sans lui, une commune dont l'en-tête était illisible
+            s'affiche par son code — et c'est précisément le cas de 14 des 37
+            communes muettes du corpus, celles que le rattachement INSEE avait
+            justement rendues visibles.
 
     Returns:
         La couverture, aux trois échelles qui comptent : la page (le volume de
@@ -107,10 +132,11 @@ def mesurer(pages: list, communes: dict[int, str] | None = None) -> Couverture:
         if cle is None:
             continue
         par_commune[cle].append(page)
-        if page.city:
-            ville_affichee.setdefault(cle, page.city)
-        else:
-            ville_affichee.setdefault(cle, cle)
+        # Le nom officiel l'emporte sur la graphie du cahier : cette liste est
+        # faite pour être publiée, et « Vald'Yerre » s'y lit mieux que
+        # « COMMUNE NOUVELLE D ARROU ». Reste le code, si on n'a ni l'un ni
+        # l'autre — jamais rien.
+        ville_affichee.setdefault(cle, (noms or {}).get(cle) or page.city or cle)
 
     cahiers_muets = sorted(
         nom for nom, p in par_cahier.items() if all(_ecartee(x) for x in p)
@@ -120,6 +146,17 @@ def mesurer(pages: list, communes: dict[int, str] | None = None) -> Couverture:
         for cle, p in par_commune.items()
         if all(_ecartee(x) for x in p)
     )
+
+    habitants = None
+    if populations:
+        habitants = Part(
+            sum(populations.get(cle, 0) for cle in par_commune),
+            sum(
+                populations.get(cle, 0)
+                for cle, p in par_commune.items()
+                if all(_ecartee(x) for x in p)
+            ),
+        )
 
     return Couverture(
         pages=Part(len(pages), sum(1 for p in pages if _ecartee(p))),
@@ -133,6 +170,7 @@ def mesurer(pages: list, communes: dict[int, str] | None = None) -> Couverture:
         ),
         cahiers_muets=cahiers_muets,
         communes_muettes=communes_muettes,
+        habitants=habitants,
     )
 
 

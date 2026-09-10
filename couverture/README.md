@@ -34,6 +34,29 @@ compte pour rien dans les comptages de thèmes.
 > dénominateur. Le rattachement au code INSEE donne le vrai compte. Les chiffres
 > de pages et de cahiers, eux, n'ont pas bougé.
 
+### En habitants plutôt qu'en communes
+
+Depuis que le référentiel INSEE est chargé (`python -m insee cog`), le rapport
+pondère par population, et cela déplace la lecture. Les 37 communes muettes
+pèsent **36 697 habitants sur 937 022, soit 4 %** — là où elles sont 8 % des
+communes.
+
+Les deux chiffres sont vrais et disent des choses différentes. En communes, une
+commune sur douze est réduite au silence, et c'est cela qui compte pour un
+corpus dont l'unité de collecte est la commune. En habitants, la part est deux
+fois moindre, parce que **les communes muettes sont les petites** — celles dont
+le cahier est un registre manuscrit de quelques pages, précisément celles que le
+filtre `needs_ocr` écarte le plus complètement.
+
+Publier l'un sans l'autre serait trompeur dans les deux sens : le premier seul
+exagère la perte de volume, le second seul masque que ce sont toujours les mêmes
+communes qui disparaissent.
+
+La pondération n'est pas une mesure de représentativité. Elle dit quelle part de
+la population des communes du corpus a au moins une page lisible ; elle ne dit
+rien de ceux qui n'ont pas écrit, ni des communes qui n'ont pas déposé de cahier
+— ce dernier chiffre est dans [`insee/`](../insee/README.md).
+
 ## Le seuil tient-il ?
 
 `needs_ocr` est déclenché sous un score de qualité de 0,3. C'est un réglage — si
@@ -57,16 +80,17 @@ pages de la tranche 0,2-0,3 sont le vrai gris.
 ## Ce que ça n'est pas
 
 Ce n'est pas une mesure de la représentativité du corpus au sens statistique.
+Elle dit seulement ce que la chaîne technique perd entre le scan et l'analyse.
 Elle ne dit rien de qui a écrit, ni de quelles communes ont ouvert un registre,
-ni de ce qui a été conservé aux Archives. Elle dit seulement ce que la chaîne
-technique perd entre le scan et l'analyse. La couverture au sens de la
-représentativité — part des communes, pondérée par la population — demande la
-population de chaque commune, donc le Code officiel géographique : voir
-[insee/README.md](../insee/README.md).
+ni de ce qui a été conservé aux Archives. La couverture au sens de la
+représentativité — quelle part de la population des quatre départements a un
+cahier quelque part — est mesurée dans [insee/README.md](../insee/README.md), et
+elle non plus ne rend pas le corpus représentatif.
 
 ## Utilisation
 
 ```bash
+uv run python -m insee cog                           # pour la pondération
 uv run python -m couverture                          # rapport à l'écran
 uv run python -m couverture --json data/couverture.json
 ```
@@ -75,6 +99,11 @@ Le rapport ne contient que des compteurs, jamais le texte des cahiers : il est
 partageable tel quel. Les noms de communes muettes en font partie — ce sont des
 données publiques, et c'est précisément l'information à afficher à côté de tout
 comptage.
+
+Ces noms viennent du référentiel INSEE quand il est chargé. Sans lui, quatorze
+des trente-sept communes muettes s'affichaient par leur seul code, faute de
+graphie lisible dans leur en-tête : une liste de codes n'est pas une information
+publiable.
 
 ## Organisation
 
