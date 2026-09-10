@@ -1,3 +1,4 @@
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -54,6 +55,35 @@ class City(Base):
     population = Column(Integer)
     latitude = Column(Float)
     longitude = Column(Float)
+
+
+class Embedding(Base):
+    """La représentation vectorielle d'une doléance, pour une passe donnée.
+
+    Table à part et non colonne sur `doleance` : un vecteur dépend d'un modèle,
+    de sa version et du découpage du texte qu'on lui a donné. C'est une lecture
+    du corpus, pas une propriété de la doléance — même raisonnement que pour
+    `duplicate_member` et `pii_span`, et deux passes doivent pouvoir coexister
+    pour être comparées.
+
+    **La colonne `vector` n'a pas de dimension déclarée**, et ce n'est pas un
+    oubli : la dimension dépend du modèle, qui n'est pas choisi. pgvector accepte
+    un vecteur non contraint, mais **refuse de l'indexer** — une recherche
+    vectorielle passera donc par un parcours complet tant que la dimension n'est
+    pas fixée. Sur mille doléances c'est sans conséquence ; le jour où le modèle
+    est choisi, une migration fixe la dimension et pose l'index HNSW.
+    """
+
+    __tablename__ = "embedding"
+    __table_args__ = (
+        UniqueConstraint("run_id", "doleance_id", name="uq_embedding_run_doleance"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("run.id"))
+    # Indexé : « le vecteur de cette doléance » est la question la plus posée.
+    doleance_id = Column(Integer, ForeignKey("doleance.id"), index=True)
+    vector = Column(Vector())
 
 
 class Contribution(Base):

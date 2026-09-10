@@ -137,8 +137,8 @@ seule grille pouvait exister à la fois**, et rien ne disait de quel modèle ni 
 quel prompt elle venait. Charger une grille pour la comparer détruisait
 l'ancienne.
 
-Cinq genres aujourd'hui : `segmentation`, `analyse`, `doublons`,
-`anonymisation` et `typologie`. Dans chaque genre, un seul
+Six genres aujourd'hui : `segmentation`, `analyse`, `doublons`,
+`anonymisation`, `embeddings` et `typologie`. Dans chaque genre, un seul
 run est `active` — c'est celui que l'app et les exports servent — garanti par un
 index unique partiel, pas seulement par le code appelant. Les autres restent en
 base, lisibles et comparables.
@@ -169,6 +169,28 @@ L'app l'exprime en SQL — `WHERE t.run_id = (SELECT id FROM run WHERE kind='ana
 table mais dans un run (`uq_topic_run_external_id`). Deux grilles peuvent
 réutiliser le même UUID de livraison. De même, les noms de thèmes ne sont uniques
 que dans une grille — toute lecture qui s'appuie dessus doit filtrer sur le run.
+
+## Vecteurs : la base est prête, le modèle n'est pas choisi
+
+`pgvector` est installé (extension `vector`) et la table `embedding` attend ses
+vecteurs, rattachés à un run de genre `embeddings` comme toute autre lecture du
+corpus. Table à part et non colonne sur `doleance` : un vecteur dépend d'un
+modèle, de sa version et du découpage du texte qu'on lui a donné.
+
+**La colonne `vector` n'a pas de dimension déclarée**, et ce n'est pas un oubli.
+La dimension dépend du modèle, qui n'est pas choisi — et ce choix n'est pas
+seulement technique : ces textes sont des opinions politiques nominatives, la
+passe doit tourner en local ou chez un sous-traitant européen. pgvector accepte
+un vecteur non contraint mais **refuse de l'indexer** : une recherche
+vectorielle fera donc un parcours complet, ce qui est sans conséquence sur mille
+doléances. Le jour où le modèle est choisi, une migration fixe la dimension et
+pose l'index HNSW.
+
+L'extension n'est pas dans l'image `postgres:16` : `compose.yaml` pointe sur
+`pgvector/pgvector:pg16`, la même image avec l'extension compilée dedans. Le
+volume de données passe de l'une à l'autre sans rien perdre, mais **la version
+de glibc change, donc celle des collations** — il faut réindexer, et
+`compose.yaml` porte la commande.
 
 ## Mettre à jour le modèle de données
 

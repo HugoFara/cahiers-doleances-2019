@@ -6,9 +6,24 @@
 # Les identifiants sont lus dans `.env` (le même que celui des scripts Python),
 # il n'y a donc qu'un seul endroit à renseigner. Les données survivent à un
 # `down` ; `down -v` supprime le volume et repart d'une base vierge.
+#
+# **Changer d'image demande un REINDEX.** Le passage de `postgres:16` à
+# `pgvector/pgvector:pg16` change la version de glibc, donc celle des collations,
+# et PostgreSQL avertit alors que les index texte peuvent être mal ordonnés :
+#
+#   podman exec cahier-doleances-db psql -U $DB_USER -d $DB_NAME \
+#     -c "REINDEX DATABASE $DB_NAME" \
+#     -c "ALTER DATABASE $DB_NAME REFRESH COLLATION VERSION"
+#
+# À refaire dans l'autre sens si l'on revient à l'image de base.
 services:
   db:
-    image: postgres:16
+    # pgvector plutôt que `postgres:16` : l'extension `vector` n'est pas dans
+    # l'image de base, et l'installer dans un conteneur en marche ne survit pas
+    # à sa recréation. Cette image est `postgres:16` avec l'extension compilée
+    # dedans — même version majeure, même format de répertoire de données : on
+    # passe de l'une à l'autre sans toucher au volume.
+    image: pgvector/pgvector:pg16
     container_name: cahier-doleances-db
     environment:
       POSTGRES_USER: ${DB_USER:?renseignez DB_USER dans .env}

@@ -199,7 +199,8 @@ essayer l'API sur l'échantillon de référence.
   étalon dit laquelle est juste. L'outillage existe (`reference/`) — tirage
   stratifié reproductible, étalon versionnable sans le texte, précision/rappel et
   WindowDiff. **Il reste à annoter**, et c'est du travail humain.
-- **Coût et passage à l'échelle.** Embeddings d'abord (une passe, peu chère),
+- **Coût et passage à l'échelle.** `pgvector` est posé et la table `embedding`
+  attend (2026-09-10) ; le modèle reste à choisir. Embeddings d'abord (une passe, peu chère),
   clustering, appel LLM sur les représentants ; ou distillation d'un petit
   classifieur. Les mêmes vecteurs servent à la recherche sémantique et aux
   quasi-doublons. `pgvector` dans le Postgres déjà en place. Attention au lieu
@@ -282,9 +283,11 @@ Questions à poser au prestataire, et à trancher pour notre propre app :
 
 Côté outillage : la **recherche plein texte** est faite depuis le 2026-09-10
 (`recherche/`), avec une configuration indifférente aux accents — « impot » sans
-accent trouvait 22 doléances sur 309. Restent la recherche vectorielle
-(`pgvector` n'est pas installé), les annotations désactivables, et chaque
-étiquette renvoyant à sa page source en un clic. Les trois avertissements — part écartée, communes muettes,
+accent trouvait 22 doléances sur 309. Restent les annotations désactivables et chaque
+étiquette renvoyant à sa page source en un clic. La recherche vectorielle a sa
+base — `pgvector` installé, table `embedding` versionnée par run — et attend le
+choix d'un modèle, qui relève de P3 : ces textes sont des opinions politiques
+nominatives, la passe doit tourner en UE. Les trois avertissements — part écartée, communes muettes,
 grille servie — sont affichés depuis le 2026-09-10, et le sélecteur de commune
 est passé au code INSEE : il en manquait 153, soit 40 % des contributions hors
 d'atteinte.
@@ -312,9 +315,10 @@ attend, le travail humain non, et le découpage sous-coupe visiblement (753 mots
 par doléance en moyenne) sans qu'on puisse encore chiffrer de combien.
 
 Côté code, plus rien n'est entièrement faisable sans décision préalable : la
-recherche plein texte, dernier chantier de cette catégorie, est faite. La
-recherche vectorielle demande d'installer `pgvector` — décision d'exploitation —
-et le reste attend du travail humain ou un alignement.
+recherche plein texte, dernier chantier de cette catégorie, est faite. `pgvector` est installé
+depuis le 2026-09-10 et la table `embedding` attend ; ce qui manque est le choix
+d'un modèle, la même décision d'hébergement que pour la NER. Le reste attend du
+travail humain ou un alignement.
 Le millésime du Code officiel géographique a été tranché le
 2026-09-10 — pivot 2019, table de passage vers le millésime courant, extraits
 versionnés — et reste révisable d'une commande si l'alignement national impose
@@ -344,7 +348,7 @@ IIIF / ALTO / EAD).
 | Anonymisation : rappel mesuré, occultation image | à faire — **le point dur** ; le rappel attend l'étalon annoté, l'image attend la géométrie |
 | Métriques de taxonomie, catégorie « hors grille » | fait — `taxonomie/` ; 76 % de singletons |
 | Recherche plein texte | fait — `recherche/`, configuration sans accent |
-| Recherche vectorielle | à faire — `pgvector` n'est pas installé sur la base |
+| Recherche vectorielle | base prête (`pgvector`, table `embedding`) — reste le choix du modèle |
 | Couverture et représentativité | fait — pondérée par population, `insee/` et `couverture/` |
 | Standards IIIF / ALTO / EAD, export en masse | à faire |
 | Avertissements et couverture affichés dans l'app | fait — les deux vues, `gradio_app/avertissements.py` |

@@ -990,11 +990,66 @@ configuration se recréent, rien n'est écrit dans les données.
 
 ---
 
+## 2026-09-10 — Les vecteurs ont leur table avant d'avoir leur modèle
+
+**Décision.** `pgvector` est installé sur la base et une table `embedding`
+rattache chaque vecteur à une doléance **et à un run** de genre `embeddings`.
+`compose.yaml` passe de `postgres:16` à `pgvector/pgvector:pg16`. Aucun vecteur
+n'est produit : le modèle n'est pas choisi.
+
+**Périmètre.** `compose.yaml`, migration `c2d7a91b46f8`, `database/models.py`,
+`database/runs.py`.
+
+**Motif.** Séparer ce qui se décide de ce qui ne se décide pas. *Où* vivent les
+vecteurs est une question de schéma, tranchable aujourd'hui ; *quel modèle* les
+produit est une décision d'hébergement qui relève de la priorité 3 — ces textes
+sont des opinions politiques nominatives, la passe doit tourner en local ou chez
+un sous-traitant européen. Poser la table maintenant évite qu'au moment du choix
+du modèle on improvise en plus un schéma.
+
+**Une table, pas une colonne.** Un vecteur dépend d'un modèle, de sa version et
+du découpage du texte qu'on lui a donné : c'est une lecture du corpus, pas une
+propriété de la doléance. Même raisonnement que pour `duplicate_member` et
+`pii_span`, et deux passes doivent pouvoir coexister pour être comparées.
+
+**La dimension n'est pas déclarée, et c'est un choix.** Elle dépend du modèle.
+pgvector accepte un vecteur non contraint mais **refuse de l'indexer** : une
+recherche vectorielle fera un parcours complet tant que la dimension n'est pas
+fixée. Sur mille doléances c'est sans conséquence. L'alternative — fixer 1024 ou
+1536 aujourd'hui — reviendrait à présupposer le modèle dans le schéma, sans le
+dire nulle part. Le jour où il est choisi, une migration fixe la dimension et
+pose l'index HNSW.
+
+**Vérifié.** Insertion par l'ORM, distance cosinus, relecture en liste Python,
+puis rollback : la plomberie tient de bout en bout. Migration montée et
+redescendue ; le downgrade laisse l'extension, comme celui d'`unaccent` — la
+retirer sous les pieds d'un autre objet casserait ce dernier.
+
+**Le piège de l'image, consigné parce qu'il ne se voit pas.** L'extension n'est
+pas dans `postgres:16`. Changer d'image ne perd aucune donnée — le volume est
+externe et la version majeure identique — mais la version de **glibc** change,
+donc celle des collations, et PostgreSQL avertit que les index texte peuvent être
+mal ordonnés. Il faut `REINDEX DATABASE` puis `ALTER DATABASE … REFRESH COLLATION
+VERSION`, dans les deux sens. La commande est dans `compose.yaml` ; sans elle,
+une base continue de fonctionner en donnant des résultats subtilement faux, ce
+qui est la pire des pannes.
+
+**Ce que ça ne fait pas.** Aucune recherche vectorielle n'existe. Le plein texte
+trouve un mot ; la vectorielle trouverait un voisinage, et se tromperait sans le
+dire quand le voisinage n'existe pas. Les deux répondent à des questions
+différentes et la seconde demandera sa propre mesure.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs
   détections par un modèle (les mots-clés du 2026-09-11 sont un étalon bas,
   pas un statut).
+- Le modèle d'embedding, sa dimension et son lieu d'exécution — même décision
+  d'hébergement que pour la reconnaissance d'entités nommées.
 - Les règles d'anonymisation : ce qui est occulté, ce qui ne l'est pas
   (personnalités publiques dans leur rôle), le seuil de rappel accepté.
 - L'arbitrage précision géographique / protection pour les très petites communes

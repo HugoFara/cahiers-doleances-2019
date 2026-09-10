@@ -4,8 +4,8 @@ Un run, c'est une production de couche : un découpage en doléances, une
 livraison de l'équipe analyse. Il porte de quoi la rejouer et la juger — modèle,
 version de prompt, paramètres, corpus, auteur, date.
 
-Cinq genres coexistent aujourd'hui : `SEGMENTATION`, `ANALYSE`, `DOUBLONS`,
-`ANONYMISATION` et `TYPOLOGIE`.
+Six genres coexistent aujourd'hui : `SEGMENTATION`, `ANALYSE`, `DOUBLONS`,
+`ANONYMISATION`, `EMBEDDINGS` et `TYPOLOGIE`.
 Dans chaque genre, un seul run est `active` : c'est celui que l'app et les exports servent
 par défaut. Les autres restent en base, lisibles et comparables — c'est tout
 l'intérêt : deux grilles de thèmes concurrentes doivent pouvoir coexister pour
@@ -29,10 +29,14 @@ SEGMENTATION = "segmentation"
 ANALYSE = "analyse"
 DOUBLONS = "doublons"
 ANONYMISATION = "anonymisation"
+# Une représentation vectorielle dépend d'un modèle, de sa version et de la
+# façon dont le texte lui a été découpé : c'est une couche interprétative comme
+# les autres, avec son run. Le modèle et la dimension vont dans `parameters`.
+EMBEDDINGS = "embeddings"
 # Ce qu'est une doléance — genre de document, genre d'auteur. Des règles de
 # forme, donc une lecture datée et révisable, pas un fait du corpus.
 TYPOLOGIE = "typologie"
-GENRES = (SEGMENTATION, ANALYSE, DOUBLONS, ANONYMISATION, TYPOLOGIE)
+GENRES = (SEGMENTATION, ANALYSE, DOUBLONS, ANONYMISATION, EMBEDDINGS, TYPOLOGIE)
 
 
 def creer_run(

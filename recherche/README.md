@@ -110,9 +110,16 @@ non « texte unique ».
   servent qu'une grille. Sans ce filtre, deux découpages concurrents rendraient
   chaque doléance deux fois.
 
-Il n'y a pas de **recherche vectorielle** : `pgvector` n'est pas installé sur la
-base. Le plan la prévoit à côté de celle-ci, pas à sa place — les deux répondent
-à des questions différentes.
+Il n'y a pas encore de **recherche vectorielle**, mais la base est prête :
+`pgvector` est installé et la table `embedding` attend ses vecteurs. Ce qui
+manque n'est pas du code mais un **modèle d'embedding**, dont le choix n'est pas
+seulement technique — ces textes sont des opinions politiques nominatives, la
+passe doit tourner en UE. Voir `database/README.md`.
+
+Le plan prévoit la recherche vectorielle à côté de celle-ci, pas à sa place : les
+deux répondent à des questions différentes. Le plein texte trouve un mot, la
+vectorielle trouve un voisinage — et se trompe sans le dire quand le voisinage
+n'existe pas.
 
 ## Organisation
 

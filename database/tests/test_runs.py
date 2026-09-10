@@ -9,6 +9,7 @@ from database import auteur as auteur_module
 from database.models import Base, Run, Topic
 from database.runs import (
     ANALYSE,
+    EMBEDDINGS,
     SEGMENTATION,
     activer_run,
     creer_run,
@@ -71,6 +72,14 @@ def test_la_base_refuse_deux_runs_actifs_du_meme_genre(session):
     session.add(Run(kind=ANALYSE, label="v4 forcée", active=True))
     with pytest.raises(IntegrityError):
         session.flush()
+
+
+def test_les_embeddings_sont_un_genre_comme_les_autres(session):
+    """Un vecteur dépend d'un modèle et d'une version : c'est une couche, pas
+    une propriété de la doléance."""
+    passe = creer_run(session, EMBEDDINGS, label="modèle à choisir")
+    creer_run(session, ANALYSE, label="v4")
+    assert run_actif(session, EMBEDDINGS) is passe
 
 
 def test_un_genre_inconnu_est_refuse(session):
