@@ -81,9 +81,11 @@ trois choses, et la troisième est bloquante :
 
 ## Priorité 1 — faire du squelette un squelette
 
-- ~~**Runs et versions.**~~ Fait. L'app annonce désormais la grille servie
-  (2026-09-10). Reste à imposer l'auteur d'un run plutôt que de le réclamer, et
-  à permettre d'en changer depuis l'app.
+- ~~**Runs et versions.**~~ Fait. L'app annonce la grille servie sur ses deux
+  pages (2026-09-10), et la vue commune la filtre enfin — elle cumulait toutes
+  les grilles. Reste à imposer l'auteur d'un run plutôt que de le réclamer, et à
+  permettre d'**en changer** depuis l'app : cela demande de sortir la taxonomie
+  de l'état de module de `views/graph.py`, un refactoring et non un câblage.
 - **Commune → code INSEE.** Fait le 2026-09-10 (`insee/`) : le code se lit dans
   le nom du fichier, la table `city` le porte, `contribution.city_code` y
   renvoie. **459 communes au lieu de 307** — le parsing d'en-tête en manquait un
@@ -260,7 +262,8 @@ en UE, formats IIIF / ALTO / EAD).
 | Recherche plein texte et vectorielle | à faire — **le seul item encore entièrement faisable côté code** |
 | Couverture et représentativité | fait — pondérée par population, `insee/` et `couverture/` |
 | Standards IIIF / ALTO / EAD, export en masse | à faire |
-| Avertissements et couverture affichés dans l'app | fait — `gradio_app/avertissements.py` |
+| Avertissements et couverture affichés dans l'app | fait — les deux vues, `gradio_app/avertissements.py` |
+| Changer de grille depuis l'app | à faire — demande de paramétrer `views/graph.py` par run |
 
 **Ce que le découpage donne aujourd'hui** : sur les 2 855 pages de
 `topic-builder/data/cahiers/dataset.csv`, 3 243 doléances — 11 % des pages

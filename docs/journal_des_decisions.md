@@ -429,10 +429,24 @@ accompagner tout comptage sont visibles sans clic ; les précisions et les sourc
 sont dans un repli. Un avertissement trop long n'est pas lu, et ne pas être lu
 est le seul échec qui compte ici.
 
-**Limite.** L'avertissement est calculé au démarrage, comme la taxonomie : il ne
-bouge pas tant que l'app tourne. Et il ne dit rien de ce qui n'a jamais été
-déposé — les communes sans cahier du tout ne sont pas dans le corpus, donc pas
-dans ce compte.
+**Un second filtre manquant, trouvé en chemin.** `GRILLE_SERVIE` avait été posé
+sur la vue graphe et pas sur la vue commune, qui **cumulait donc les détections
+de toutes les grilles**. Invisible tant qu'une seule grille est chargée, faux dès
+la deuxième — c'est-à-dire dès qu'on fera ce que le schéma a été refait pour
+permettre.
+
+**Limite assumée.** On peut savoir quelle grille est servie, pas en changer
+depuis l'app. Le faire demande de sortir la taxonomie de l'état de module de
+`views/graph.py` — cinq cents lignes calculées à l'import — pour la paramétrer
+par run. C'est un refactoring, et le faire à moitié (un sélecteur qui n'agirait
+que sur une vue) donnerait deux pages montrant deux grilles différentes sans le
+dire, ce qui est pire que pas de sélecteur. Consigné au plan comme chantier
+propre.
+
+L'avertissement de la vue commune est calculé au démarrage, comme la taxonomie ;
+celui de la vue graphe est recalculé à chaque requête. Ni l'un ni l'autre ne dit
+ce qui n'a jamais été déposé — les communes sans cahier du tout ne sont pas dans
+le corpus, donc pas dans ce compte.
 
 **Réversibilité.** Totale, c'est de l'affichage. Le changement de sélecteur, lui,
 ne se reviendrait pas sans reperdre 40 % des contributions.

@@ -11,10 +11,17 @@ intermédiaire. Les PDF viennent de l'Object Storage Scaleway.
 
 ## L'avertissement, avant tout chiffre
 
-Un repli en haut de page dit ce que le corpus n'est pas, et il est calculé, pas
-écrit en dur : la part de pages écartées, les communes sans aucune page lisible
-avec leur poids en habitants, la grille de thèmes servie parmi celles qui
-coexistent en base, et les mentions de source exigées par la Licence Ouverte 2.0.
+Trois phrases en haut de **chacune des deux pages**, visibles sans clic — un
+avertissement qu'il faut déplier n'est pas un avertissement. Les précisions et
+les sources sont repliées dessous. Tout est calculé, rien n'est écrit en dur : la
+part de pages écartées, les communes sans aucune page lisible avec leur poids en
+habitants, la grille de thèmes servie parmi celles qui coexistent en base, et les
+mentions de source exigées par la Licence Ouverte 2.0.
+
+La vue graphe est servie hors de Gradio, en HTML : l'avertissement y est injecté
+au moment de la requête, dans un gabarit qui porte un `<!--avertissement-->`.
+C'était la page qui en avait le plus besoin — elle montre une taxonomie, donc une
+lecture du corpus, et elle n'affichait rien.
 
 Ce n'est pas un scrupule décoratif. Un site de consultation est un acte
 éditorial : « 34 % des contributions parlent de fiscalité » sera lu comme un
@@ -44,6 +51,13 @@ partie. Le libellé affiche le nom officiel du Code officiel géographique, reto
 sur la graphie du corpus, puis sur le code seul. Les 144 contributions dont le
 cahier n'a pas de code à la source ont leur propre entrée en fin de liste, plutôt
 que de rester invisibles.
+
+**Une seule grille servie.** Plusieurs grilles de thèmes coexistent en base
+(`database/runs.py`) ; sans filtre l'app les empilerait, et les noms de thèmes —
+uniques dans une grille, pas dans la table — se confondraient. `GRILLE_SERVIE`
+filtre sur la grille active. Ce filtre n'avait été posé que sur la vue graphe :
+**la vue commune cumulait les détections de toutes les grilles**, ce qui ne se
+voyait pas tant qu'une seule était chargée.
 
 **Vue graphe** : la taxonomie et ses détections sont chargées une fois au
 démarrage (6788 topics, 9579 instances) puis servies en JSON. Le graphe est une
@@ -90,8 +104,14 @@ uv run python gradio_app/app.py   # http://localhost:7860
 
 ## Limites connues
 
-- L'avertissement est calculé au démarrage, comme la taxonomie : il ne bouge pas
-  tant que l'app tourne.
+- L'avertissement de la vue commune est calculé au démarrage, comme la
+  taxonomie ; celui de la vue graphe est recalculé à chaque requête.
+- **On ne peut pas changer de grille depuis l'app**, seulement savoir laquelle
+  est servie. Le faire demanderait de sortir la taxonomie de l'état de module de
+  `views/graph.py` — environ cinq cents lignes calculées à l'import — pour la
+  paramétrer par run. C'est un refactoring, pas un câblage : il est listé au plan
+  comme tel plutôt que fait à moitié. En attendant, on change de grille en
+  activant l'autre run en base et en redémarrant.
 - La taxonomie est chargée au démarrage : recharger la base demande un
   redémarrage de l'app.
 - `instance.contribution_id` est NULL **pour la livraison analyse actuelle**, dont
