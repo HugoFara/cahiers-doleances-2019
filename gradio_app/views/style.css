@@ -77,6 +77,18 @@
   margin-left: 6px;
 }
 
+/* La référence est un lien vers la page du scan quand le cahier répond ;
+   discrète au repos, elle ne doit pas concurrencer le nom de la commune. */
+a.ref {
+  text-decoration: none;
+  border-bottom: 1px dotted #a1a1aa;
+}
+
+a.ref:hover {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
 .resultat .recopie {
   margin-left: 10px;
   font-weight: 400;

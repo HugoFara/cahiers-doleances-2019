@@ -1043,6 +1043,47 @@ différentes et la seconde demandera sa propre mesure.
 
 ---
 
+## 2026-09-10 — Chaque étiquette renvoie à sa page source
+
+**Décision.** Toute étiquette affichée par l'app porte un lien vers la page du
+cahier qui la porte : thème détecté, résultat de recherche, et la visionneuse
+PDF de la vue commune, qui s'ouvre désormais sur la page de la contribution
+plutôt qu'en couverture. Module `gradio_app/source.py`, ancre `#page=N`.
+
+**Périmètre.** Les deux surfaces de l'app et la commande `python -m recherche`,
+qui affiche la page dans ses résultats.
+
+**Motif.** Le plan le demandait depuis le début — « renvoyer un verbatim vers son
+emplacement sur le scan, d'un clic ». Sans ce chemin, une étiquette est à prendre
+ou à laisser : rien ne permet d'aller vérifier ce que le texte dit vraiment, ni
+de voir ce que l'extraction a perdu. C'est le minimum qu'un corpus d'archives
+doive à qui le lit, et c'est aussi ce qui rend une annotation contestable —
+laquelle est le principe de tout ce dépôt.
+
+**Alternatives écartées.** Attendre la géométrie de l'OCR pour encadrer le
+passage exact sur l'image : c'est le bon objectif, mais il dépend d'une étape qui
+n'est pas faite, et la page est déjà cent fois mieux que rien. Rendre le lien
+inconditionnel : un lien mort vaut moins qu'un libellé nu, donc l'étiquette reste
+affichée sans lien quand S3 est muet et qu'aucune copie locale ne répond.
+
+**Conséquence mesurée.** `doleance.start_page` est renseigné pour les 1 002
+doléances — aucune n'est sans page. Sur une recherche « éoliennes » (46
+doléances), les vingt résultats montrés portent tous une référence cliquable de
+la forme « doléance 192 · p. 3-4 ». Les thèmes de la vue commune sont câblés de
+la même façon mais restent invisibles : `instance.contribution_id` est NULL pour
+la livraison d'août.
+
+**Réversibilité.** Totale : c'est de l'affichage, aucune donnée n'est écrite.
+
+**Ce que cela ne règle pas.** La granularité s'arrête à la page. Encadrer le
+passage sur l'image demande les coordonnées des lignes, que l'extraction actuelle
+ne produit pas — c'est la même chose qui manque pour occulter les données
+personnelles sur les scans, et c'est à demander à l'étape OCR/HTR.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs

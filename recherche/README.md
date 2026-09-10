@@ -82,14 +82,22 @@ l'extrait, et le résultat s'ouvre alors sur le début du texte.
 `--brut` désactive le caviardage, pour un usage interne. La commande le signale à
 chaque fois.
 
+**Chaque résultat porte sa page.** `doleance.start_page` est un numéro de page
+réel dans le cahier ; la commande l'affiche (« p. 5 »), et l'onglet de recherche
+en fait un lien vers le scan ouvert à cette page. Un extrait sorti de son cahier
+est sinon à prendre ou à laisser : rien ne permet d'aller voir ce que le texte dit
+vraiment, ni ce que l'extraction a perdu. C'est la seule granularité accessible
+aujourd'hui — encadrer le passage sur l'image demanderait la géométrie des
+lignes, la même qui manque pour occulter les données personnelles sur les scans.
+
 ## Les doublons sont signalés, pas masqués
 
 Cherchez les mots de la lettre présidentielle qui ouvre les registres :
 
 ```
-[0.0200] Unverre · doléance 510              ↻ même texte dans 6 communes
-[0.0200] Mayenne · doléance 794              ↻ même texte dans 6 communes
-[0.0200] Saint-Ouën-des-Toits · doléance 941 ↻ même texte dans 6 communes
+[0.0200] Unverre · doléance 510 p. 3              ↻ même texte dans 6 communes
+[0.0200] Mayenne · doléance 794 p. 7              ↻ même texte dans 6 communes
+[0.0200] Saint-Ouën-des-Toits · doléance 941 p. 3 ↻ même texte dans 6 communes
 ```
 
 Les premiers résultats sont la lettre du Président de la République, pas des

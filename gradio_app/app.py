@@ -4,9 +4,10 @@ import gradio as gr
 import plotly.offline
 from avertissements import details, essentiel, liste_markdown
 from avertissements import html as avertissement_html
-from data_helpers import PDF_DIR, etat_du_corpus
+from data_helpers import etat_du_corpus
 from fastapi import Body
 from fastapi.responses import FileResponse, HTMLResponse, Response
+from source import PDF_DIR
 from views import commune, graph, recherche
 
 STYLE = Path(__file__).parent / "views" / "style.css"

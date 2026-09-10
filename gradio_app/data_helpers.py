@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 from dotenv import load_dotenv
+from source import libelle_page, lien_source
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 
@@ -10,7 +11,6 @@ from insee.communes import libelle_commune, regrouper
 
 # Constantes
 ROOT = Path(__file__).resolve().parent.parent
-PDF_DIR = ROOT / "data" / "raw" / "pdfs"
 
 load_dotenv(ROOT / ".env")
 engine = create_engine(
@@ -127,15 +127,39 @@ def _rows(code: str) -> pd.DataFrame:
     return pd.read_sql(q, engine, params={"code": "" if code == SANS_COMMUNE else code})
 
 def _topic_instances(contribution_id: int) -> pd.DataFrame:
-    """Les instances de thèmes d'une contribution avec verbatim et résumé."""
+    """Les instances de thèmes d'une contribution, avec leur page source.
+
+    La page vient de la doléance quand la détection y est rattachée, de la
+    contribution sinon : une livraison au niveau page ne sait pas dire mieux que
+    la page, et c'est déjà le retour à la source que le plan demande.
+    """
     q = text(f"""
-        SELECT r.name, t.verbatim, t.summary
-        FROM instance t JOIN topic r ON r.id = t.topic_id
+        SELECT r.name, t.verbatim, t.summary,
+               coalesce(d.start_page, k.start_page) AS page,
+               coalesce(d.pdf_name, k.pdf_file) AS cahier
+        FROM instance t
+        JOIN topic r ON r.id = t.topic_id
+        LEFT JOIN doleance d ON d.id = t.doleance_id
+        LEFT JOIN contribution k ON k.id = t.contribution_id
         WHERE t.contribution_id = :cid
           AND t.run_id = {GRILLE_SERVIE}
         ORDER BY t.id
     """)
     return pd.read_sql(q, engine, params={"cid": contribution_id})
+
+
+def _etiquette_source(nom: str, cahier, page) -> str:
+    """« **thème** » ou « [**thème**](url#page=N) » selon que le cahier réponde.
+
+    Un lien mort vaut moins qu'un libellé nu : quand le PDF est introuvable, le
+    nom reste affiché tel quel.
+    """
+    if pd.isna(cahier):
+        return f"**{nom}**"
+    url = lien_source(str(cahier), None if pd.isna(page) else int(page))
+    if url is None:
+        return f"**{nom}**"
+    return f"[**{nom}** ({libelle_page(None if pd.isna(page) else int(page))})]({url})"
 
 def _int(value) -> str:
     """Entier en texte, ou 'N/C' si manquant."""
@@ -172,7 +196,8 @@ def get_contribution(code: str, idx: int) -> dict:
     # le détail (verbatim + résumé) ne s'affiche que si l'analyse existe
     inst = _topic_instances(int(r["id"]))
     details = "".join(
-        f"\n  - **{i.name}** — « {i.verbatim} » : *{i.summary}*"
+        f"\n  - {_etiquette_source(i.name, i.cahier, i.page)}"
+        f" — « {i.verbatim} » : *{i.summary}*"
         for i in inst.itertuples() if pd.notna(i.verbatim)
     )
     return {
@@ -194,6 +219,8 @@ def get_contribution(code: str, idx: int) -> dict:
         ),
         "text": r["text"] if pd.notna(r["text"]) else "N/C (pas encore extraite)",
         "pdf_file": r["pdf_file"],
+        # page d'ouverture : le PDF s'ouvre dessus plutôt qu'en couverture
+        "page": None if pd.isna(r["start_page"]) else int(r["start_page"]),
         # état d'annotation existant (le tien ou celui d'un autre bénévole)
         "is_anonymized": bool(r["is_anonymized"]) if pd.notna(r["is_anonymized"]) else False,
         "is_of_interest": bool(r["is_of_interest"]) if pd.notna(r["is_of_interest"]) else False,

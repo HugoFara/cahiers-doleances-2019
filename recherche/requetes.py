@@ -51,6 +51,12 @@ class Resultat:
     # tourné. Une liste de résultats où les trois premiers sont le même tract
     # recopié se lit tout autrement selon qu'on le sait ou non.
     communes_du_groupe: int | None = None
+    # Pages du cahier où la doléance commence et finit. C'est le seul chemin de
+    # retour à la source que le corpus permette aujourd'hui : l'ancre `#page=`
+    # d'une visionneuse PDF. Encadrer le passage sur l'image demanderait la
+    # géométrie des lignes, que l'extraction ne produit pas.
+    page_debut: int | None = None
+    page_fin: int | None = None
 
     @property
     def recopie(self) -> bool:
@@ -59,17 +65,18 @@ class Resultat:
 
     def resume(self) -> str:
         ou = self.commune or self.code_commune or "commune inconnue"
+        page = f" p. {self.page_debut}" if self.page_debut else ""
         marques = []
         if self.recopie:
             marques.append(f"↻ même texte dans {self.communes_du_groupe} communes")
         if not self.caviarde:
             marques.append("⚠ non caviardé")
         suffixe = ("  " + " · ".join(marques)) if marques else ""
-        return f"[{self.rang:.4f}] {ou} · doléance {self.doleance_id}{suffixe}"
+        return f"[{self.rang:.4f}] {ou} · doléance {self.doleance_id}{page}{suffixe}"
 
 
 _SQL = f"""
-    SELECT d.id, d.pdf_name, d.text, d.num_words,
+    SELECT d.id, d.pdf_name, d.text, d.num_words, d.start_page, d.end_page,
            k.city_code, v.official_name, v.name,
            dg.cities,
            ts_rank_cd(to_tsvector('{CONFIGURATION}', coalesce(d.text, '')), q.query) AS rang
@@ -183,6 +190,8 @@ def chercher(
                 extrait=fenetre(texte, mots),
                 caviarde=caviardage,
                 communes_du_groupe=ligne.cities,
+                page_debut=ligne.start_page,
+                page_fin=ligne.end_page,
             )
         )
     return resultats

@@ -53,6 +53,15 @@ sur la graphie du corpus, puis sur le code seul. Les 144 contributions dont le
 cahier n'a pas de code à la source ont leur propre entrée en fin de liste, plutôt
 que de rester invisibles.
 
+**Chaque étiquette renvoie à sa page source, en un clic.** Le visualiseur PDF
+s'ouvre sur la page de la contribution affichée plutôt qu'en couverture, les
+thèmes détectés portent leur page et sont cliquables, et chaque résultat de
+recherche l'est aussi (`gradio_app/source.py`, ancre `#page=N`). C'est la seule
+granularité que le corpus permette : encadrer le passage sur l'image demanderait
+la géométrie des lignes, que l'extraction ne produit pas. Quand le cahier est
+introuvable — S3 muet et pas de copie locale — le libellé reste affiché sans
+lien : un lien mort vaut moins que rien.
+
 **Recherche** : plein texte sur les doléances (`recherche/`). Ses extraits sont
 **caviardés**, quand la vue par commune montre le texte brut — et l'écart est
 voulu : la recherche est le premier endroit où le corpus se lit en vrac, hors du

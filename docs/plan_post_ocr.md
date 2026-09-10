@@ -283,8 +283,10 @@ Questions à poser au prestataire, et à trancher pour notre propre app :
 
 Côté outillage : la **recherche plein texte** est faite depuis le 2026-09-10
 (`recherche/`), avec une configuration indifférente aux accents — « impot » sans
-accent trouvait 22 doléances sur 309. Restent les annotations désactivables et chaque
-étiquette renvoyant à sa page source en un clic. La recherche vectorielle a sa
+accent trouvait 22 doléances sur 309. Chaque étiquette renvoie à sa page source
+depuis le 2026-09-10 — thèmes, résultats de recherche et visionneuse PDF ouvrent
+le cahier à la bonne page (`gradio_app/source.py`). Restent les annotations
+désactivables. La recherche vectorielle a sa
 base — `pgvector` installé, table `embedding` versionnée par run — et attend le
 choix d'un modèle, qui relève de P3 : ces textes sont des opinions politiques
 nominatives, la passe doit tourner en UE. Les trois avertissements — part écartée, communes muettes,

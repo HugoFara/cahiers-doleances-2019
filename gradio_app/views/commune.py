@@ -1,38 +1,40 @@
 import gradio as gr
 from data_helpers import (
-    PDF_DIR,
     get_contribution,
     list_communes,
     list_contributions,
     save_annotation,
 )
-from s3_helpers import url_pdf
+from source import libelle_page, lien_source
 
 
-def _cadre(src: str, lien: str) -> str:
+def _cadre(src: str, lien: str, page: str) -> str:
+    ouvrir = "Ouvrir le PDF dans un onglet"
+    if page:
+        ouvrir += f" ({page})"
     return (
         f'<iframe src="{src}" width="100%" height="640px" '
         'style="border:1px solid #ddd;border-radius:8px;"></iframe>'
         f'<p style="margin:6px 0 0"><a href="{lien}" target="_blank" '
-        'rel="noopener">Ouvrir le PDF dans un onglet</a></p>'
+        f'rel="noopener">{ouvrir}</a></p>'
     )
 
 
-def pdf_html(pdf_file: str | None) -> str:
-    """Le PDF vient de S3 (URL présignée) ; on retombe sur le dossier local
-    si le bucket est injoignable, pour rester utilisable hors ligne."""
+def pdf_html(pdf_file: str | None, page: int | None = None) -> str:
+    """Le cahier, ouvert à la page de la contribution.
+
+    Le PDF vient de S3 (URL présignée) ; on retombe sur le dossier local si le
+    bucket est injoignable, pour rester utilisable hors ligne. La visionneuse
+    s'ouvrait jusqu'ici en couverture, ce qui obligeait à chercher à la main la
+    page qu'on venait de sélectionner.
+    """
     if not pdf_file:
         return "<em>PDF à intégrer.</em>"
 
-    url = url_pdf(pdf_file)
-    if url:
-        return _cadre(url, url)
-
-    path = (PDF_DIR / pdf_file).resolve()
-    if path.exists():
-        src = f"/gradio_api/file={path}"
-        return _cadre(src, src)
-    return f"<em>PDF introuvable : {pdf_file}</em>"
+    url = lien_source(pdf_file, page)
+    if url is None:
+        return f"<em>PDF introuvable : {pdf_file}</em>"
+    return _cadre(url, url, libelle_page(page))
 
 def show(code: str, idx: int):
     """Affiche la contribution n°idx de la commune, désignée par son code INSEE."""
@@ -44,7 +46,7 @@ def show(code: str, idx: int):
         c["analyse"],
         c["header"],
         c["text"],
-        pdf_html(c["pdf_file"]),
+        pdf_html(c["pdf_file"], c["page"]),
         c["is_anonymized"],
         c["is_of_interest"],
         idx,

@@ -15,6 +15,7 @@ import html
 
 import gradio as gr
 from data_helpers import chercher_doleances
+from source import libelle_page, lien_source
 
 PLACEHOLDER = "éoliennes · \"pouvoir d'achat\" · impôt -taxe"
 
@@ -24,6 +25,28 @@ AIDE = (
     "<strong>doléances</strong> — ce qu'a écrit une personne — du découpage "
     "actif, et donc sur la seule moitié dactylographiée du corpus."
 )
+
+
+def _reference(r) -> str:
+    """« doléance 42 · p. 3 », cliquable vers le scan quand le cahier répond.
+
+    Un extrait de recherche est sorti de son cahier : sans ce lien il est à
+    prendre ou à laisser, et rien ne permet d'aller voir ce que le texte dit
+    vraiment ni ce que l'extraction a perdu. Quand le PDF est introuvable, la
+    référence reste affichée sans lien — un lien mort vaut moins que rien.
+    """
+    libelle = f"doléance {r.doleance_id}"
+    page = libelle_page(r.page_debut, r.page_fin)
+    if page:
+        libelle += f" · {page}"
+    url = lien_source(r.cahier, r.page_debut)
+    if url is None:
+        return f'<span class="ref">{html.escape(libelle)}</span>'
+    return (
+        f'<a class="ref" href="{html.escape(url, quote=True)}" target="_blank" '
+        f'rel="noopener" title="Ouvrir le cahier à cette page">'
+        f"{html.escape(libelle)} ↗</a>"
+    )
 
 
 def _resultat(r) -> str:
@@ -36,7 +59,7 @@ def _resultat(r) -> str:
         )
     return (
         '<li class="resultat">'
-        f'<div class="ou">{ou} <span class="ref">doléance {r.doleance_id}</span>'
+        f'<div class="ou">{ou} {_reference(r)}'
         f"{marques}</div>"
         f'<p class="extrait">{html.escape(r.extrait)}</p>'
         "</li>"
