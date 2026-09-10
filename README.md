@@ -13,6 +13,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
 - `couverture/` : ce que le corpus analysé laisse dehors | [documentation](couverture/README.md)
 - `insee/` : le rattachement des contributions au code INSEE de leur commune, et le référentiel géographique | [documentation](insee/README.md)
 - `doublons/` : les textes qui reviennent — tracts, lettres-types, campagnes | [documentation](doublons/README.md)
+- `typologie/` : ce qu'est une doléance — genre de document, genre d'auteur | [documentation](typologie/README.md)
 - `anonymisation/` : le repérage des passages personnels | [documentation](anonymisation/README.md)
 - `taxonomie/` : ce que vaut une grille de thèmes | [documentation](taxonomie/README.md)
 - `reference/` : le jeu de référence annoté à la main, et la mesure de ce que valent les couches | [documentation](reference/README.md)
@@ -169,6 +170,24 @@ uv run python -m doublons --auteur "prénom nom"
 apparaît dans six communes » est un résultat, pas du bruit. C'est d'ailleurs
 ainsi qu'on a découvert que la lettre du Président de la République figure encore
 dans onze doléances — voir [doublons/README.md](doublons/README.md).
+
+## Typologie : ce qu'est une doléance avant ce qu'elle dit
+
+Un mot d'habitant, une motion de conseil municipal et le courrier par lequel la
+mairie transmet le cahier ne pèsent pas pareil, et les compter ensemble fausse
+tout :
+
+```bash
+uv run python -m typologie
+```
+
+Deux axes — le support et l'auteur — posés par des règles de forme, versionnés
+par un run. Le résultat déplace le corpus : **une doléance sur cinq n'est pas une
+contribution** (181 illisibles, 24 pages de transmission), la première personne
+ne marque que 24 % des doléances mais 48 % des mots, et huit pétitions pèsent 4 %
+du corpus. Ces règles ne lisent que le texte, jamais la mise en page ni
+l'écriture, et rien n'est vérifié — voir
+[typologie/README.md](typologie/README.md).
 
 ## Mesurer le découpage
 

@@ -245,6 +245,48 @@ class PiiSpan(Base):
     confirmed = Column(Boolean)  # relecture humaine ; NULL = non relu
 
 
+class Typologie(Base):
+    """Ce qu'est une doléance — genre de document, genre d'auteur.
+
+    C'est la couche 2 du plan : les métadonnées qui conditionnent
+    l'interprétation de tout comptage. « 34 % des contributions demandent X » ne
+    veut rien dire si les 34 % mêlent un mot manuscrit d'habitant, une motion de
+    conseil municipal et le courrier par lequel la mairie transmet le cahier.
+
+    **Deux axes, une ligne chacun** (`axis` = `support` ou `auteur`), plutôt
+    qu'une colonne par axe : les deux questions sont indépendantes, se relisent
+    séparément, et un axe de plus — type de revendication, ton — s'ajoutera sans
+    migration de colonne. `uq_typologie_run_doleance_axe` interdit qu'un axe soit
+    tranché deux fois dans un même run.
+
+    Table à part et non colonnes sur `doleance`, pour la même raison que
+    `pii_span` et `duplicate_member` : c'est une **lecture** du corpus, produite
+    par des règles de forme faillibles, pas une propriété du texte. Elle est
+    versionnée par un run et se retire sans toucher au squelette.
+
+    `confirmed` est la file de relecture : NULL tant qu'aucun humain n'a tranché.
+    Aucune de ces valeurs n'est vérifiée — les règles n'ont ni précision ni
+    rappel mesurés, faute d'échantillon annoté.
+    """
+
+    __tablename__ = "typologie"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id", "doleance_id", "axis", name="uq_typologie_run_doleance_axe"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("run.id"))
+    # Indexé : « qu'est-ce que cette doléance » est posé par toute lecture qui
+    # veut pondérer ou filtrer un comptage.
+    doleance_id = Column(Integer, ForeignKey("doleance.id"), index=True)
+    axis = Column(String)  # "support" | "auteur" (typologie/classement.py)
+    value = Column(String)  # y compris "indetermine", qui est un résultat
+    detector = Column(String)  # signaux ayant tranché, joints par "+"
+    confirmed = Column(Boolean)  # relecture humaine ; NULL = non relu
+
+
 # Référentiel des thèmes, alimenté depuis la livraison de l'équipe analyse.
 class Topic(Base):
     __tablename__ = "topic"

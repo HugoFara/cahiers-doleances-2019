@@ -680,6 +680,67 @@ pas encore.
 
 ---
 
+## 2026-09-10 — Une doléance est d'abord un genre de document, pas un contenu
+
+**Décision.** Deux axes posés sur chaque doléance avant tout comptage de thèmes :
+le **support** (`registre`, `courrier`, `petition`, `formulaire`, `deliberation`,
+`lettre_type`, `apparat`, `illisible`) et l'**auteur** (`individu`, `collectif`,
+`institution`, `indetermine`). Table `typologie`, une ligne par axe, versionnée
+par un run ; module `typologie/`.
+
+**Périmètre.** Les 1 002 doléances du découpage servi.
+
+**Motif.** C'est la couche 2 du plan, et elle conditionne l'interprétation de
+tout ce qui vient après. « 34 % des contributions demandent X » ne veut rien dire
+si les 34 % mêlent un mot d'habitant, une motion de conseil municipal, un tract
+recopié dans onze communes et le courrier par lequel la mairie transmet le
+cahier. Une contribution syndicale et un mot manuscrit n'ont pas le même poids,
+et les confondre fausse tous les comptages.
+
+**Alternatives écartées.** Des colonnes sur `doleance` : ce sont des règles
+faillibles, pas des propriétés du texte, et elles doivent se retirer et se
+comparer comme les autres couches. Une étiquette unique croisant les deux axes :
+elle obligerait à inventer des cases que le corpus ne porte pas — une pétition
+peut être portée par une association ou par des habitants sans organisation.
+Renseigner à la main sur un échantillon d'abord : c'était l'option du plan, mais
+les règles de forme donnent une base sur tout le corpus, et l'échantillon annoté
+servira à les *mesurer* plutôt qu'à les remplacer.
+
+**Conséquence mesurée.** Trois résultats, sur 1 002 doléances et 754 741 mots.
+
+*Une doléance sur cinq n'est pas une contribution.* 181 `illisible` et 24
+`apparat` — pages de couverture, en-têtes de mairie, tampons, manuscrits que le
+score de qualité a laissé passer, et les mots par lesquels une commune transmet
+son cahier au préfet. Elles étaient comptées comme des contributions citoyennes.
+Corollaire : `needs_ocr` écarte 2 510 pages manuscrites mais **il en laisse
+passer**, certaines de plusieurs centaines de mots de fragments de caractères.
+
+*La première personne est minoritaire en nombre, majoritaire en volume.* 24 % des
+doléances portent une marque de première personne et pèsent 48 % des mots ; les
+69 % d'indéterminé n'en pèsent que 39 %. Ce sont, pour l'essentiel, des listes de
+revendications sans sujet grammatical — « Rétablissement de l'ISF ». Rien dans
+leur forme ne dit qui les écrit, et aucune règle de texte n'y accèdera.
+
+*Huit pétitions pèsent quatre fois l'apparat entier.* 8 doléances `petition` font
+32 141 mots (4 % du corpus), contre 7 797 pour les 24 `apparat`, 8 `formulaire`
+et 2 `deliberation` réunis. Les compter comme 8 contributions les efface ; les
+compter comme 8 textes de 4 000 mots les surpondère dans toute découverte de
+thèmes. Cette couche rend l'arbitrage visible ; elle ne le tranche pas.
+
+**Réversibilité.** Bonne : table à part, run versionné, `python -m typologie`
+crée un run de plus sans écraser le précédent ni ses relectures.
+
+**Ce que cela ne règle pas.** Ni la précision ni le rappel de ces règles ne sont
+mesurés — il y faut l'échantillon annoté, et `confirmed` reste NULL partout. Le
+vrai support (manuscrit, tract collé, feuille volante) se voit sur l'image et
+demande la géométrie de l'OCR, la même qui manque pour occulter les données
+personnelles sur les scans. Et « individu » ici veut dire « le texte parle à la
+première personne », ce qui n'est pas la même chose qu'un auteur individuel.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le choix des grilles de thèmes, et le statut donné à chacune.

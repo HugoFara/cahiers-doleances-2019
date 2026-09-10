@@ -97,9 +97,15 @@ trois choses, et la troisième est bloquante :
   eux désignaient déjà une commune absorbée au moment du dépôt. La pondération
   par population est donc en place — et elle dit que **les communes absentes du
   corpus sont les petites** (53 % des communes de l'Ain, 72 % de ses habitants).
-- **Types de support et d'auteur** (couche 2). À poser dès maintenant, même
-  renseignés à la main sur un échantillon : ils conditionnent l'interprétation de
-  tout comptage.
+- **Types de support et d'auteur** (couche 2). Fait le 2026-09-10
+  (`typologie/`) : deux axes posés sur chaque doléance par des règles de forme,
+  versionnés par un run. Le résultat déplace le corpus — **une doléance sur cinq
+  n'est pas une contribution** (181 `illisible`, 24 `apparat` : couvertures,
+  en-têtes, tampons, manuscrits passés à travers `needs_ocr`, et les mots de
+  transmission d'une mairie au préfet). La première personne ne marque que 24 %
+  des doléances mais 48 % des mots ; huit pétitions pèsent 4 % du corpus. Ni la
+  précision ni le rappel de ces règles ne sont mesurés : cela retombe sur
+  l'étalon annoté.
 - **Déduplication.** Fait le 2026-09-10 (`doublons/`) : MinHash + LSH au niveau
   doléance, groupes conservés avec le nombre de communes touchées. **13 groupes,
   33 doléances sur 1 002 (3 %).** Le plus gros n'est pas un tract citoyen mais la
@@ -275,7 +281,7 @@ en UE, formats IIIF / ALTO / EAD).
 | Reprendre le manuscrit (HTR) | à faire — **prochain**, bloqué sur l'OCR |
 | Commune -> INSEE | fait — 459 communes contre 307 par graphie |
 | Population et coordonnées (Code officiel géographique) | fait — `insee/referentiel/`, millésime pivot 2019 |
-| Types de support et d'auteur | à faire |
+| Types de support et d'auteur | fait — `typologie/` ; 20 % des doléances ne sont pas des contributions |
 | Déduplication | fait — 3 % des doléances, `doublons/` |
 | Anonymisation : passe de formes | fait — `anonymisation/` ; 88 % des doléances touchées |
 | Anonymisation : NER | fait le 2026-09-11 — `anonymisation/ner.py`, CamemBERT-NER en local sur CPU ; noms 1 309 -> 3 582 sur le découpage servi |

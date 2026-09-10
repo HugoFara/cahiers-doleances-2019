@@ -137,7 +137,8 @@ seule grille pouvait exister à la fois**, et rien ne disait de quel modèle ni 
 quel prompt elle venait. Charger une grille pour la comparer détruisait
 l'ancienne.
 
-Deux genres aujourd'hui : `segmentation` et `analyse`. Dans chaque genre, un seul
+Cinq genres aujourd'hui : `segmentation`, `analyse`, `doublons`,
+`anonymisation` et `typologie`. Dans chaque genre, un seul
 run est `active` — c'est celui que l'app et les exports servent — garanti par un
 index unique partiel, pas seulement par le code appelant. Les autres restent en
 base, lisibles et comparables.
