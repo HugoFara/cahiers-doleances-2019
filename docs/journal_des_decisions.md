@@ -69,13 +69,37 @@ formels. L'écriture ordinaire — celle de la personne qui passe à la mairie e
 biais le plus lourd du projet à ce stade, et il porte précisément sur la
 population que ces cahiers étaient censés faire entendre.
 
-**Ce qu'il faut faire.** Chiffrer la part écartée (nombre de pages, de cahiers,
-de communes concernées) — ce n'est pas fait. Afficher cette part à côté de tout
-comptage. Réintégrer dès que l'HTR le permet, et refaire tourner la comparaison
+**Chiffré le 2026-09-10** (mesure sur les 516 cahiers de `data/raw/pdfs`,
+5 365 pages, module `couverture/`) :
+
+| Échelle | Écarté | |
+|---|---|---|
+| pages | 2 510 / 5 365 | **47 %** |
+| cahiers touchés | 445 / 516 | 86 % |
+| communes touchées | 269 / 307 | 88 % |
+| cahiers entièrement écartés | 47 | |
+| **communes sans aucune page lisible** | **24** | |
+
+Les 2 855 pages retenues sont exactement les 2 855 documents de
+`topic-builder/data/cahiers/dataset.csv` : le corpus analysé jusqu'ici, c'est
+cette moitié-là. Vingt-quatre communes n'ont aucune voix dans l'analyse — leur
+cahier existe, il a été numérisé, il ne compte pour rien.
+
+**Le seuil tient.** `needs_ocr` se déclenche sous 0,3, ce qui est un réglage. La
+distribution est bimodale (2 070 pages sous 0,2, 1 591 au-dessus de 0,9, un creux
+entre), et déplacer la barre de 0,3 à 0,5 ne fait bouger la part que de 47 % à
+52 %. « Environ la moitié du corpus » résiste donc à une hausse du seuil ; le
+chiffre est en revanche sensible à une baisse, parce qu'on entame alors la masse
+basse. Les 447 pages de la tranche 0,2-0,3 sont le vrai gris.
+
+**Ce qu'il reste à faire.** Afficher ce taux à côté de tout comptage — il n'est
+pour l'instant que dans la documentation et dans `python -m couverture`, pas dans
+l'app. Réintégrer le manuscrit dès que l'HTR le permet, et refaire la comparaison
 avant/après.
 
 **Réversibilité.** Immédiate côté outillage (`--keep-ocr-pages`), nulle côté
-qualité tant que l'HTR n'est pas là.
+qualité tant que l'HTR n'est pas là — réintégrer ces pages aujourd'hui
+n'ajouterait pas des contributions, seulement du bruit d'extraction.
 
 **Auteur.** Hérité du pipeline `extraction/without_ocr` (2026-08-07), explicité
 ici le 2026-09-10.

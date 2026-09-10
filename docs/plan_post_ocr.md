@@ -95,12 +95,13 @@ trois choses, et la troisième est bloquante :
   pétitions, PDF scannés deux fois. MinHash/SimHash au niveau doléance, dans une
   table `duplicate_group` — sans écraser : « ce texte apparaît dans 47 communes »
   est un résultat, pas du bruit.
-- **Reprendre le manuscrit.** Aujourd'hui `export_dataset.py` et `segmentation/`
-  écartent les pages `needs_ocr` : le corpus analysé est *la partie
-  dactylographiée seulement*, c'est-à-dire les lettres de maires, les
-  contributions d'associations et les textes tapés. L'écriture ordinaire est hors
-  champ. C'est probablement le biais le plus lourd du projet. Chiffrer la part
-  écartée, et la réintégrer dès que l'HTR le permet.
+- **Reprendre le manuscrit.** `export_dataset.py` et `segmentation/` écartent les
+  pages `needs_ocr` : le corpus analysé est *la partie dactylographiée
+  seulement*. **Chiffré le 2026-09-10 : 47 % des pages écartées, 24 communes sans
+  aucune page lisible** (`couverture/`). Les 2 855 pages retenues sont exactement
+  les 2 855 documents analysés jusqu'ici. C'est le biais le plus lourd du projet,
+  il porte sur la population que ces cahiers devaient faire entendre, et il ne se
+  lève qu'avec l'HTR. D'ici là, le taux doit accompagner tout comptage.
 
 ## Priorité 2 — les annotations comme couche plurielle
 
@@ -217,9 +218,10 @@ corpus. C'est ce qui rend les décisions visibles et donc contestables.
   les leurs évite deux versions incompatibles des mêmes cahiers, l'une plus
   occultée que l'autre. À vérifier avant de figer quoi que ce soit.
 
-**Par où continuer** : faire annoter l'échantillon — l'outillage attend, le
-travail humain non. En parallèle, chiffrer la part manuscrite écartée du corpus :
-c'est le biais le plus lourd du projet et il n'est même pas mesuré.
+**Par où continuer** : faire annoter l'échantillon de référence — l'outillage
+attend, le travail humain non. Côté code, le rattachement au code INSEE, qui
+débloque la couverture au sens de la représentativité (part des communes,
+pondérée par la population) et la carte.
 
 ---
 
@@ -232,7 +234,8 @@ c'est le biais le plus lourd du projet et il n'est même pas mesuré.
 | Journal des décisions | ouvert — `docs/journal_des_decisions.md` |
 | Runs et versions (grilles concurrentes, `doleance` versionnée) | fait — `database/runs.py`, table `run` |
 | Jeu de référence annoté (200-300 doléances) | outillage fait — `reference/` ; **reste à annoter** |
-| Chiffrer et reprendre la part manuscrite écartée | à faire — **prochain** |
+| Chiffrer la part manuscrite écartée | fait — 47 % des pages, `couverture/` |
+| Reprendre le manuscrit (HTR) | à faire — **prochain**, bloqué sur l'OCR |
 | Commune -> INSEE, types de support et d'auteur | à faire |
 | Déduplication | à faire |
 | Anonymisation (texte + image), rappel mesuré | à faire |
