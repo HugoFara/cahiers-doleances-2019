@@ -9,8 +9,11 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
 - `database/` : le modèle de données et les migrations qui structurent la base PostgreSQL | [documentation](database/README.md)
 - `extraction/` : les pipelines d'extraction de texte depuis les PDFs
   - `extraction/without_ocr/` : extraction du texte natif, sans OCR | [documentation](extraction/without_ocr/README.md)
+- `segmentation/` : le découpage des cahiers en doléances individuelles | [documentation](segmentation/README.md)
 - `gradio_app/` : l'interface pour parcourir les contributions et les annoter | [documentation](gradio_app/README.md)
 - `topic-builder/` : l'utilitaire de découverte, structuration et annotation des thèmes abordés dans les contributions | [documentation](topic-builder/README.md)
+- `docs/` : les notes de cadrage — [le plan d'après-OCR](docs/plan_post_ocr.md) et le
+  [journal des décisions](docs/journal_des_decisions.md)
 
 ## Installation
 
@@ -102,25 +105,53 @@ vous pouvez lancer avec :
 uv run python gradio_app/app.py
 ```
 
+## Découpage en doléances
+
+Une contribution, dans le pipeline actuel, c'est **une page** — or une page de
+registre porte souvent plusieurs contributeurs, et une doléance longue court sur
+deux pages. `segmentation/` découpe le texte des cahiers en doléances
+individuelles, la vraie unité d'analyse, et les stocke dans la table `doleance` :
+
+```bash
+uv run alembic upgrade head                          # crée les tables doleance et run
+uv run python -m segmentation --auteur "prénom nom"  # découpe les cahiers
+```
+
+Le découpage est heuristique et **versionné** : il appartient à la couche
+d'annotation, pas au squelette du corpus, donc deux découpages peuvent coexister
+et se comparer (`--nouveau-run`). Ses règles et leurs limites sont documentées
+dans [segmentation/README.md](segmentation/README.md).
+
 ## Analyse des thèmes
 
 `topic-builder/` attend un CSV `id,content` en entrée. `database/export_dataset.py`
-le produit depuis la base, une ligne par contribution. Le seed de démo suffit pour
-l'essayer, sans avoir de PDF sous la main :
+le produit depuis la base, à deux niveaux :
 
 ```bash
+# une ligne par contribution (= une page)
 uv run python -m database.export_dataset --output topic-builder/data/cahiers/dataset.csv
+# une ligne par doléance (= ce qu'a écrit une personne) — à préférer
+uv run python -m database.export_dataset --niveau doleance --output topic-builder/data/cahiers/dataset.csv
 ```
 
-L'`id` du document est l'`id` de la contribution. C'est ce qui permet à
-`database/load_analysis.py` de rattacher les thèmes détectés à la bonne contribution
-au retour de l'analyse, au lieu de les laisser orphelins. La boucle complète :
+Comme le découpage, les grilles de thèmes sont versionnées : charger une
+livraison ne détruit plus la précédente, plusieurs grilles concurrentes
+coexistent et l'app sert celle qui est active (voir
+[database/README.md](database/README.md)).
+
+L'`id` du document est la clé primaire de la ligne exportée : `42` pour une
+contribution, `d42` pour une doléance. C'est ce qui permet à
+`database/load_analysis.py` de rattacher les thèmes détectés à la bonne ligne au
+retour de l'analyse, au lieu de les laisser orphelins — et le préfixe évite que
+les deux plages d'id, qui se recouvrent, soient confondues. La boucle complète :
 
 ```
-extraction  ->  page_extraction  ->  export_dataset  ->  topic-builder
-                                                              |
-                    topic / instance  <-  load_analysis  <-  taxonomy.json
-                                                              instances.json
+extraction  ->  page_extraction  ->  segmentation  ->  doleance
+                                                          |
+                                                    export_dataset  ->  topic-builder
+                                                                              |
+                          topic / instance  <-  load_analysis  <-  taxonomy.json
+                                                                   instances.json
 ```
 
 ## Qualité et sécurité du code (pre-commit)

@@ -6,6 +6,11 @@
 erDiagram
     contribution ||--o{ extraction : "contribution_id"
     contribution ||--o{ page_extraction : "contribution_id"
+    run ||--o{ doleance : "run_id"
+    run ||--o{ topic : "run_id"
+    run ||--o{ instance : "run_id"
+    contribution ||--o{ doleance : "contribution_id"
+    doleance ||--o{ instance : "doleance_id"
     contribution ||--o{ instance : "contribution_id"
     topic ||--o{ instance : "topic_id"
     topic ||--o{ topic : "parent_id"
@@ -38,9 +43,37 @@ erDiagram
         bool needs_ocr "page manuscrite suspectée"
         string city
     }
+    run {
+        int id PK
+        string kind "segmentation | analyse"
+        string label "nom lisible de la couche"
+        string source "dossier de livraison ou module"
+        string model "modèle LLM ou OCR employé"
+        string prompt_version
+        json parameters "seuils et config appliqués"
+        string corpus "ce sur quoi le run a tourné"
+        string author
+        datetime created_at
+        bool active "run servi par défaut pour ce genre"
+        text notes
+    }
+    doleance {
+        int id PK
+        int run_id FK "découpage qui l'a produite"
+        int contribution_id FK "contribution de la page d'ouverture"
+        string pdf_name "cahier découpé"
+        string city
+        int position "rang dans le cahier"
+        int start_page
+        int end_page
+        text text
+        string signal "règle de découpage ayant ouvert la doléance"
+        int num_words
+    }
     topic {
         int id PK
-        string external_id UK "UUID de la livraison analyse"
+        int run_id FK "grille à laquelle il appartient"
+        string external_id "UUID de la livraison ; unique dans un run"
         string name
         text description
         int level "rang d'abstraction fourni par l'analyse"
@@ -50,7 +83,9 @@ erDiagram
     }
     instance {
         int id PK
+        int run_id FK "livraison qui l'a produite"
         int contribution_id FK "NULL tant que le lien doc n'est pas résolu"
+        int doleance_id FK "renseigné si la livraison porte sur des doléances"
         string external_doc_id "id du document dans la livraison"
         int topic_id FK
         text verbatim "extrait exact qui porte le thème"
@@ -73,6 +108,8 @@ erDiagram
 | `contribution` | métadonnées : commune, fichier, pages, manuscrit | équipe séparation |
 | `extraction` | texte extrait une ligne par essai d'OCR | équipe extraction |
 | `page_extraction` | texte extrait page par page (OCR-free) avec score de qualité et flag `needs_ocr` | équipe extraction |
+| `run` | une production de couche interprétative : un découpage, une grille | `database/runs.py` |
+| `doleance` | le texte d'un contributeur, découpé du cahier | `segmentation/` |
 | `topic` | taxonomie des thèmes, hiérarchie via `parent_id` | équipe analyse |
 | `instance` | détections de thèmes : verbatim + justification, une ligne par détection | équipe analyse |
 | `feeling` | sentiments détectés : une ligne par résultat | équipe analyse |
@@ -82,6 +119,46 @@ erDiagram
 (CR de réunion), et tout pointe vers `contribution.id`. **La pertinence** : aucune donnée
 n'est écrite par deux équipes, et l'avancement se lit par l'existence des lignes (pas de
 ligne `extraction` = pas encore extraite, pas de ligne `annotation` = pas encore annotée).
+
+## Les couches, et pourquoi elles sont versionnées
+
+Le squelette du corpus, c'est la provenance : `contribution` -> `page_extraction`,
+rattachés à un cahier et à une commune. Il ne bouge pas.
+
+Le reste — le découpage en doléances, les thèmes, les détections — est une
+**couche interprétative** posée dessus. Une heuristique décide qu'une page porte
+trois auteurs ; un modèle décide qu'un paragraphe parle de fiscalité. Ces
+décisions doivent être visibles, attribuées, comparables et réversibles, donc
+versionnées : c'est le rôle de `run`.
+
+Avant cette table, `load_analysis.py` faisait `DELETE FROM instance` à chaque
+livraison et `charger_topics` upsertait dans une table `topic` unique : **une
+seule grille pouvait exister à la fois**, et rien ne disait de quel modèle ni de
+quel prompt elle venait. Charger une grille pour la comparer détruisait
+l'ancienne.
+
+Deux genres aujourd'hui : `segmentation` et `analyse`. Dans chaque genre, un seul
+run est `active` — c'est celui que l'app et les exports servent — garanti par un
+index unique partiel, pas seulement par le code appelant. Les autres restent en
+base, lisibles et comparables.
+
+```python
+from database.runs import ANALYSE, SEGMENTATION, creer_run, run_actif, runs
+
+creer_run(session, ANALYSE, label="grille émergente v4", model="qwen3-4b", ...)
+run_actif(session, ANALYSE)   # la grille servie, ou None sur une base vierge
+runs(session, ANALYSE)        # toutes les grilles, de la plus récente à la plus ancienne
+```
+
+`run_actif` renvoyant `None` est un **état normal** (base migrée mais pas encore
+chargée) : les lectures le traitent comme « couche vide », pas comme une erreur.
+L'app l'exprime en SQL — `WHERE t.run_id = (SELECT id FROM run WHERE kind='analyse' AND active)`
+— la sous-requête vaut NULL, la comparaison n'est jamais vraie, les vues sont vides.
+
+**Conséquence sur l'unicité** : `topic.external_id` n'est plus unique dans la
+table mais dans un run (`uq_topic_run_external_id`). Deux grilles peuvent
+réutiliser le même UUID de livraison. De même, les noms de thèmes ne sont uniques
+que dans une grille — toute lecture qui s'appuie dessus doit filtrer sur le run.
 
 ## Mettre à jour le modèle de données
 
@@ -117,14 +194,24 @@ pour un SQLite local) — jamais de credentials dans un fichier committé.
 
 ## Exporter le corpus pour l'analyse
 
-`database/export_dataset.py` lit `page_extraction` et écrit le CSV `id,content`
-attendu par `topic-builder` — une ligne par contribution, pages concaténées dans
-l'ordre. Les pages `needs_ocr` (manuscrites, texte illisible) sont écartées par
-défaut ; `--keep-ocr-pages` les réintègre pour inspecter le corpus complet.
+`database/export_dataset.py` écrit le CSV `id,content` attendu par
+`topic-builder`, à deux niveaux (`--niveau`) :
 
-**L'`id` du document est `contribution.id`.** La livraison de l'analyse renvoie ses
-labels indexés par cet id, ce qui rend le rapprochement immédiat au retour — voir
-plus bas.
+- `contribution` (défaut) : lit `page_extraction`, une ligne par contribution,
+  pages concaténées dans l'ordre. Les pages `needs_ocr` (manuscrites, texte
+  illisible) sont écartées par défaut ; `--keep-ocr-pages` les réintègre pour
+  inspecter le corpus complet. **Une contribution, c'est une page** : plusieurs
+  contributeurs peuvent s'y côtoyer, et une doléance longue y est coupée en deux.
+- `doleance` : lit `doleance`, une ligne par contributeur, telle que
+  `segmentation/` l'a découpée. C'est la bonne unité d'analyse.
+
+**L'`id` du document est la clé primaire de la ligne exportée** — `42` pour une
+contribution, `d42` pour une doléance. La livraison de l'analyse renvoie ses
+labels indexés par cet id, ce qui rend le rapprochement immédiat au retour (voir
+plus bas). Le préfixe n'est pas cosmétique : les deux tables ont des id
+auto-incrémentés qui se recouvrent, sans marquage une livraison sur les doléances
+serait rechargée en désignant des contributions au hasard. Le format est dans
+`database/identifiants.py`, partagé par l'export et le chargement.
 
 ## Charger la livraison de l'équipe analyse (temporaire TODO: mettre dans une future pipeline)
 
@@ -137,6 +224,11 @@ depuis `export_dataset.py`. Sinon (livraisons antérieures, numérotées `doc 73
 l'équipe analyse) il reste NULL et l'instance n'est rattachée que par
 `external_doc_id`, comme avant. Le script affiche le nombre d'instances rattachées.
 
+Quand la livraison porte sur des doléances (ids `d42`), `instance.doleance_id` est
+résolu **et** `contribution_id` est repris de la doléance : les vues de l'app
+joignent sur `contribution_id`, elles continuent de fonctionner sans connaître le
+nouveau niveau.
+
 
 ## Commandes
 
@@ -147,7 +239,9 @@ uv run alembic current # version actuelle de la base
 uv run alembic check # écart entre models.py et la base
 uv run python -m database.seed_mock # seed de démo : 4 contributions dactylographiées réelles
 uv run python -m database.export_dataset --output data/dataset.csv # corpus -> CSV topic-builder
-uv run python -m database.load_analysis # charger la livraison analyse
+uv run python -m database.export_dataset --niveau doleance --output data/dataset.csv # au niveau doléance
+uv run python -m database.load_analysis # charger la livraison analyse (met à jour sa grille)
+uv run python -m database.load_analysis <dossier> --nouveau-run --label "v5" # charger en grille de plus
 ```
 
 ## Dumps
