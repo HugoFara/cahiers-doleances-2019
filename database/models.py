@@ -18,13 +18,39 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
+class City(Base):
+    """Une commune, identifiée par son code INSEE.
+
+    `contribution.city` est une graphie parsée de l'en-tête du PDF : la même
+    commune n'y est pas écrite pareil d'un cahier à l'autre, et le parsing
+    échoue sur un tiers du corpus. Le code INSEE est la clé qui manquait —
+    stable, officielle, et elle porte le département.
+
+    `name` est la graphie la plus riche rencontrée dans le corpus, pas le nom
+    officiel : celui-ci demande le Code officiel géographique, qui apportera
+    aussi la population et les coordonnées, restées NULL en attendant. Sans
+    elles, pas de pondération par population ni de carte.
+    """
+
+    __tablename__ = "city"
+
+    code = Column(String(5), primary_key=True)  # INSEE ; 2A/2B pour la Corse
+    name = Column(String)
+    # Indexé : la couverture se lit par département, échelle des Archives.
+    department = Column(String, index=True)  # dérivé du code, Corse et outre-mer compris
+    population = Column(Integer)  # demande le COG
+    latitude = Column(Float)  # demande le COG
+    longitude = Column(Float)  # demande le COG
+
+
 class Contribution(Base):
     __tablename__ = "contribution"
 
     id = Column(Integer, primary_key=True)
-    city = Column(
-        String
-    )  # parsée du nom du fichier ; TODO insee/table city si data INSEE
+    city = Column(String)  # graphie parsée de l'en-tête ; city_code fait foi
+    # Rempli par `python -m insee rattacher`, depuis le code porté par le nom du
+    # fichier. NULL quand le cahier n'en porte pas (deux cas dans le corpus).
+    city_code = Column(String(5), ForeignKey("city.code"))
     pdf_file = Column(
         String
     )  # nom du fichier du cahier ; TODO ajuster en fonction de l'adaptation S3
