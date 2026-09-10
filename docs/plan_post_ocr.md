@@ -86,9 +86,12 @@ trois choses, et la troisième est bloquante :
 - **Commune → code INSEE.** Fait le 2026-09-10 (`insee/`) : le code se lit dans
   le nom du fichier, la table `city` le porte, `contribution.city_code` y
   renvoie. **459 communes au lieu de 307** — le parsing d'en-tête en manquait un
-  tiers. Reste la population et les coordonnées, qui demandent le Code officiel
-  géographique : sans elles, pas de pondération par population, donc pas de
-  mesure de représentativité, et pas de carte.
+  tiers. Population, nom officiel et coordonnées ajoutés le 2026-09-10 depuis le
+  **Code officiel géographique au millésime 2019**, versionné dans
+  `insee/referentiel/` : le code des cahiers est une clé datée, et deux d'entre
+  eux désignaient déjà une commune absorbée au moment du dépôt. La pondération
+  par population est donc en place — et elle dit que **les communes absentes du
+  corpus sont les petites** (53 % des communes de l'Ain, 72 % de ses habitants).
 - **Types de support et d'auteur** (couche 2). À poser dès maintenant, même
   renseignés à la main sur un échantillon : ils conditionnent l'interprétation de
   tout comptage.
@@ -98,8 +101,9 @@ trois choses, et la troisième est bloquante :
   est un résultat, pas du bruit.
 - **Reprendre le manuscrit.** `export_dataset.py` et `segmentation/` écartent les
   pages `needs_ocr` : le corpus analysé est *la partie dactylographiée
-  seulement*. **Chiffré le 2026-09-10 : 47 % des pages écartées, 24 communes sans
-  aucune page lisible** (`couverture/`). Les 2 855 pages retenues sont exactement
+  seulement*. **Chiffré le 2026-09-10 : 47 % des pages écartées, 37 communes sans
+  aucune page lisible** (`couverture/`) — soit 4 % des habitants seulement, les
+  communes muettes étant les petites. Les 2 855 pages retenues sont exactement
   les 2 855 documents analysés jusqu'ici. C'est le biais le plus lourd du projet,
   il porte sur la population que ces cahiers devaient faire entendre, et il ne se
   lève qu'avec l'HTR. D'ici là, le taux doit accompagner tout comptage.
@@ -220,9 +224,15 @@ corpus. C'est ce qui rend les décisions visibles et donc contestables.
   occultée que l'autre. À vérifier avant de figer quoi que ce soit.
 
 **Par où continuer** : faire annoter l'échantillon de référence — l'outillage
-attend, le travail humain non. Côté code, importer le Code officiel géographique
-pour donner à `city` sa population et ses coordonnées : c'est ce qui manque à la
-mesure de représentativité et à la carte.
+attend, le travail humain non. Côté code, le millésime du Code officiel
+géographique a été tranché le 2026-09-10 — pivot 2019, table de passage vers le
+millésime courant, extraits versionnés — et reste révisable d'une commande si
+l'alignement national impose autre chose. Restent entièrement faisables sans
+décision préalable : la déduplication, les métriques de taxonomie et la catégorie
+« hors grille », la **recherche plein texte** (`tsvector`, configuration
+`french`) et vectorielle. Tout le reste attend soit du travail humain
+(annotation de l'étalon), soit une décision d'alignement (modèle de NER hébergé
+en UE, formats IIIF / ALTO / EAD).
 
 ---
 
@@ -238,13 +248,13 @@ mesure de représentativité et à la carte.
 | Chiffrer la part manuscrite écartée | fait — 47 % des pages, `couverture/` |
 | Reprendre le manuscrit (HTR) | à faire — **prochain**, bloqué sur l'OCR |
 | Commune -> INSEE | fait — 459 communes contre 307 par graphie |
-| Population et coordonnées (Code officiel géographique) | à faire — **prochain** |
+| Population et coordonnées (Code officiel géographique) | fait — `insee/referentiel/`, millésime pivot 2019 |
 | Types de support et d'auteur | à faire |
 | Déduplication | à faire |
 | Anonymisation (texte + image), rappel mesuré | à faire |
 | Métriques de taxonomie, catégorie « hors grille » | à faire |
-| Recherche plein texte et vectorielle | à faire |
-| Couverture et représentativité | à faire |
+| Recherche plein texte et vectorielle | à faire — **le seul item encore entièrement faisable côté code** |
+| Couverture et représentativité | fait — pondérée par population, `insee/` et `couverture/` |
 | Standards IIIF / ALTO / EAD, export en masse | à faire |
 
 **Ce que le découpage donne aujourd'hui** : sur les 2 855 pages de

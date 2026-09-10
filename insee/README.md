@@ -51,21 +51,88 @@ cahier à regarder. C'est pour cela que le rattachement se fait sur le nom de
 fichier : il vient du système qui a déposé le cahier, l'en-tête est un champ
 rempli à la main puis passé dans une extraction de texte.
 
-## Ce qui reste NULL, et pourquoi
+## Le référentiel : millésime 2019, et pas un autre
+
+`population`, `latitude` et `longitude` sont désormais renseignées depuis des
+extraits versionnés dans [`referentiel/`](referentiel/SOURCES.md). Le millésime
+pivot est **2019** — celui du dépôt des cahiers, février-avril 2019 — et c'est
+la seule décision de ce module qui ne soit pas évidente.
+
+Un code INSEE est une clé **datée** : il désigne une commune à un millésime
+donné. Prendre le millésime courant paraît naturel et c'est le piège. Une
+commune absorbée depuis dans une commune nouvelle n'a plus de ligne : sa
+population deviendrait NULL sans bruit, ou pire, celle de la commune fusionnée —
+et la pondération serait fausse sans qu'aucun test ne le voie. `city.code` reste
+donc celui de 2019 ; `current_code` porte le code actuel comme une **annotation**,
+pas comme une correction. C'est le même principe que partout ailleurs ici : la
+provenance est le squelette, le reste s'y rattache sans le modifier.
+
+Trois cas du corpus le justifient, et aucun n'a été cherché :
+
+| Code | Commune | Ce qui s'est passé |
+|---|---|---|
+| `01144` | Dommartin | absorbée par Bâgé-Dommartin le **1ᵉʳ janvier 2018**, un an *avant* les cahiers |
+| `01205` | Lancrans | absorbée par Valserhône le **1ᵉʳ janvier 2019**, six semaines avant |
+| `01039` | Béon | commune de plein exercice en 2019, absorbée par Culoz-Béon en 2023 |
+
+Les deux premiers cahiers ont été déposés sous un code qui ne désignait déjà
+plus une commune de plein exercice : le système de dépôt travaillait sur un
+référentiel périmé. Ils restent rattachés à ce code — c'est le fait de
+provenance — avec `cog_type = COMD` et leur commune parente. Un quatrième cas,
+`28012`, a gardé son code et changé de nom : « Commune nouvelle d'Arrou » est
+devenue « Vald'Yerre » en 2023.
+
+**Le double compte.** La population d'une commune déléguée est comprise dans
+celle de sa parente. Valserhône *et* Lancrans sont toutes deux dans le corpus :
+sommer les deux compterait deux fois 1 054 habitants. `population_totale` refuse
+de le faire et la commande le signale, plutôt que de laisser une note dans un
+coin de documentation.
+
+## Ce que la pondération change
+
+Compter les communes met une commune de 90 habitants au même rang qu'une de
+16 000. La part en habitants dit tout autre chose :
+
+| Département | Communes | Habitants |
+|---|---|---|
+| 01 Ain | 210/393 — 53 % | 465 512/643 350 — **72 %** |
+| 28 Eure-et-Loir | 132/365 — 36 % | 294 027/433 233 — **68 %** |
+| 53 Mayenne | 116/242 — 48 % | 176 837/307 445 — **58 %** |
+| 39 Jura | 1/494 — 0 % | 646/260 188 — 0 % |
+
+L'écart systématique entre les deux colonnes dit où penche le manque : **les
+communes absentes du corpus sont les petites**. Le même calcul appliqué aux 37
+communes sans aucune page lisible donne le contrepoint — elles ne pèsent que
+36 697 habitants sur 937 022, soit **4 %** là où elles sont 8 % des communes.
+
+Rien de tout cela ne dit que le corpus est représentatif. Il dit quelle part de
+la population a un cahier quelque part, ce qui est une autre question, et la
+seule à laquelle ces chiffres répondent.
+
+## Ce qui reste NULL
 
 `city.name` est la graphie la plus riche rencontrée dans le corpus, pas le nom
-officiel. `population`, `latitude` et `longitude` sont vides : elles demandent le
-**Code officiel géographique** de l'INSEE, qui n'est pas dans ce dépôt. Sans
-elles, pas de pondération par population — donc pas de mesure de
-représentativité au sens statistique — et pas de carte. C'est la prochaine
-dépendance externe à régler.
+officiel — `official_name` est là pour celui-ci, et les deux cohabitent parce
+qu'ils ne disent pas la même chose. Trois communes du corpus n'ont pas de
+coordonnées : elles ont disparu depuis 2019 et la source géométrique est au
+millésime courant. On ne leur prête pas le centre de la commune qui les a
+absorbées.
 
 ## Utilisation
 
 ```bash
-uv run alembic upgrade head        # crée la table city
+uv run alembic upgrade head        # crée la table city et ses colonnes COG
 uv run python -m insee rattacher   # remplit city et contribution.city_code
+uv run python -m insee cog         # nom officiel, population, coordonnées
 uv run python -m insee auditer     # croise les deux sources (rouvre les PDF)
+```
+
+`cog` ne sort **pas** sur le réseau : il lit les extraits versionnés. Les
+reconstruire est une opération distincte, et délibérée, parce qu'elle réécrit
+des fichiers du dépôt :
+
+```bash
+uv run python -m insee referentiel --departements 01 28 39 53
 ```
 
 `rattacher` est idempotent et ne lit que la base : il ne dépend pas de la
@@ -82,7 +149,10 @@ rapprochement qui, elles, évolueront.
 |---|---|
 | `codes.py` | lecture du code dans chaque source, département, rapprochement |
 | `rattachement.py` | remplissage de `city` et des clés étrangères |
-| `__main__.py` | les deux commandes |
+| `cog.py` | lecture des extraits, enrichissement de `city`, pondération |
+| `telecharger.py` | reconstruction des extraits depuis l'INSEE — seul accès réseau |
+| `referentiel/` | les extraits versionnés et [leur provenance](referentiel/SOURCES.md) |
+| `__main__.py` | les quatre commandes |
 
 ## Tester
 

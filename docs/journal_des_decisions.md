@@ -283,12 +283,100 @@ de fichiers déjà en base. Rien d'irremplaçable n'est produit ici.
 
 ---
 
+## 2026-09-10 — Le référentiel géographique est figé au millésime 2019
+
+**Décision.** Population, nom officiel et coordonnées des communes viennent
+d'extraits versionnés dans `insee/referentiel/`, alignés sur le **Code officiel
+géographique au 1ᵉʳ janvier 2019**. `city.code` reste le code lu dans le nom du
+fichier et ne change jamais ; `city.current_code` porte le code actuel comme une
+annotation. Les populations sont les **populations légales millésimées 2017**.
+
+**Périmètre.** Les 459 communes du corpus, et les 1 646 communes des quatre
+départements qu'il touche (01, 28, 39, 53).
+
+**Motif.** Un code INSEE est une clé *datée* : il désigne une commune à un
+millésime donné. Les codes du corpus ont été attribués par le système qui a
+déposé les cahiers en février-avril 2019. Prendre le millésime courant paraît
+naturel et c'est le piège — une commune absorbée depuis dans une commune
+nouvelle n'y a plus de ligne, sa population deviendrait NULL sans bruit, ou
+pire, celle de la commune fusionnée, et la pondération par population serait
+fausse sans qu'aucun test ne le voie. C'est aussi le principe qui commande tout
+le reste : la provenance est le squelette, le référentiel actuel une couche
+posée dessus.
+
+**Pourquoi les populations *millésimées 2017*.** L'INSEE publie les populations
+légales avec deux dates, un millésime de recensement et des limites communales.
+Les millésimées 2017 sont publiées « dans les limites territoriales des communes
+au 1ᵉʳ janvier 2019 » — exactement la géographie de nos codes. Les millésimées
+2016, celles qui étaient légalement *en vigueur* quand les cahiers ont été
+écrits, portent les limites de 2018 et ne recouvrent donc pas nos codes. Le
+recensement de 2017 est au passage plus proche de février 2019 que celui de 2016.
+
+**Alternatives écartées.** Le millésime courant seul (perd les communes
+disparues, fausse la pondération) ; un millésime mixte, codes 2019 et
+populations actuelles (le pire des deux : les populations ne correspondent plus
+aux périmètres) ; télécharger le référentiel à la volée plutôt que le versionner
+(un chiffre publié doit rester vérifiable même si une URL bouge chez le
+producteur).
+
+**Conséquence mesurée.** Quatre cas dans le corpus, aucun cherché :
+
+| Code | Commune | Ce qui s'est passé |
+|---|---|---|
+| `01144` | Dommartin | absorbée par Bâgé-Dommartin le 1ᵉʳ janvier **2018**, un an avant les cahiers |
+| `01205` | Lancrans | absorbée par Valserhône le 1ᵉʳ janvier **2019**, six semaines avant |
+| `01039` | Béon | commune de plein exercice en 2019, absorbée par Culoz-Béon en 2023 |
+| `28012` | Commune nouvelle d'Arrou | même code, renommée « Vald'Yerre » en 2023 |
+
+Les deux premiers cahiers ont été déposés sous un code qui ne désignait déjà
+plus une commune de plein exercice : le système de dépôt travaillait sur un
+référentiel périmé. Ils restent rattachés à ce code, avec `cog_type = COMD` et
+leur commune parente — c'est le fait de provenance, on ne le corrige pas.
+
+**Le double compte, consigné parce qu'il ne se voit pas.** La population d'une
+commune déléguée est comprise dans celle de sa parente. Valserhône *et* Lancrans
+sont dans le corpus : les sommer compterait deux fois 1 054 habitants. La règle
+est appliquée dans le code (`populations_sans_double_compte`) et signalée par la
+commande, plutôt que laissée à la vigilance de qui lira les chiffres.
+
+**Ce que la pondération apprend.** La part du corpus en communes et sa part en
+habitants divergent systématiquement — 53 % des communes de l'Ain mais 72 % de
+ses habitants, 36 % / 68 % en Eure-et-Loir, 48 % / 58 % en Mayenne. **Les
+communes absentes du corpus sont les petites.** Le même calcul sur les 37
+communes sans aucune page lisible donne le contrepoint : 36 697 habitants sur
+937 022, soit 4 %, là où elles sont 8 % des communes. Les deux chiffres sont
+vrais ; publier l'un sans l'autre serait trompeur dans les deux sens.
+
+**Ce que ça ne dit pas.** Ni l'un ni l'autre ne rend le corpus représentatif. Ils
+disent quelle part de la population a un cahier quelque part, et quelle part de
+celle-ci a au moins une page lisible. Ils ne disent rien de qui a écrit, ni des
+communes qui n'ont pas ouvert de registre.
+
+**Limite du fichier de coordonnées.** Il vient de l'API Découpage administratif,
+au millésime courant, et c'est assumé : une commune inchangée depuis 2019 a le
+même centre, la géométrie ne dépend pas du millésime là où la population en
+dépend. Trois communes du corpus disparues depuis n'y figurent pas et restent
+sans coordonnées ; on ne leur prête pas le centre de la commune qui les a
+absorbées.
+
+**Réversibilité.** Totale. Les extraits sont dans le dépôt, `python -m insee cog`
+est idempotent, et changer de millésime pivot demande de rejouer une commande —
+pas de rejouer une migration. La licence exacte de chaque fichier reste à
+confirmer auprès de son producteur avant publication (voir
+`insee/referentiel/SOURCES.md`).
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le choix des grilles de thèmes, et le statut donné à chacune.
 - Les règles d'anonymisation : ce qui est occulté, ce qui ne l'est pas
   (personnalités publiques dans leur rôle), le seuil de rappel accepté.
-- L'arbitrage précision géographique / protection pour les très petites communes.
+- L'arbitrage précision géographique / protection pour les très petites communes
+  — la pondération par population montre que ce sont elles qui manquent le plus
+  au corpus, ce qui rend l'arbitrage plus coûteux qu'il n'y paraissait.
 - La normalisation orthographique, si une version normalisée est ajoutée pour la
   recherche — et la garantie que la version de référence, elle, n'est pas touchée.
 - Le périmètre publié : ce qui est mis en ligne, ce qui reste consultable sur

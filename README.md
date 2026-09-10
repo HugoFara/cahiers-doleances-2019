@@ -11,7 +11,7 @@ de les parcourir commune par commune et de les annoter (anonymisé, contribution
   - `extraction/without_ocr/` : extraction du texte natif, sans OCR | [documentation](extraction/without_ocr/README.md)
 - `segmentation/` : le découpage des cahiers en doléances individuelles | [documentation](segmentation/README.md)
 - `couverture/` : ce que le corpus analysé laisse dehors | [documentation](couverture/README.md)
-- `insee/` : le rattachement des contributions au code INSEE de leur commune | [documentation](insee/README.md)
+- `insee/` : le rattachement des contributions au code INSEE de leur commune, et le référentiel géographique | [documentation](insee/README.md)
 - `reference/` : le jeu de référence annoté à la main, et la mesure de ce que valent les couches | [documentation](reference/README.md)
 - `gradio_app/` : l'interface pour parcourir les contributions et les annoter | [documentation](gradio_app/README.md)
 - `topic-builder/` : l'utilitaire de découverte, structuration et annotation des thèmes abordés dans les contributions | [documentation](topic-builder/README.md)
@@ -117,6 +117,7 @@ lettres de maires, associations, textes tapés.
 
 ```bash
 uv run python -m insee rattacher   # d'abord : identifier les communes par leur code
+uv run python -m insee cog         # puis : population, pour pondérer
 uv run python -m couverture        # le chiffre, avec sa sensibilité au seuil
 ```
 
@@ -124,6 +125,11 @@ Le rattachement INSEE vient en premier parce qu'il change le compte : la commune
 n'était identifiée que par la graphie de son en-tête, absente sur un tiers des
 cahiers. 459 communes par code contre 307 par graphie — voir
 [insee/README.md](insee/README.md).
+
+La population change la lecture une seconde fois : les 37 communes muettes ne
+pèsent que **4 % des habitants**, parce que ce sont les petites. Les deux
+chiffres se publient ensemble — l'un seul exagère la perte de volume, l'autre
+seul masque que ce sont toujours les mêmes communes qui disparaissent.
 
 Détail et méthode dans [couverture/README.md](couverture/README.md). Ce taux doit
 accompagner toute statistique tirée du corpus, sans quoi elle se lit comme
