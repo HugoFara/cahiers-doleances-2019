@@ -1341,6 +1341,55 @@ donnée est sous NDA, tout ce qui est écrit ici suppose un usage interne.
 
 ---
 
+## 2026-09-12 — Le corpus est redécoupé avec le manuscrit lu, sans anonymisation pour l'instant
+
+**Décision.** Un nouveau run de découpage, #26 « signaux de texte, manuscrit
+lu (run 18) », actif, sur le texte de lecture complet : squelette pour le
+typé, transcription du run 18 pour le manuscrit (2 510 pages, plus les
+pages suspectes au fur et à mesure de leur passe). Les doublons et les deux
+lexiques de mots-clés sont rejoués dessus. **L'anonymisation ne l'est pas** :
+pas de passe NER cette nuit, le poste ne s'y prête pas et le GPU transcrit
+les pages suspectes. Tant qu'elle n'a pas tourné, les extraits de la
+recherche et de l'onglet Lecture ne sont pas caviardés pour ce découpage ;
+l'app tourne en usage interne, sur cette machine, et c'est consigné ici
+plutôt que masqué.
+
+**Avant la lecture, une règle de plus.** Onze pages du run 18 sont des
+dérives du modèle (boucles, emballement jusqu'à 50 000 caractères) que le
+score wordfreq ne voit pas ; `database/pages.py` les écarte à la lecture
+(`est_derive`, quatre signes) et `derives()` les liste pour une seconde
+passe. Voir le commit du même jour.
+
+**Mesuré, avant / après** (avant = découpage #2, typé seul ; après = #26) :
+
+| | avant | après |
+|---|---|---|
+| doléances | 1 002 | **1 531** |
+| communes avec au moins une doléance | 422 | **459** (toutes) |
+| mots par doléance, moyenne / médiane | 753 / 245 | 709 / 285 |
+| doublons groupés | | 12 groupes, 29 doléances (2 %) |
+| Vrai Débat, mots-clés : doléances hors grille | 363 (36 %) | **302 (20 %)** |
+| hors grille, communes de moins de 500 habitants | 47 % | **25 %** |
+| hors grille, 10 000 habitants et plus | 15 % | 6 % |
+| cadrage gouvernemental, rattachements | 4 857 | 8 797 |
+
+Le manuscrit ne fait pas que grossir le corpus : il le rééquilibre. Les 37
+communes muettes ont une voix, et l'écart entre villages et villes, qui
+était le résultat de la veille, se réduit de moitié sans disparaître. La
+comparaison est à prendre avec deux réserves : les runs de mots-clés sont
+**repris** (un run par lexique, rejoué sur le découpage actif), donc les
+détections « avant » n'existent plus en base, seulement ici ; et le
+découpage lit un manuscrit dont la fidélité n'est pas encore mesurée sur
+l'étalon. La rubrique dominante « économie » passe de 40 % à 57 % : le
+lexique le plus fourni gagne encore, c'est l'artefact déjà consigné.
+
+**Réversibilité.** Réactiver le run #2 ramène tout le monde au typé seul ;
+les runs de mots-clés se rejouent dessus en une commande.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs

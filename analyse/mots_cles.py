@@ -136,11 +136,14 @@ def ouvrir_run(
     existant = run_par_source(session, ANALYSE, source)
     if existant is not None:
         print(f"rattachement repris : run #{existant.id} « {existant.label} »")
+        # le découpage a pu changer depuis : le run le note, comme son corpus
         existant.parameters = {
             **(existant.parameters or {}),
+            "run_decoupage": run_decoupage.id,
             "requetes": lexique["requetes"],
             "reference": grille.get("reference"),
         }
+        existant.corpus = f"doléances du run #{run_decoupage.id} « {run_decoupage.label} »"
         return existant
     run = creer_run(
         session,
