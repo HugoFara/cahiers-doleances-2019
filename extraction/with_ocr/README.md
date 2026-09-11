@@ -71,6 +71,20 @@ quand le backend la donne, score wordfreq de la transcription. Le texte de
 `page_extraction` n'est pas touché : deux passes — deux modèles, deux DPI —
 coexistent et se comparent, et retirer l'une ne casse rien.
 
+**Et une copie en clair, sous `data/`.** La base vit dans un volume podman ;
+quinze heures de GPU n'y ont pas d'autre copie. `export` dépose un run en
+fichiers texte lisibles sans outil, un dossier par run, un fichier par page,
+avec le run en JSON et un manifeste CSV (ids, cahier, page, score, longueur) :
+
+```bash
+uv run python -m extraction.with_ocr.export --run-id 18
+# data/transcriptions/run_18_ollama-ornith-1.5-9b/<cahier>/p0007.txt
+```
+
+Incrémental : relancé sur un run qui avance, il n'écrit que les pages
+nouvelles ou changées. `data/` est hors dépôt (NDA) ; ces fichiers ne sont
+jamais commités.
+
 ## Mesuré à l'essai du 2026-09-10 (31 pages)
 
 - manuscrit : wordfreq **0,13 → 0,90 ± 0,05** — Mistral OCR lit le manuscrit ;
