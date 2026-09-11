@@ -30,7 +30,25 @@ uv run python -m extraction.with_ocr --limite 5    # essai sur 5 pages
 uv run python -m extraction.with_ocr               # les 2 510 pages manuscrites
 uv run python -m extraction.with_ocr --backend ollama --model glm-ocr
 uv run python -m extraction.with_ocr --run-id 3    # reprend le run 3 interrompu
+uv run python -m extraction.with_ocr --batch --format jpeg   # mistral à moitié prix
 ```
+
+**Batch** (`--batch`, mistral seulement) : l'API prend un fichier JSONL de
+requêtes, une par page, le traite dans les 24 h — moins d'une heure en
+pratique — et rend un fichier de réponses, **à moitié prix**. Les fichiers
+sont limités à 512 Mo : la passe découpe les pages en lots, ouvre un job par
+lot, attend et persiste chaque lot quand il aboutit. Les jobs ouverts sont
+notés dans `run.parameters["lots"]` et commités aussitôt : `--run-id` reprend
+une passe interrompue en récoltant les lots en attente, sans rien renvoyer.
+Le service demande la **facturation activée** sur le compte Mistral (HTTP 402
+sinon, même quand l'OCR unitaire passe).
+
+**Format** (`--format`) : `png` par défaut, sans perte ; `jpeg` (qualité 85)
+pèse dix fois moins. Les scans embarqués dans les PDF sont des JPEG 2000 de
+~1 250 px de large — ~150 DPI pour un A4 : à 300 DPI le rendu
+sur-échantillonne, et en PNG une page pèse 1 à 13 Mo (mesuré le 2026-09-11).
+Pour le batch, `jpeg` est ce qui rend l'envoi praticable : ~3 Go pour le
+manuscrit au lieu de ~30.
 
 Périmètres (`--perimetre`) : `manuscrit` (défaut — les pages `needs_ocr`),
 `typé`, `suspect` (typé sous le seuil de qualité : les formulaires
@@ -72,4 +90,5 @@ uv run --extra dev pytest extraction/with_ocr/tests/
 
 Unitaires, sans réseau ni base : normalisation, rendu (PDF fabriqué),
 parsing des réponses de backends (requêtes bouchonnées), périmètres et
-reprise sur SQLite en mémoire.
+reprise sur SQLite en mémoire, lots et récolte du mode batch (client
+bouchonné).

@@ -24,6 +24,8 @@ def ouvrir_run(
     model: str,
     dpi: int,
     perimetre: str,
+    format: str = "png",
+    batch: bool = False,
     prompt: str | None = None,
     label: str | None = None,
     auteur: str | None = None,
@@ -37,6 +39,8 @@ def ouvrir_run(
         model: modèle employé, tel que nommé par le backend.
         dpi: résolution du rendu des pages.
         perimetre: ce sur quoi la passe tourne (``PERIMETRES``).
+        format: ``png`` ou ``jpeg`` — le format de l'image envoyée.
+        batch: la passe est passée par l'API batch (mistral), pas page à page.
         prompt: consigne de transcription, pour les backends à prompt.
         label: nom court lisible ; défaut : « OCR <backend> <model> — <périmètre> ».
         auteur: passé à ``creer_run``, qui le résout d'office s'il manque.
@@ -55,6 +59,8 @@ def ouvrir_run(
             "backend": backend,
             "model": model,
             "dpi": dpi,
+            "format": format,
+            "mode": "batch" if batch else "séquentiel",
             "perimetre": perimetre,
             "prompt": prompt,
         },

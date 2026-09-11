@@ -22,6 +22,12 @@ class OcrConfig(enum.Enum):
     # passe, pas à la facturation.
     MISTRAL_PRICE_PER_1000_PAGES = 4.0
     MISTRAL_TIMEOUT_S = 180
+    # Mode batch : l'API accepte des fichiers JSONL de 512 Mo au plus, une
+    # requête par ligne (image en base64) ; on reste sous la limite avec
+    # de la marge. Les jobs aboutissent en général en moins d'une heure,
+    # au plus dans les 24 h : on les interroge toutes les minutes.
+    MISTRAL_BATCH_FILE_MAX_BYTES = 400 * 1024 * 1024
+    MISTRAL_BATCH_POLL_S = 60
 
     # Backend ollama : modèle local par défaut, léger et spécialisé OCR.
     OLLAMA_MODEL = "glm-ocr"

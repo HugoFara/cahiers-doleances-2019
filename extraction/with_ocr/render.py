@@ -60,16 +60,28 @@ def trouver_pdf(nom: str) -> Path:
     return chemin
 
 
-def rendre_page(nom_pdf: str, page_number: int, dpi: int) -> bytes:
-    """Rend la page ``page_number`` (1-indexée) du cahier, en PNG.
+FORMATS = ("png", "jpeg")
+JPEG_QUALITY = 85
+
+
+def rendre_page(
+    nom_pdf: str, page_number: int, dpi: int, format: str = "png"
+) -> bytes:
+    """Rend la page ``page_number`` (1-indexée) du cahier, en image.
+
+    Les scans embarqués dans les PDF sont des JPEG 2000 d'environ 1 250 px de
+    large — ~150 DPI pour un A4 : au-delà, le rendu sur-échantillonne. En PNG
+    à 300 DPI une page pèse 1 à 13 Mo (mesuré le 2026-09-11), en JPEG à 85
+    dix fois moins : c'est ce qui rend l'envoi en batch praticable.
 
     Args:
         nom_pdf: nom du fichier du cahier, tel que porté par la base.
         page_number: numéro de page dans le PDF, à partir de 1.
         dpi: résolution du rendu.
+        format: ``png`` (sans perte) ou ``jpeg`` (qualité 85).
 
     Returns:
-        Les octets du PNG.
+        Les octets de l'image.
 
     Raises:
         PdfIntrouvable: le cahier est absent de PATH_TO_DATA.
@@ -82,4 +94,8 @@ def rendre_page(nom_pdf: str, page_number: int, dpi: int) -> bytes:
                 f"{nom_pdf}: page {page_number} hors limites (1-{doc.page_count})"
             )
         pix = doc[page_number - 1].get_pixmap(matrix=pymupdf.Matrix(dpi / 72, dpi / 72))
-        return pix.tobytes("png")
+        if format == "jpeg":
+            return pix.tobytes("jpeg", jpg_quality=JPEG_QUALITY)
+        if format == "png":
+            return pix.tobytes("png")
+        raise ValueError(f"format inconnu : {format!r} (attendu : {', '.join(FORMATS)})")

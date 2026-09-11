@@ -1,4 +1,4 @@
-"""Le rendu : nom du cahier + numéro de page → PNG."""
+"""Le rendu : nom du cahier + numéro de page → PNG ou JPEG."""
 
 import pymupdf
 import pytest
@@ -26,6 +26,16 @@ def test_rendre_page_produit_un_png(dossier_pdf):
     png = render.rendre_page("CC_01000_190304_01053_MD_15462.pdf", 1, 150)
     assert png.startswith(b"\x89PNG")
     assert len(png) > 1000
+
+
+def test_rendre_page_en_jpeg(dossier_pdf):
+    jpeg = render.rendre_page("CC_01000_190304_01053_MD_15462.pdf", 1, 150, "jpeg")
+    assert jpeg.startswith(b"\xff\xd8")
+
+
+def test_un_format_inconnu_leve_value_error(dossier_pdf):
+    with pytest.raises(ValueError, match="format inconnu"):
+        render.rendre_page("CC_01000_190304_01053_MD_15462.pdf", 1, 150, "tiff")
 
 
 def test_le_numero_de_page_est_pris_en_compte(dossier_pdf):

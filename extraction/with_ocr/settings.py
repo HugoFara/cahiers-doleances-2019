@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # Backend mistral : clé de l'API OCR (console.mistral.ai).
     mistral_api_key: str = ""
     mistral_ocr_url: str = "https://api.mistral.ai/v1/ocr"
+    # Racine de l'API, pour le mode batch (fichiers et jobs).
+    mistral_api_url: str = "https://api.mistral.ai/v1"
 
     # Backend ollama : serveur d'inférence local.
     ollama_url: str = "http://localhost:11434"

@@ -16,6 +16,7 @@ Exemples :
     uv run python -m extraction.with_ocr                # tout le manuscrit
     uv run python -m extraction.with_ocr --backend ollama --model glm-ocr
     uv run python -m extraction.with_ocr --run-id 3     # reprend le run 3
+    uv run python -m extraction.with_ocr --batch --format jpeg  # moitié prix, en heures
 """
 
 import argparse
@@ -29,6 +30,7 @@ from tqdm import tqdm
 from database.db import check_connection, get_engine
 from database.models import PageTranscription, Run
 from database.runs import TRANSCRIPTION
+from extraction.with_ocr import batch as mode_batch
 from extraction.with_ocr.backends import ErreurOcr, fabrique_backend
 from extraction.with_ocr.config import OcrConfig
 from extraction.with_ocr.normalize import normaliser
@@ -38,7 +40,7 @@ from extraction.with_ocr.persist import (
     ouvrir_run,
     pages_a_transcrire,
 )
-from extraction.with_ocr.render import PdfIntrouvable, rendre_page
+from extraction.with_ocr.render import FORMATS, PdfIntrouvable, rendre_page
 from extraction.with_ocr.settings import logger
 from extraction.without_ocr.extract_text import wordfreq_quality_score
 
@@ -82,6 +84,20 @@ def parser() -> argparse.ArgumentParser:
         help=f"résolution du rendu (défaut : {OcrConfig.DPI.value})",
     )
     p.add_argument(
+        "--format",
+        choices=FORMATS,
+        default="png",
+        help="format de l'image envoyée (défaut : png ; jpeg pèse dix fois moins)",
+    )
+    p.add_argument(
+        "--batch",
+        action="store_true",
+        help=(
+            "mistral seulement : passe par l'API batch — moitié prix, résultats "
+            "en heures ; la commande attend et persiste au fil des lots"
+        ),
+    )
+    p.add_argument(
         "--run-id",
         type=int,
         default=None,
@@ -116,6 +132,9 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = parser().parse_args(argv)
 
+    if args.batch and args.backend != "mistral":
+        logger.error("--batch n'existe que pour le backend mistral")
+        return 1
     engine = get_engine()
     check_connection(engine)
     backend = fabrique_backend(args.backend, args.model)
@@ -128,6 +147,8 @@ def main(argv: list[str] | None = None) -> int:
             parametres = run.parameters or {}
             perimetre = parametres.get("perimetre", args.perimetre)
             dpi = parametres.get("dpi", args.dpi)
+            format = parametres.get("format", args.format)
+            en_batch = args.batch or bool(mode_batch.lots_du_run(run))
             logger.info("reprise du run %d — %s", run.id, run.label)
         else:
             run = ouvrir_run(
@@ -135,6 +156,8 @@ def main(argv: list[str] | None = None) -> int:
                 backend=args.backend,
                 model=backend.model,
                 dpi=args.dpi,
+                format=args.format,
+                batch=args.batch,
                 perimetre=args.perimetre,
                 prompt=(
                     OcrConfig.OLLAMA_PROMPT.value
@@ -146,49 +169,28 @@ def main(argv: list[str] | None = None) -> int:
                 notes=args.notes,
             )
             session.commit()
-            perimetre, dpi = args.perimetre, args.dpi
+            perimetre, dpi, format = args.perimetre, args.dpi, args.format
+            en_batch = args.batch
 
         pages = pages_a_transcrire(session, run, perimetre, args.limite)
+        if en_batch:
+            attendues = mode_batch.pages_en_attente(run)
+            pages = [p for p in pages if p.id not in attendues]
         logger.info(
             "run %d — %d page(s) à transcrire (périmètre : %s)",
             run.id,
             len(pages),
             perimetre,
         )
-        if not pages:
+        if not pages and not (en_batch and mode_batch.pages_en_attente(run)):
             logger.info("rien à faire")
             return 0
 
         t0 = time.time()
-        echecs = 0
-        for compteur, page in enumerate(
-            tqdm(pages, desc=f"OCR {backend.nom}"), start=1
-        ):
-            try:
-                png = rendre_page(page.pdf_name, page.page_number, dpi)
-                resultat = backend.transcrire(png)
-            except (PdfIntrouvable, ErreurOcr, ValueError, OSError) as exc:
-                logger.warning(
-                    "page %d (%s p%d) en échec : %s",
-                    page.id,
-                    page.pdf_name,
-                    page.page_number,
-                    exc,
-                )
-                echecs += 1
-                continue
-            texte = normaliser(resultat.texte)
-            enregistrer(
-                session,
-                run,
-                page,
-                texte,
-                resultat.layout,
-                round(wordfreq_quality_score(texte), 3),
-            )
-            if compteur % OcrConfig.COMMIT_EVERY.value == 0:
-                session.commit()
-        session.commit()
+        if en_batch:
+            echecs = _passe_batch(session, run, backend, pages, dpi, format)
+        else:
+            echecs = _passe_sequentielle(session, run, backend, pages, dpi, format)
         duree = time.time() - t0
 
         transcrites = (
@@ -215,9 +217,58 @@ def main(argv: list[str] | None = None) -> int:
         logger.info("  durée          : %.0f s", duree)
         if backend.nom == "mistral":
             prix = transcrites * OcrConfig.MISTRAL_PRICE_PER_1000_PAGES.value / 1000
-            logger.info("  coût estimé    : ~%.2f $ (run entier, tarif standard)", prix)
+            if en_batch:
+                prix /= 2
+            logger.info(
+                "  coût estimé    : ~%.2f $ (run entier, tarif %s)",
+                prix,
+                "batch" if en_batch else "standard",
+            )
 
     return 0 if not echecs else 1
+
+
+def _passe_batch(session, run, backend, pages, dpi, format) -> int:
+    """Soumet les pages restantes par lots, puis attend et récolte tout."""
+    client = mode_batch.ClientBatch(backend.api_key)
+    if pages:
+        ouverts = mode_batch.soumettre(
+            session, run, client, pages, model=backend.model, dpi=dpi, format=format
+        )
+        logger.info("%d lot(s) ouvert(s) — attente des résultats", ouverts)
+    return mode_batch.attendre(session, run, client)
+
+
+def _passe_sequentielle(session, run, backend, pages, dpi, format) -> int:
+    """Transcrit page à page, en commitant régulièrement."""
+    echecs = 0
+    for compteur, page in enumerate(tqdm(pages, desc=f"OCR {backend.nom}"), start=1):
+        try:
+            image = rendre_page(page.pdf_name, page.page_number, dpi, format)
+            resultat = backend.transcrire(image, format)
+        except (PdfIntrouvable, ErreurOcr, ValueError, OSError) as exc:
+            logger.warning(
+                "page %d (%s p%d) en échec : %s",
+                page.id,
+                page.pdf_name,
+                page.page_number,
+                exc,
+            )
+            echecs += 1
+            continue
+        texte = normaliser(resultat.texte)
+        enregistrer(
+            session,
+            run,
+            page,
+            texte,
+            resultat.layout,
+            round(wordfreq_quality_score(texte), 3),
+        )
+        if compteur % OcrConfig.COMMIT_EVERY.value == 0:
+            session.commit()
+    session.commit()
+    return echecs
 
 
 if __name__ == "__main__":

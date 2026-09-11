@@ -1,6 +1,6 @@
 """Les backends OCR : Mistral (API cloud) et Ollama (local).
 
-Même contrat des deux côtés : ``transcrire(png) -> OcrResult``. Mistral rend
+Même contrat des deux côtés : ``transcrire(image, format) -> OcrResult``. Mistral rend
 la géométrie ligne à ligne (`layout`) — le préalable du plan, sans lequel ni
 découpage sur le blanc vertical, ni verbatim lié au scan, ni occultation sur
 l'image. Ollama ne rend que du texte : son `layout` reste NULL.
@@ -61,18 +61,18 @@ class MistralBackend:
                 "MISTRAL_API_KEY manquante dans .env — backend mistral inutilisable"
             )
 
-    def transcrire(self, png: bytes) -> OcrResult:
-        """Transcrit une page rendue en PNG.
+    def transcrire(self, image: bytes, format: str = "png") -> OcrResult:
+        """Transcrit une page rendue en image (``png`` ou ``jpeg``).
 
         Raises:
             ErreurOcr: toutes les tentatives ont échoué.
         """
-        b64 = base64.b64encode(png).decode()
+        b64 = base64.b64encode(image).decode()
         payload = {
             "model": self.model,
             "document": {
                 "type": "image_url",
-                "image_url": f"data:image/png;base64,{b64}",
+                "image_url": f"data:image/{format};base64,{b64}",
             },
             "include_image_base64": False,
         }
@@ -139,13 +139,13 @@ class OllamaBackend:
         self.num_ctx = num_ctx or OcrConfig.OLLAMA_NUM_CTX.value
         self.timeout_s = timeout_s or OcrConfig.OLLAMA_TIMEOUT_S.value
 
-    def transcrire(self, png: bytes) -> OcrResult:
-        """Transcrit une page rendue en PNG.
+    def transcrire(self, image: bytes, format: str = "png") -> OcrResult:
+        """Transcrit une page rendue en image (le format est indifférent ici).
 
         Raises:
             ErreurOcr: toutes les tentatives ont échoué.
         """
-        b64 = base64.b64encode(png).decode()
+        b64 = base64.b64encode(image).decode()
         payload = {
             "model": self.model,
             "prompt": OcrConfig.OLLAMA_PROMPT.value,
