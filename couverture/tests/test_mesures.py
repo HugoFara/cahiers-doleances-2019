@@ -47,6 +47,30 @@ def test_une_page_dont_le_flag_est_null_n_est_pas_comptee_manuscrite():
     assert mesurer([page(needs_ocr=None)]).pages.ecartes == 0
 
 
+# --- transcription ---
+
+
+def test_une_page_manuscrite_transcrite_n_est_plus_ecartee():
+    transcrite = page(needs_ocr=True)
+    transcrite.id = 7
+    couverture = mesurer([page(), transcrite, page(needs_ocr=True)], transcrites={7})
+    assert couverture.pages.ecartes == 1
+    assert couverture.transcrites == 1
+    assert "réintégrées par transcription : 1" in "\n".join(couverture.resume())
+
+
+def test_un_cahier_muet_cesse_de_l_etre_une_fois_transcrit():
+    a, b = page(needs_ocr=True), page(needs_ocr=True)
+    a.id, b.id = 1, 2
+    assert mesurer([a, b]).cahiers_muets == ["c.pdf"]
+    assert mesurer([a, b], transcrites={1}).cahiers_muets == []
+    assert mesurer([a, b], transcrites={1, 2}).cahiers.ecartes == 0
+
+
+def test_sans_transcrites_la_mesure_est_celle_du_squelette():
+    assert mesurer([page(needs_ocr=True)]).transcrites == 0
+
+
 # --- échelles ---
 
 

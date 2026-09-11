@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from couverture.mesures import distribution_qualite, mesurer, sensibilite_seuil
 from database.db import check_connection, get_engine
 from database.models import Contribution, PageExtraction
+from database.pages import transcriptions_actives
 from insee.cog import Commune, lire, populations_sans_double_compte
 
 SEUILS_TESTES = [0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5]
@@ -63,13 +64,18 @@ def rapport(
     communes: dict[int, str] | None = None,
     habitants: dict[str, int] | None = None,
     noms: dict[str, str] | None = None,
+    transcrites: set[int] | None = None,
 ) -> dict:
     """Assemble les mesures en une structure sérialisable."""
-    couverture = mesurer(pages, communes, habitants, noms)
+    couverture = mesurer(pages, communes, habitants, noms, transcrites)
     return {
         "mesure_le": datetime.now(UTC).date().isoformat(),
         "seuil_needs_ocr": SEUIL_EN_SERVICE,
-        "pages": {"total": couverture.pages.total, "ecartees": couverture.pages.ecartes},
+        "pages": {
+            "total": couverture.pages.total,
+            "ecartees": couverture.pages.ecartes,
+            "transcrites": couverture.transcrites,
+        },
         "cahiers": {
             "total": couverture.cahiers.total,
             "touches": couverture.cahiers.ecartes,
@@ -103,9 +109,10 @@ def afficher(
     communes: dict[int, str] | None = None,
     habitants: dict[str, int] | None = None,
     noms: dict[str, str] | None = None,
+    transcrites: set[int] | None = None,
 ) -> None:
-    couverture = mesurer(pages, communes, habitants, noms)
-    print("Part du corpus écartée par le filtre `needs_ocr`\n")
+    couverture = mesurer(pages, communes, habitants, noms, transcrites)
+    print("Part du corpus écartée : pages `needs_ocr` sans transcription\n")
     if not communes:
         print(
             "  ⚠ communes comptées par graphie : le rattachement INSEE n'a pas "
@@ -152,6 +159,7 @@ def main(sortie: Path | None = None) -> int:
     with Session(engine) as session:
         pages = list(session.scalars(select(PageExtraction)))
         communes = codes_communes(session)
+        transcrites = set(transcriptions_actives(session))
     codes = set(communes.values())
     communes_insee = referentiel()
     habitants = populations_sans_double_compte(codes, communes_insee)
@@ -165,12 +173,12 @@ def main(sortie: Path | None = None) -> int:
         )
         return 1
 
-    afficher(pages, communes, habitants, noms)
+    afficher(pages, communes, habitants, noms, transcrites)
     if sortie:
         sortie.parent.mkdir(parents=True, exist_ok=True)
         sortie.write_text(
             json.dumps(
-                rapport(pages, communes, habitants, noms),
+                rapport(pages, communes, habitants, noms, transcrites),
                 ensure_ascii=False,
                 indent=2,
             )

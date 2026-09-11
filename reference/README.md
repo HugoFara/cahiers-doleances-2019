@@ -45,7 +45,11 @@ corpus) et celui de l'échantillon (non pondéré, ce qu'il vaut sur les cas
 difficiles). Ne jamais publier le second pour le premier.
 
 La strate vient du découpage servi : c'est un instrument de tirage, pas une
-vérité. L'étalon, lui, ne dépend d'aucun run.
+vérité. L'étalon, lui, ne dépend d'aucun run de découpage. Il dépend en
+revanche du **texte de lecture** (`database/pages.py`) : ses lignes sont celles
+que le découpage voit, transcription du run `transcription` actif comprise. Un
+étalon figé sous un run de transcription s'évalue sous le même — le garde-fou
+d'alignement le dit quand les empreintes ne correspondent plus.
 
 ## Les deux mesures
 

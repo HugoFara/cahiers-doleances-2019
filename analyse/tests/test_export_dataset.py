@@ -14,18 +14,23 @@ from analyse.export_dataset import (
     lire_pages,
 )
 from database.models import Base, Doleance, PageExtraction
+from database.pages import PageLue, lire_page
 from database.runs import SEGMENTATION, creer_run
 
 
-def page(contribution_id: int, page_number: int, text: str, needs_ocr: bool = False) -> PageExtraction:
-    return PageExtraction(
-        contribution_id=contribution_id,
-        pdf_name="cahier.pdf",
-        page_number=page_number,
-        text=text,
-        quality_score=0.2 if needs_ocr else 0.9,
-        needs_ocr=needs_ocr,
-        city="Trizay",
+def page(contribution_id: int, page_number: int, text: str, needs_ocr: bool = False) -> PageLue:
+    """Une page du squelette, lue telle quelle (pas de transcription)."""
+    return lire_page(
+        PageExtraction(
+            contribution_id=contribution_id,
+            pdf_name="cahier.pdf",
+            page_number=page_number,
+            text=text,
+            quality_score=0.2 if needs_ocr else 0.9,
+            needs_ocr=needs_ocr,
+            city="Trizay",
+        ),
+        None,
     )
 
 
@@ -68,7 +73,7 @@ def test_ecarte_les_contributions_sans_aucun_texte():
 def test_ecarte_les_pages_sans_contribution():
     """La FK est nullable ; un document d'id "None" ne serait jamais rattachable."""
     orpheline = page(1, 3, "orpheline")
-    orpheline.contribution_id = None
+    orpheline.page.contribution_id = None
     assert construire_documents([orpheline, page(1, 4, "rattachée")]) == [
         {"id": "1", "content": "rattachée"}
     ]
@@ -81,16 +86,10 @@ def test_aucune_page_donne_aucun_document():
 # --- lire_pages ---
 
 
-def test_lire_pages_exclut_les_pages_manuscrites_par_defaut(session):
-    session.add_all([page(1, 3, "dactylographié"), page(1, 4, "gribouillis", needs_ocr=True)])
+def test_lire_pages_exclut_les_pages_manuscrites_sans_transcription(session):
+    session.add_all([page(1, 3, "dactylographié").page, page(1, 4, "gribouillis", needs_ocr=True).page])
     session.flush()
-    assert [p.text for p in lire_pages(session)] == ["dactylographié"]
-
-
-def test_lire_pages_garde_les_pages_manuscrites_sur_demande(session):
-    session.add_all([page(1, 3, "dactylographié"), page(1, 4, "gribouillis", needs_ocr=True)])
-    session.flush()
-    assert len(lire_pages(session, garder_pages_ocr=True)) == 2
+    assert [p.texte for p in lire_pages(session)] == ["dactylographié"]
 
 
 def test_lire_pages_garde_les_pages_dont_le_flag_est_null(session):
@@ -102,13 +101,13 @@ def test_lire_pages_garde_les_pages_dont_le_flag_est_null(session):
     """
     session.add_all([PageExtraction(contribution_id=1, page_number=3, text="ancien", needs_ocr=None)])
     session.flush()
-    assert [p.text for p in lire_pages(session)] == ["ancien"]
+    assert [p.texte for p in lire_pages(session)] == ["ancien"]
 
 
 def test_lire_pages_trie_par_contribution_puis_par_page(session):
-    session.add_all([page(2, 3, "b"), page(1, 5, "a2"), page(1, 3, "a1")])
+    session.add_all([page(2, 3, "b").page, page(1, 5, "a2").page, page(1, 3, "a1").page])
     session.flush()
-    assert [p.text for p in lire_pages(session)] == ["a1", "a2", "b"]
+    assert [p.texte for p in lire_pages(session)] == ["a1", "a2", "b"]
 
 
 # --- ecrire_dataset ---

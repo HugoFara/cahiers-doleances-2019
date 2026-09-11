@@ -60,8 +60,14 @@ def essentiel(etat: Etat) -> list[str]:
         f"**{_pourcent(couverture.pages.ecartes, couverture.pages.total)} des pages "
         f"sont écartées** ({couverture.pages.ecartes} sur {couverture.pages.total}) : "
         "l'extraction sans OCR ne rend que du bruit sur les pages manuscrites. "
-        "Le corpus affiché est sa **moitié dactylographiée** — lettres de maires, "
-        "associations, textes tapés.",
+        + (
+            f"**{couverture.transcrites} pages manuscrites sont réintégrées** par la "
+            "transcription active ; le reste du corpus affiché est sa moitié "
+            "dactylographiée — lettres de maires, associations, textes tapés."
+            if couverture.transcrites
+            else "Le corpus affiché est sa **moitié dactylographiée** — lettres de "
+            "maires, associations, textes tapés."
+        ),
         f"**{len(couverture.communes_muettes)} communes n'ont aucune page lisible.** "
         "Leur cahier existe et a été numérisé ; il ne compte dans aucun total.",
         "**Les comptages ne sont pas un sondage.** Ce corpus n'est pas un "

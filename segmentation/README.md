@@ -102,9 +102,15 @@ nouveau run qui devient servi — par l'export, et par tout ce qui lit la couche
 `--auteur` reste facultatif à la ligne de commande, mais le run est attribué
 d'office : à défaut d'argument, l'auteur est lu dans la variable
 `CAHIER_DOLEANCES_AUTEUR`, puis dans la configuration git du dépôt. La colonne
-est `NOT NULL` — il n'existe plus de run anonyme. Les pages `needs_ocr` sont écartées, comme à l'export
-(`--keep-ocr-pages` pour les inclure) — c'est une décision consignée au
-[journal](../docs/journal_des_decisions.md), pas un détail technique.
+est `NOT NULL` — il n'existe plus de run anonyme.
+
+Le texte découpé est le **texte de lecture** de `database/pages.py` : la
+transcription du run `transcription` actif quand la page en a une, le
+squelette sinon ; une page manuscrite sans transcription n'a pas de texte et
+n'est pas découpée — décision consignée au
+[journal](../docs/journal_des_decisions.md). Le run de découpage note le run
+de transcription qu'il a lu (`parameters.run_transcription`) : deux
+découpages ne se comparent qu'à texte de lecture égal.
 
 ## Exporter les doléances vers l'analyse
 

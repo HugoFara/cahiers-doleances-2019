@@ -59,10 +59,14 @@ class Couverture:
     # 16 000 : la part en habitants dit tout autre chose, et les deux ensemble
     # disent où penche le manque.
     habitants: Part | None = None
+    # Pages manuscrites que la transcription active a rendues lisibles : la
+    # part écartée ci-dessus les compte déjà comme lues.
+    transcrites: int = 0
 
     def resume(self) -> list[str]:
         lignes = [
             self.pages.resume("pages"),
+            f"pages manuscrites réintégrées par transcription : {self.transcrites}",
             self.cahiers.resume("cahiers"),
             self.communes.resume("communes"),
             f"cahiers entièrement écartés : {len(self.cahiers_muets)}",
@@ -75,15 +79,16 @@ class Couverture:
         return lignes
 
 
-def _ecartee(page) -> bool:
-    """Une page est écartée si elle est marquée `needs_ocr`.
+def _ecartee(page, transcrites: frozenset[int] = frozenset()) -> bool:
+    """Une page est écartée si elle est `needs_ocr` et sans transcription.
 
     `is True` et non la valeur brute : la colonne est nullable, et une page
     insérée par une autre voie ne doit pas être comptée comme manuscrite au
     prétexte que le flag est absent — c'est la même logique ternaire que
-    `export_dataset.lire_pages`.
+    `database/pages.py`. Une page manuscrite transcrite par le run
+    `transcription` actif a un texte de lecture : elle n'est plus écartée.
     """
-    return page.needs_ocr is True
+    return page.needs_ocr is True and page.id not in transcrites
 
 
 def mesurer(
@@ -91,6 +96,7 @@ def mesurer(
     communes: dict[int, str] | None = None,
     populations: dict[str, int] | None = None,
     noms: dict[str, str] | None = None,
+    transcrites: set[int] | None = None,
 ) -> Couverture:
     """Calcule ce que l'exclusion des pages manuscrites retire du corpus.
 
@@ -115,6 +121,10 @@ def mesurer(
             s'affiche par son code — et c'est précisément le cas de 14 des 37
             communes muettes du corpus, celles que le rattachement INSEE avait
             justement rendues visibles.
+        transcrites: ids des pages que le run `transcription` actif a
+            transcrites (`database.pages.transcriptions_actives`). Une page
+            manuscrite transcrite n'est plus écartée. Sans lui, la mesure est
+            celle du squelette seul.
 
     Returns:
         La couverture, aux trois échelles qui comptent : la page (le volume de
@@ -123,6 +133,10 @@ def mesurer(
     par_cahier: dict[str, list] = defaultdict(list)
     par_commune: dict[str, list] = defaultdict(list)
     ville_affichee: dict[str, str] = {}
+    lues = frozenset(transcrites or ())
+
+    def ecartee(page) -> bool:
+        return _ecartee(page, lues)
 
     for page in pages:
         par_cahier[page.pdf_name or "(sans cahier)"].append(page)
@@ -139,12 +153,12 @@ def mesurer(
         ville_affichee.setdefault(cle, (noms or {}).get(cle) or page.city or cle)
 
     cahiers_muets = sorted(
-        nom for nom, p in par_cahier.items() if all(_ecartee(x) for x in p)
+        nom for nom, p in par_cahier.items() if all(ecartee(x) for x in p)
     )
     communes_muettes = sorted(
         ville_affichee[cle]
         for cle, p in par_commune.items()
-        if all(_ecartee(x) for x in p)
+        if all(ecartee(x) for x in p)
     )
 
     habitants = None
@@ -154,23 +168,24 @@ def mesurer(
             sum(
                 populations.get(cle, 0)
                 for cle, p in par_commune.items()
-                if all(_ecartee(x) for x in p)
+                if all(ecartee(x) for x in p)
             ),
         )
 
     return Couverture(
-        pages=Part(len(pages), sum(1 for p in pages if _ecartee(p))),
+        pages=Part(len(pages), sum(1 for p in pages if ecartee(p))),
         cahiers=Part(
             len(par_cahier),
-            sum(1 for p in par_cahier.values() if any(_ecartee(x) for x in p)),
+            sum(1 for p in par_cahier.values() if any(ecartee(x) for x in p)),
         ),
         communes=Part(
             len(par_commune),
-            sum(1 for p in par_commune.values() if any(_ecartee(x) for x in p)),
+            sum(1 for p in par_commune.values() if any(ecartee(x) for x in p)),
         ),
         cahiers_muets=cahiers_muets,
         communes_muettes=communes_muettes,
         habitants=habitants,
+        transcrites=sum(1 for p in pages if p.needs_ocr is True and p.id in lues),
     )
 
 

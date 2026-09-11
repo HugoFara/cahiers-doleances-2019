@@ -1,7 +1,10 @@
-"""Découpe les cahiers de `page_extraction` en doléances.
+"""Découpe les cahiers en doléances, sur leur texte de lecture.
 
-Le découpage est rapporté à un **run** (`database/runs.py`) : il est
-interprétatif, il doit donc être versionné, attribué, et comparable à un autre.
+Le texte lu est celui de `database/pages.py` : la transcription du run
+`transcription` actif quand la page en a une, le squelette sinon. Le découpage
+est rapporté à un **run** (`database/runs.py`) : il est interprétatif, il doit
+donc être versionné, attribué, et comparable à un autre — et il note quel run
+de transcription il a lu.
 
     uv run python -m segmentation
         complète le run de découpage actif — les cahiers qu'il ne couvre pas
@@ -19,7 +22,8 @@ import sys
 from sqlalchemy.orm import Session
 
 from database.db import check_connection, get_engine
-from database.runs import SEGMENTATION, creer_run, run_actif
+from database.pages import TRANSCRIPTION_ACTIVE
+from database.runs import SEGMENTATION, TRANSCRIPTION, creer_run, run_actif
 from segmentation import config
 from segmentation.persistance import (
     cahiers_deja_decoupes,
@@ -41,14 +45,14 @@ def parametres_appliques() -> dict:
 
 def main(
     nouveau_run: str | None = None,
-    garder_pages_ocr: bool = False,
     auteur: str | None = None,
 ) -> int:
     engine = get_engine()
     check_connection(engine)
 
     with Session(engine) as session:
-        cahiers = grouper_par_cahier(lire_pages(session, garder_pages_ocr))
+        lues = lire_pages(session)
+        cahiers = grouper_par_cahier(lues)
         if not cahiers:
             print(
                 "Aucune page à découper. La table page_extraction est-elle remplie "
@@ -58,16 +62,25 @@ def main(
             return 1
 
         pages_lues = sum(len(pages) for pages in cahiers.values())
+        transcrites = sum(1 for p in lues if p.source == TRANSCRIPTION_ACTIVE)
+        run_ocr = run_actif(session, TRANSCRIPTION)
         run = None if nouveau_run else run_actif(session, SEGMENTATION)
         if run is None:
+            # Le découpage note ce qu'il a lu : sans le run de transcription,
+            # deux découpages du « même » corpus ne seraient pas comparables.
             run = creer_run(
                 session,
                 SEGMENTATION,
                 label=nouveau_run or "découpage par signaux de texte",
                 source="segmentation/",
-                parameters=parametres_appliques(),
-                corpus=f"{pages_lues} page(s) · {len(cahiers)} cahier(s)"
-                + ("" if garder_pages_ocr else " · pages manuscrites écartées"),
+                parameters=parametres_appliques()
+                | {"run_transcription": run_ocr.id if run_ocr else None},
+                corpus=f"{pages_lues} page(s) · {len(cahiers)} cahier(s) · "
+                + (
+                    f"{transcrites} transcrite(s) (run #{run_ocr.id})"
+                    if run_ocr
+                    else "pages manuscrites écartées"
+                ),
                 author=auteur,
             )
             print(f"run de découpage créé : #{run.id} « {run.label} »")
@@ -109,10 +122,5 @@ if __name__ == "__main__":
         "--auteur",
         help="qui lance ce découpage (défaut : la configuration git du dépôt)",
     )
-    parser.add_argument(
-        "--keep-ocr-pages",
-        action="store_true",
-        help="inclure les pages manuscrites (needs_ocr), du bruit par défaut écarté",
-    )
     args = parser.parse_args()
-    sys.exit(main(args.nouveau_run, args.keep_ocr_pages, args.auteur))
+    sys.exit(main(args.nouveau_run, args.auteur))

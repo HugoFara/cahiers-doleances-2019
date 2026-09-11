@@ -62,21 +62,22 @@ def empreinte(texte: str) -> str:
     return hashlib.sha256(normalise.encode("utf-8")).hexdigest()[:16]
 
 
-def lignes_des_cahiers(
-    session: Session, cahiers: list[str], garder_pages_ocr: bool = False
-) -> dict[str, list[Ligne]]:
+def lignes_des_cahiers(session: Session, cahiers: list[str]) -> dict[str, list[Ligne]]:
     """Les lignes de ces cahiers, dans l'ordre, telles que le découpage les voit.
 
     Passe par les mêmes fonctions que `segmentation/` : un étalon construit sur
-    d'autres lignes que celles évaluées ne mesurerait rien.
+    d'autres lignes que celles évaluées ne mesurerait rien. Le texte est donc le
+    texte de lecture (`database/pages.py`) : activer un run de transcription
+    change les lignes des cahiers transcrits — et leurs empreintes. Un étalon se
+    construit et s'évalue avec le même run de transcription actif.
     """
     voulus = set(cahiers)
-    groupes = grouper_par_cahier(lire_pages(session, garder_pages_ocr))
+    groupes = grouper_par_cahier(lire_pages(session))
     return {
         pdf_name: [
-            Ligne(texte=t, page=p.page_number)
+            Ligne(texte=t, page=p.page.page_number)
             for p in pages
-            for t in (p.text or "").split("\n")
+            for t in p.texte.split("\n")
             if t.strip()
         ]
         for pdf_name, pages in groupes.items()

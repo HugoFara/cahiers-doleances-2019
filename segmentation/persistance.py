@@ -12,6 +12,11 @@ Tout est rapporté à un **run** (`database/runs.py`). Le découpage est un acte
 interprétatif — c'est une heuristique qui décide qu'une page porte trois auteurs
 — il appartient donc à la couche annotation, versionnée : deux découpages
 peuvent coexister et se comparer, au lieu que le second écrase le premier.
+
+Le texte découpé est le **texte de lecture** de `database/pages.py` : la
+transcription du run `transcription` actif quand la page en a une, le
+squelette sinon. Le découpage ne sait pas d'où vient le texte ; le run de
+découpage note en revanche quel run de transcription il a lu.
 """
 
 from collections import defaultdict
@@ -19,34 +24,22 @@ from collections import defaultdict
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from database import pages as lecture
 from database.models import Doleance as LigneDoleance
-from database.models import PageExtraction
+from database.pages import PageLue
 from segmentation.decoupage import Doleance, decouper_cahier
 
 
-def lire_pages(session: Session, garder_pages_ocr: bool = False) -> list[PageExtraction]:
-    """Lit les pages extraites, triées par cahier puis par page.
+def lire_pages(session: Session) -> list[PageLue]:
+    """Les pages lisibles, avec leur texte de lecture, dans l'ordre des cahiers.
 
-    Les pages `needs_ocr` sont écartées par défaut, comme dans
-    `analyse/export_dataset.py` : leur texte est du bruit d'extraction, il
-    ferait déclencher les règles de découpage au hasard.
-
-    Args:
-        session: session ouverte sur la base.
-        garder_pages_ocr: inclure aussi les pages manuscrites.
-
-    Returns:
-        Les pages dans l'ordre de lecture des cahiers.
+    Les pages sans texte — manuscrites sans transcription — sont écartées :
+    leur bruit d'extraction ferait déclencher les règles de découpage au hasard.
     """
-    requete = select(PageExtraction).order_by(
-        PageExtraction.pdf_name, PageExtraction.page_number
-    )
-    if not garder_pages_ocr:
-        requete = requete.where(PageExtraction.needs_ocr.is_not(True))
-    return list(session.scalars(requete))
+    return lecture.lire_pages(session, ordre="cahier")
 
 
-def grouper_par_cahier(pages: list[PageExtraction]) -> dict[str, list[PageExtraction]]:
+def grouper_par_cahier(pages: list[PageLue]) -> dict[str, list[PageLue]]:
     """Regroupe les pages par PDF, en conservant leur ordre.
 
     Les pages sans `pdf_name` sont écartées : la colonne est nullable, et sans
@@ -59,16 +52,16 @@ def grouper_par_cahier(pages: list[PageExtraction]) -> dict[str, list[PageExtrac
     Returns:
         ``{pdf_name: pages du cahier}``.
     """
-    cahiers: dict[str, list[PageExtraction]] = defaultdict(list)
-    for page in pages:
-        if page.pdf_name:
-            cahiers[page.pdf_name].append(page)
+    cahiers: dict[str, list[PageLue]] = defaultdict(list)
+    for lue in pages:
+        if lue.page.pdf_name:
+            cahiers[lue.page.pdf_name].append(lue)
     return dict(cahiers)
 
 
-def decouper_pages(pages: list[PageExtraction]) -> list[Doleance]:
+def decouper_pages(pages: list[PageLue]) -> list[Doleance]:
     """Découpe les pages d'un cahier en doléances."""
-    return decouper_cahier([(p.page_number, p.text or "") for p in pages])
+    return decouper_cahier([(p.page.page_number, p.texte) for p in pages])
 
 
 def cahiers_deja_decoupes(session: Session, run_id: int) -> set[str]:
@@ -97,7 +90,7 @@ def oublier_cahier(session: Session, pdf_name: str, run_id: int) -> None:
 
 
 def enregistrer_cahier(
-    session: Session, pdf_name: str, pages: list[PageExtraction], run_id: int
+    session: Session, pdf_name: str, pages: list[PageLue], run_id: int
 ) -> list[LigneDoleance]:
     """Découpe un cahier et ajoute ses doléances à la session (sans commit).
 
@@ -110,8 +103,8 @@ def enregistrer_cahier(
     Returns:
         Les lignes ajoutées, dans l'ordre du cahier.
     """
-    contribution_par_page = {p.page_number: p.contribution_id for p in pages}
-    ville = next((p.city for p in pages if p.city), None)
+    contribution_par_page = {p.page.page_number: p.page.contribution_id for p in pages}
+    ville = next((p.page.city for p in pages if p.page.city), None)
 
     lignes = []
     for rang, doleance in enumerate(decouper_pages(pages)):

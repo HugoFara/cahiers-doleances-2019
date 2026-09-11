@@ -106,11 +106,12 @@ doléance ici) ; elle le deviendra avec un rattachement qui choisit.
 `analyse/export_dataset.py` écrit le CSV `id,content` attendu par
 `topic-builder`, à deux niveaux (`--niveau`) :
 
-- `contribution` (défaut) : lit `page_extraction`, une ligne par contribution,
-  pages concaténées dans l'ordre. Les pages `needs_ocr` (manuscrites, texte
-  illisible) sont écartées par défaut ; `--keep-ocr-pages` les réintègre pour
-  inspecter le corpus complet. **Une contribution, c'est une page** : plusieurs
-  contributeurs peuvent s'y côtoyer, et une doléance longue y est coupée en deux.
+- `contribution` (défaut) : une ligne par contribution, pages concaténées dans
+  l'ordre. Le texte est le texte de lecture (`database/pages.py`) :
+  transcription du run `transcription` actif si la page en a une, squelette
+  sinon ; une page manuscrite sans transcription n'a pas de texte et n'est pas
+  exportée. **Une contribution, c'est une page** : plusieurs contributeurs
+  peuvent s'y côtoyer, et une doléance longue y est coupée en deux.
 - `doleance` : lit `doleance`, une ligne par contributeur, telle que
   `segmentation/` l'a découpée. C'est la bonne unité d'analyse.
 

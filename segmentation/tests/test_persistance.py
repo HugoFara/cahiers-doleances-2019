@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from database.models import Base, Doleance, PageExtraction
+from database.pages import PageLue, lire_page
 from database.runs import SEGMENTATION, creer_run
 from segmentation.persistance import (
     cahiers_deja_decoupes,
@@ -28,15 +29,19 @@ def page(
     pdf_name: str = "cahier.pdf",
     needs_ocr: bool = False,
     city: str = "TRIZAY",
-) -> PageExtraction:
-    return PageExtraction(
-        contribution_id=contribution_id,
-        pdf_name=pdf_name,
-        page_number=page_number,
-        text=text,
-        quality_score=0.2 if needs_ocr else 0.9,
-        needs_ocr=needs_ocr,
-        city=city,
+) -> PageLue:
+    """Une page du squelette, lue telle quelle (pas de transcription)."""
+    return lire_page(
+        PageExtraction(
+            contribution_id=contribution_id,
+            pdf_name=pdf_name,
+            page_number=page_number,
+            text=text,
+            quality_score=0.2 if needs_ocr else 0.9,
+            needs_ocr=needs_ocr,
+            city=city,
+        ),
+        None,
     )
 
 
@@ -63,42 +68,42 @@ def test_regroupe_les_pages_par_cahier():
         [page(3, "a"), page(4, "b"), page(3, "c", pdf_name="autre.pdf")]
     )
     assert set(cahiers) == {"cahier.pdf", "autre.pdf"}
-    assert [p.text for p in cahiers["cahier.pdf"]] == ["a", "b"]
+    assert [p.texte for p in cahiers["cahier.pdf"]] == ["a", "b"]
 
 
 def test_ecarte_les_pages_sans_cahier():
     """`pdf_name` est nullable : rattacher au hasard mélangerait deux communes."""
     orpheline = page(3, "orpheline")
-    orpheline.pdf_name = None
+    orpheline.page.pdf_name = None
     cahiers = grouper_par_cahier([orpheline, page(4, "rattachée")])
     assert list(cahiers) == ["cahier.pdf"]
-    assert [p.text for p in cahiers["cahier.pdf"]] == ["rattachée"]
+    assert [p.texte for p in cahiers["cahier.pdf"]] == ["rattachée"]
 
 
 # --- lire_pages ---
 
 
-def test_lire_pages_exclut_les_pages_manuscrites_par_defaut(session):
-    session.add_all([page(3, "dactylographié"), page(4, "gribouillis", needs_ocr=True)])
+def test_lire_pages_exclut_les_pages_manuscrites_sans_transcription(session):
+    session.add_all([page(3, "dactylographié").page, page(4, "gribouillis", needs_ocr=True).page])
     session.flush()
-    assert [p.text for p in lire_pages(session)] == ["dactylographié"]
+    assert [p.texte for p in lire_pages(session)] == ["dactylographié"]
 
 
 def test_lire_pages_garde_les_pages_dont_le_flag_est_null(session):
-    """Même logique ternaire que dans export_dataset : `is_not(True)` garde les NULL."""
-    ancienne = page(3, "ancien")
+    """Même logique ternaire que database/pages : un flag NULL n'est pas `True`."""
+    ancienne = page(3, "ancien").page
     ancienne.needs_ocr = None
     session.add(ancienne)
     session.flush()
-    assert [p.text for p in lire_pages(session)] == ["ancien"]
+    assert [p.texte for p in lire_pages(session)] == ["ancien"]
 
 
 def test_lire_pages_trie_par_cahier_puis_par_page(session):
     session.add_all(
-        [page(5, "b2"), page(3, "b1"), page(4, "a", pdf_name="autre.pdf")]
+        [page(5, "b2").page, page(3, "b1").page, page(4, "a", pdf_name="autre.pdf").page]
     )
     session.flush()
-    assert [p.text for p in lire_pages(session)] == ["a", "b1", "b2"]
+    assert [p.texte for p in lire_pages(session)] == ["a", "b1", "b2"]
 
 
 # --- enregistrer_cahier ---

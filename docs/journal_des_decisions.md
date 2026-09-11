@@ -110,9 +110,11 @@ pour l'instant que dans la documentation et dans `python -m couverture`, pas dan
 l'app. Réintégrer le manuscrit dès que l'HTR le permet, et refaire la comparaison
 avant/après.
 
-**Réversibilité.** Immédiate côté outillage (`--keep-ocr-pages`), nulle côté
+**Réversibilité.** Immédiate côté outillage (`--keep-ocr-pages`, retiré le
+2026-09-11 quand le texte de lecture a remplacé le filtre), nulle côté
 qualité tant que l'HTR n'est pas là — réintégrer ces pages aujourd'hui
 n'ajouterait pas des contributions, seulement du bruit d'extraction.
+*2026-09-11 : l'HTR est là — voir « Le manuscrit entre dans la lecture ».*
 
 **Auteur.** Hérité du pipeline `extraction/without_ocr` (2026-08-07), explicité
 ici le 2026-09-10.
@@ -1250,6 +1252,53 @@ Et pas de géométrie : `layout` reste NULL.
 passe — autre modèle, ou Mistral sous les conditions ci-dessus — coexiste en
 base et se compare sur l'étalon ; c'est pour cela que le squelette n'est
 jamais écrasé.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
+## 2026-09-11 — Le manuscrit entre dans la lecture, page par page, sans écraser
+
+**Décision.** Le corpus se lit désormais par un **texte de lecture** unique
+(`database/pages.py`), choisi page par page : la transcription du run
+`transcription` actif si la page en a une, sinon le squelette
+(`page_extraction.text`) si la page n'est pas `needs_ocr`, sinon rien.
+Segmentation, export vers l'analyse, couverture et app passent tous par là.
+Le squelette n'est pas modifié ; l'option `--keep-ocr-pages` disparaît — il
+n'y a plus de « bruit à réintégrer », il y a des pages lisibles ou non.
+
+**Périmètre.** Tout ce qui lit le texte des pages. Pas la transcription
+elle-même (run 18, en cours), pas le découpage — qui reste le même, appliqué à
+plus de texte.
+
+**Motif.** La transcription est une couche (journal du 2026-09-10, « Les
+couches interprétatives sont versionnées ») ; elle doit pouvoir être remplacée
+par une autre — autre modèle, ou Mistral sous conditions — sans rien réécrire.
+Une lecture unique, branchée sur le run actif, donne ça : activer un run change
+la lecture de tout le monde d'un coup, le désactiver ramène au squelette seul.
+Et la mesure de couverture change de sens sans changer de code : « écartée »
+veut dire manuscrite *sans transcription*, et l'app le dit.
+
+**Deux règles de lecture, à connaître.**
+- Une transcription prime sur le squelette même sur une page typée : c'est le
+  but du périmètre `suspect` (formulaires remplis à la main que `needs_ocr`
+  manque), et la transcription corrige aussi la couche texte des archives,
+  corrompue sur les en-têtes (essai du 2026-09-10).
+- Un commentaire de modèle sur une page vide (« Cette image ne contient aucun
+  texte », court, sur une page/image/document dit vide, vierge, sans texte) est
+  lu comme un texte vide. Mesuré sur ornith-1.5 le 2026-09-11 : le modèle écrit
+  cette phrase malgré la consigne. Sans la règle, ce serait une doléance de
+  plus, signée par le modèle.
+
+**Conséquences.** Le run de découpage note le run de transcription qu'il a lu
+(`parameters.run_transcription`) : deux découpages ne se comparent qu'à texte
+de lecture égal. L'étalon (`reference/`) dépend du texte de lecture : figé sous
+un run de transcription, il s'évalue sous le même — le garde-fou d'alignement
+le signale sinon. Un découpage complet est à relancer en nouveau run une fois
+la passe finie, pour mesurer avant/après.
+
+**Réversibilité.** Désactiver le run de transcription : la lecture redevient
+celle du squelette, à l'identique.
 
 **Auteur.** Équipe technique — *à nommer avant publication*.
 

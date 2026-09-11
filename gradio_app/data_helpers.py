@@ -102,12 +102,35 @@ def list_communes() -> list[tuple[str, str]]:
 
 
 
+def _textes_de_lecture(ids: list[int]) -> dict[int, tuple[str, str]]:
+    """Le texte de lecture de chaque contribution, et d'où il vient.
+
+    Passe par `database/pages.py`, comme la segmentation et l'export : l'app
+    montre le texte que le pipeline lit — transcription du run actif si la
+    page en a une, squelette sinon — et pas une extraction de son cru.
+    """
+    from sqlalchemy.orm import Session
+
+    from database.pages import lire_pages
+
+    with Session(engine) as session:
+        lues = lire_pages(session, ordre="contribution", contributions=ids)
+    textes: dict[int, list[str]] = {}
+    sources: dict[int, str] = {}
+    for lue in lues:
+        textes.setdefault(lue.page.contribution_id, []).append(lue.texte)
+        sources[lue.page.contribution_id] = (
+            f"{lue.source} (run #{lue.transcription.run_id})"
+            if lue.transcription is not None
+            else lue.source
+        )
+    return {cid: ("\n".join(t), sources[cid]) for cid, t in textes.items()}
+
+
 def _rows(code: str) -> pd.DataFrame:
     """Les contributions d'une commune, désignée par son code INSEE."""
-    # une seule extraction affichée par contribution : la plus récente
     q = text(f"""
         SELECT k.id, k.city, k.pdf_file, k.start_page, k.end_page, k.is_handwritten,
-               e.ocr, e.text, e.num_words, e.num_lines,
                a.is_anonymized, a.is_of_interest,
                (SELECT string_agg(r.name, ', ') FROM instance t
                  JOIN topic r ON r.id = t.topic_id
@@ -116,16 +139,22 @@ def _rows(code: str) -> pd.DataFrame:
                (SELECT string_agg(name, ', ') FROM feeling
                  WHERE contribution_id = k.id) AS feelings
         FROM contribution k
-        LEFT JOIN extraction e ON e.id = (
-            SELECT max(id) FROM extraction WHERE contribution_id = k.id
-        )
         LEFT JOIN annotation a ON a.contribution_id = k.id
         WHERE (:code = '' AND k.city_code IS NULL) OR k.city_code = :code
         ORDER BY k.id
     """)
     # Chaîne vide plutôt que NULL en paramètre : `k.city_code = NULL` n'est
     # jamais vrai, la clause aurait silencieusement rendu zéro ligne.
-    return pd.read_sql(q, engine, params={"code": "" if code == SANS_COMMUNE else code})
+    rows = pd.read_sql(q, engine, params={"code": "" if code == SANS_COMMUNE else code})
+    lectures = _textes_de_lecture([int(i) for i in rows["id"]])
+    rows["text"] = [lectures.get(i, (None, None))[0] for i in rows["id"]]
+    rows["source"] = [lectures.get(i, (None, None))[1] for i in rows["id"]]
+    rows["num_lines"] = [
+        None if t is None else sum(1 for ligne in t.split("\n") if ligne.strip())
+        for t in rows["text"]
+    ]
+    rows["num_words"] = [None if t is None else len(t.split()) for t in rows["text"]]
+    return rows
 
 def _topic_instances(contribution_id: int) -> pd.DataFrame:
     """Les instances de thèmes d'une contribution, avec leur page source.
@@ -210,15 +239,19 @@ def get_contribution(code: str, idx: int) -> dict:
             f"- **Anonymisé** : {_bool(r['is_anonymized'])}\n"
             f"- **Contribution d'intérêt** : {_bool(r['is_of_interest'])}"
         ),
-        # provenance technique, au-dessus du résultat OCR
+        # provenance technique, au-dessus du texte lu
         # (la nature Manuscrit/Dactylographié est déjà dans le libellé du dropdown)
         "header": (
-            f"| Pages | Lignes | Mots | Extraction |\n"
+            f"| Pages | Lignes | Mots | Texte lu |\n"
             f"|---|---|---|---|\n"
             f"| {_pages(r['start_page'], r['end_page'])} | {_int(r['num_lines'])} "
-            f"| {_int(r['num_words'])} | {_text(r['ocr'])} |"
+            f"| {_int(r['num_words'])} | {_text(r['source'])} |"
         ),
-        "text": r["text"] if pd.notna(r["text"]) else "N/C (pas encore extraite)",
+        "text": (
+            r["text"]
+            if pd.notna(r["text"]) and r["text"].strip()
+            else "N/C (page sans texte lisible : manuscrit sans transcription, ou page vide)"
+        ),
         "pdf_file": r["pdf_file"],
         # page d'ouverture : le PDF s'ouvre dessus plutôt qu'en couverture
         "page": None if pd.isna(r["start_page"]) else int(r["start_page"]),
@@ -482,11 +515,21 @@ def _pages_pour_couverture() -> list:
     quelles là où le module attend des lignes `page_extraction`.
     """
     q = text("""
-        SELECT p.pdf_name, p.city, p.needs_ocr, p.contribution_id
+        SELECT p.id, p.pdf_name, p.city, p.needs_ocr, p.contribution_id
         FROM page_extraction p
     """)
     with engine.connect() as conn:
         return list(conn.execute(q))
+
+
+def _pages_transcrites() -> set[int]:
+    """Les pages que le run `transcription` actif a transcrites."""
+    from sqlalchemy.orm import Session
+
+    from database.pages import transcriptions_actives
+
+    with Session(engine) as session:
+        return set(transcriptions_actives(session))
 
 
 def _codes_par_contribution() -> dict[int, str]:
@@ -518,7 +561,9 @@ def etat_du_corpus():
         habitants, noms = {}, {}
 
     return Etat(
-        couverture=mesurer(_pages_pour_couverture(), codes, habitants, noms),
+        couverture=mesurer(
+            _pages_pour_couverture(), codes, habitants, noms, _pages_transcrites()
+        ),
         grille=grille_servie(),
         communes_listees=len([c for c in list_communes() if c[1] != SANS_COMMUNE]),
         communes_du_corpus=len(set(codes.values())),

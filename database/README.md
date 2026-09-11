@@ -167,6 +167,23 @@ chargée) : les lectures le traitent comme « couche vide », pas comme une erre
 L'app l'exprime en SQL — `WHERE t.run_id = (SELECT id FROM run WHERE kind='analyse' AND active)`
 — la sous-requête vaut NULL, la comparaison n'est jamais vraie, les vues sont vides.
 
+**Le texte de lecture d'une page** (`database/pages.py`) est le point où la
+couche `transcription` rejoint le squelette, sans l'écraser. `lire_pages`
+choisit page par page : la transcription du run `transcription` actif si la
+page en a une, sinon `page_extraction.text` si la page n'est pas `needs_ocr`,
+sinon rien. Segmentation, export vers l'analyse, couverture et app passent
+tous par là et lisent le même texte ; activer un autre run de transcription
+change la lecture de tout le monde d'un coup, la désactiver ramène au
+squelette seul. Un commentaire de modèle sur une page vide (« Cette image ne
+contient aucun texte ») y est lu comme un texte vide, pas comme une doléance.
+
+```python
+from database.pages import lire_pages
+
+for lue in lire_pages(session):          # les pages lisibles, ordre des cahiers
+    lue.page.pdf_name, lue.texte, lue.source   # "squelette" | "transcription"
+```
+
 **Conséquence sur l'unicité** : `topic.external_id` n'est plus unique dans la
 table mais dans un run (`uq_topic_run_external_id`). Deux grilles peuvent
 réutiliser le même UUID de livraison. De même, les noms de thèmes ne sont uniques

@@ -1,10 +1,12 @@
 """Exporte les contributions de la base vers le dataset CSV de topic-builder.
 
 C'est le chaînon manquant entre l'extraction et l'analyse : `extraction/`
-écrit le texte page par page dans `page_extraction`, alors que
-`topicbuilder screen` ne sait lire que des `.txt`/`.md` sur disque. Ce script
-lit la base et produit directement le CSV `id,content` attendu par
-`topicbuilder discover-topics` et `topicbuilder label`.
+écrit le texte page par page dans `page_extraction` et `page_transcription`,
+alors que `topicbuilder screen` ne sait lire que des `.txt`/`.md` sur disque.
+Ce script lit la base et produit directement le CSV `id,content` attendu par
+`topicbuilder discover-topics` et `topicbuilder label`. Le texte exporté est
+le texte de lecture (`database/pages.py`) : transcription du run
+`transcription` actif quand la page en a une, squelette sinon.
 
 **L'`id` est `contribution.id`.** C'est le point important : la livraison de
 l'équipe analyse renvoie ses labels indexés par l'`id` du document d'entrée
@@ -37,29 +39,25 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from analyse.identifiants import CONTRIBUTION, DOLEANCE, NIVEAUX, id_document
+from database import pages as lecture
 from database.db import check_connection, get_engine
-from database.models import Doleance, PageExtraction
+from database.models import Doleance
+from database.pages import PageLue
 from database.runs import SEGMENTATION, run_actif
 
 DEFAUT = Path("data/dataset.csv")
 
 
-def lire_pages(session: Session, garder_pages_ocr: bool = False) -> list[PageExtraction]:
-    """Lit les pages extraites, les manuscrites exclues par défaut.
+def lire_pages(session: Session) -> list[PageLue]:
+    """Les pages lisibles avec leur texte de lecture, par contribution puis page.
 
-    Les pages `needs_ocr` sont celles dont le score de qualité est trop bas :
-    leur texte est du bruit d'extraction, il ferait dériver la découverte de
-    thèmes. On les garde optionnellement pour inspecter le corpus complet.
+    Les pages sans texte — manuscrites sans transcription — sont écartées :
+    leur bruit d'extraction ferait dériver la découverte de thèmes.
     """
-    requete = select(PageExtraction).order_by(
-        PageExtraction.contribution_id, PageExtraction.page_number
-    )
-    if not garder_pages_ocr:
-        requete = requete.where(PageExtraction.needs_ocr.is_not(True))
-    return list(session.scalars(requete))
+    return lecture.lire_pages(session, ordre="contribution")
 
 
-def construire_documents(pages: list[PageExtraction]) -> list[dict[str, str]]:
+def construire_documents(pages: list[PageLue]) -> list[dict[str, str]]:
     """Regroupe les pages par contribution et renvoie les lignes `id,content`.
 
     Les pages arrivent déjà triées par (contribution, page) ; on conserve cet
@@ -69,13 +67,13 @@ def construire_documents(pages: list[PageExtraction]) -> list[dict[str, str]]:
     autant ne pas les écrire.
     """
     par_contribution: dict[int, list[str]] = defaultdict(list)
-    for page in pages:
+    for lue in pages:
         # contribution_id est nullable : une page orpheline donnerait un document
         # d'id "None", impossible à rattacher au retour de l'analyse.
-        if page.contribution_id is None:
+        if lue.page.contribution_id is None:
             continue
-        if page.text and page.text.strip():
-            par_contribution[page.contribution_id].append(page.text.strip())
+        if lue.texte.strip():
+            par_contribution[lue.page.contribution_id].append(lue.texte.strip())
 
     return [
         {"id": id_document(CONTRIBUTION, contribution_id), "content": "\n".join(textes)}
@@ -130,11 +128,7 @@ def ecrire_dataset(documents: list[dict[str, str]], chemin: Path) -> None:
         writer.writerows(documents)
 
 
-def main(
-    chemin: Path = DEFAUT,
-    garder_pages_ocr: bool = False,
-    niveau: str = CONTRIBUTION,
-) -> int:
+def main(chemin: Path = DEFAUT, niveau: str = CONTRIBUTION) -> int:
     engine = get_engine()
     check_connection(engine)
 
@@ -150,7 +144,7 @@ def main(
                 "(uv run python -m segmentation) ?"
             )
         else:
-            pages = lire_pages(session, garder_pages_ocr)
+            pages = lire_pages(session)
             documents = construire_documents(pages)
             lues = f"{len(pages)} page(s) lue(s)"
             vide = (
@@ -174,15 +168,10 @@ if __name__ == "__main__":
         "--output", type=Path, default=DEFAUT, help=f"chemin du CSV de sortie (défaut : {DEFAUT})"
     )
     parser.add_argument(
-        "--keep-ocr-pages",
-        action="store_true",
-        help="inclure aussi les pages manuscrites (needs_ocr), du bruit par défaut écarté",
-    )
-    parser.add_argument(
         "--niveau",
         choices=NIVEAUX,
         default=CONTRIBUTION,
         help="unité exportée (défaut : contribution ; doleance = texte d'un contributeur)",
     )
     args = parser.parse_args()
-    sys.exit(main(args.output, args.keep_ocr_pages, args.niveau))
+    sys.exit(main(args.output, args.niveau))
