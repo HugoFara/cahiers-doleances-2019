@@ -37,6 +37,7 @@ from extraction.with_ocr.normalize import normaliser
 from extraction.with_ocr.persist import (
     PERIMETRES,
     enregistrer,
+    etendre_perimetre,
     ouvrir_run,
     pages_a_transcrire,
 )
@@ -64,11 +65,12 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--perimetre",
         choices=PERIMETRES,
-        default="manuscrit",
+        default=None,
         help=(
             "manuscrit : pages needs_ocr (défaut) ; typé : le reste ; "
             "suspect : typé sous le seuil de qualité (formulaires remplis à "
-            "la main) ; tout : le corpus entier"
+            "la main) ; tout : le corpus entier. Avec --run-id, étend la passe "
+            "à ce périmètre (le run note « manuscrit+suspect »)"
         ),
     )
     p.add_argument(
@@ -119,7 +121,9 @@ def _run_existant(session: Session, run_id: int) -> Run | None:
         logger.error("run %d introuvable", run_id)
         return None
     if run.kind != TRANSCRIPTION:
-        logger.error("le run %d est de genre %r, pas %r", run_id, run.kind, TRANSCRIPTION)
+        logger.error(
+            "le run %d est de genre %r, pas %r", run_id, run.kind, TRANSCRIPTION
+        )
         return None
     return run
 
@@ -145,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
             if run is None:
                 return 1
             parametres = run.parameters or {}
-            perimetre = parametres.get("perimetre", args.perimetre)
+            perimetre = etendre_perimetre(session, run, args.perimetre)
             dpi = parametres.get("dpi", args.dpi)
             format = parametres.get("format", args.format)
             en_batch = args.batch or bool(mode_batch.lots_du_run(run))
@@ -158,18 +162,17 @@ def main(argv: list[str] | None = None) -> int:
                 dpi=args.dpi,
                 format=args.format,
                 batch=args.batch,
-                perimetre=args.perimetre,
+                perimetre=args.perimetre or "manuscrit",
                 prompt=(
-                    OcrConfig.OLLAMA_PROMPT.value
-                    if args.backend == "ollama"
-                    else None
+                    OcrConfig.OLLAMA_PROMPT.value if args.backend == "ollama" else None
                 ),
                 label=args.label,
                 auteur=args.auteur,
                 notes=args.notes,
             )
             session.commit()
-            perimetre, dpi, format = args.perimetre, args.dpi, args.format
+            perimetre = args.perimetre or "manuscrit"
+            dpi, format = args.dpi, args.format
             en_batch = args.batch
 
         pages = pages_a_transcrire(session, run, perimetre, args.limite)

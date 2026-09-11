@@ -7,7 +7,7 @@ la rejouer et la juger. Les transcriptions s'y rattachent ; le squelette
 où elle s'était arrêtée, sans repayer les pages déjà faites.
 """
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select, true
 from sqlalchemy.orm import Session
 
 from database.models import PageExtraction, PageTranscription, Run
@@ -15,6 +15,35 @@ from database.runs import TRANSCRIPTION, creer_run
 from extraction.with_ocr.config import OcrConfig
 
 PERIMETRES = ("manuscrit", "typé", "suspect", "tout")
+
+
+def perimetres(perimetre: str) -> list[str]:
+    """Les périmètres d'une passe, ``manuscrit+suspect`` compris.
+
+    Raises:
+        ValueError: l'un d'eux est inconnu.
+    """
+    noms = [p.strip() for p in perimetre.split("+")]
+    inconnus = [p for p in noms if p not in PERIMETRES]
+    if inconnus:
+        raise ValueError(
+            f"périmètre inconnu : {inconnus[0]!r} (attendu : {', '.join(PERIMETRES)})"
+        )
+    return noms
+
+
+def _clause(perimetre: str):
+    """Le filtre SQL d'un périmètre simple."""
+    if perimetre == "manuscrit":
+        return PageExtraction.needs_ocr.is_(True)
+    if perimetre == "typé":
+        return PageExtraction.needs_ocr.is_(False)
+    if perimetre == "suspect":
+        return and_(
+            PageExtraction.needs_ocr.is_(False),
+            PageExtraction.quality_score < OcrConfig.SUSPECT_QUALITY.value,
+        )
+    return true()
 
 
 def ouvrir_run(
@@ -83,7 +112,9 @@ def pages_a_transcrire(
         run: la passe en cours — ses transcriptions existantes sont exclues.
         perimetre: ``manuscrit`` (pages `needs_ocr`), ``typé``, ``suspect``
             (typé sous le seuil de qualité — les formulaires pré-imprimés
-            remplis à la main que `needs_ocr` manque) ou ``tout``.
+            remplis à la main que `needs_ocr` manque) ou ``tout`` ; ou
+            plusieurs joints par ``+`` (``manuscrit+suspect``) : une même
+            passe, étendue à un second périmètre.
         limite: nombre maximal de pages, pour un essai.
 
     Returns:
@@ -92,25 +123,16 @@ def pages_a_transcrire(
     Raises:
         ValueError: périmètre inconnu.
     """
-    if perimetre not in PERIMETRES:
-        raise ValueError(
-            f"périmètre inconnu : {perimetre!r} (attendu : {', '.join(PERIMETRES)})"
-        )
+    clauses = [_clause(p) for p in perimetres(perimetre)]
 
     deja = select(PageTranscription.page_extraction_id).where(
         PageTranscription.run_id == run.id
     )
-    requete = select(PageExtraction).where(PageExtraction.id.not_in(deja))
-    if perimetre == "manuscrit":
-        requete = requete.where(PageExtraction.needs_ocr.is_(True))
-    elif perimetre == "typé":
-        requete = requete.where(PageExtraction.needs_ocr.is_(False))
-    elif perimetre == "suspect":
-        requete = requete.where(
-            PageExtraction.needs_ocr.is_(False),
-            PageExtraction.quality_score < OcrConfig.SUSPECT_QUALITY.value,
-        )
-    requete = requete.order_by(PageExtraction.id)
+    requete = (
+        select(PageExtraction)
+        .where(PageExtraction.id.not_in(deja), or_(*clauses))
+        .order_by(PageExtraction.id)
+    )
     if limite is not None:
         requete = requete.limit(limite)
     return list(session.scalars(requete))
@@ -136,3 +158,27 @@ def enregistrer(
     )
     session.add(ligne)
     return ligne
+
+
+def etendre_perimetre(session: Session, run: Run, demande: str | None) -> str:
+    """Le périmètre d'une reprise : celui du run, étendu si la commande en
+    demande un autre.
+
+    Une même passe — même modèle, mêmes paramètres — peut couvrir le manuscrit
+    puis les formulaires « suspects » : c'est une couche, pas deux, et un seul
+    run est actif par genre. Le run note l'extension (``manuscrit+suspect``)
+    dans ses paramètres et son corpus.
+
+    Returns:
+        Le périmètre à parcourir, composite s'il le faut.
+    """
+    parametres = dict(run.parameters or {})
+    actuel = parametres.get("perimetre", "manuscrit")
+    if demande is None or demande in perimetres(actuel):
+        return actuel
+    perimetres(demande)  # valide
+    nouveau = f"{actuel}+{demande}"
+    run.parameters = {**parametres, "perimetre": nouveau}
+    run.corpus = nouveau
+    session.flush()
+    return nouveau

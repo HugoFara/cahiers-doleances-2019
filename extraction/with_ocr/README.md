@@ -53,7 +53,10 @@ manuscrit au lieu de ~30.
 Périmètres (`--perimetre`) : `manuscrit` (défaut — les pages `needs_ocr`),
 `typé`, `suspect` (typé sous le seuil de qualité : les formulaires
 pré-imprimés remplis à la main que `needs_ocr` manque — fuite mesurée le
-2026-09-10, 2 pages « typées » sur 15), `tout`.
+2026-09-10, 2 pages « typées » sur 15), `tout`. Avec `--run-id`, un
+`--perimetre` différent **étend la passe** au lieu d'en ouvrir une autre : le
+run note `manuscrit+suspect`. C'est voulu — une passe est une couche, un seul
+run de transcription est actif, et c'est lui que `database/pages.py` lit.
 
 La passe commite toutes les 20 pages et se reprend par `--run-id` : les pages
 déjà transcrites du run sont sautées, l'unicité (run, page) l'interdit en

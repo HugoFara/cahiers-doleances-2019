@@ -7,7 +7,12 @@ from sqlalchemy.orm import Session
 
 from database.models import Base, PageExtraction, PageTranscription
 from database.runs import TRANSCRIPTION
-from extraction.with_ocr.persist import enregistrer, ouvrir_run, pages_a_transcrire
+from extraction.with_ocr.persist import (
+    enregistrer,
+    etendre_perimetre,
+    ouvrir_run,
+    pages_a_transcrire,
+)
 
 
 @pytest.fixture
@@ -132,3 +137,33 @@ def test_le_run_porte_les_parametres_de_la_passe(session):
     assert run.parameters["dpi"] == 200
     assert run.parameters["prompt"] == "consigne"
     assert run.author  # résolu d'office — un run anonyme ne se discute pas
+
+
+# --- périmètre étendu ---
+
+
+def test_un_perimetre_composite_prend_l_union(session):
+    run = _run(session)
+    _page(session, page_number=3, needs_ocr=True)
+    _page(session, page_number=4, needs_ocr=False, quality_score=0.4)
+    _page(session, page_number=5, needs_ocr=False, quality_score=0.9)
+    pages = pages_a_transcrire(session, run, "manuscrit+suspect")
+    assert [p.page_number for p in pages] == [3, 4]
+
+
+def test_un_perimetre_composite_inconnu_leve_value_error(session):
+    run = _run(session)
+    with pytest.raises(ValueError, match="périmètre inconnu"):
+        pages_a_transcrire(session, run, "manuscrit+ailleurs")
+
+
+def test_la_reprise_etend_le_run_au_perimetre_demande(session):
+    run = ouvrir_run(session, backend="ollama", model="m", dpi=300, perimetre="manuscrit")
+    session.flush()
+    assert etendre_perimetre(session, run, None) == "manuscrit"
+    assert etendre_perimetre(session, run, "manuscrit") == "manuscrit"
+    assert etendre_perimetre(session, run, "suspect") == "manuscrit+suspect"
+    assert run.parameters["perimetre"] == "manuscrit+suspect"
+    assert run.corpus == "manuscrit+suspect"
+    # demandé une seconde fois : déjà couvert, rien ne change
+    assert etendre_perimetre(session, run, "suspect") == "manuscrit+suspect"
