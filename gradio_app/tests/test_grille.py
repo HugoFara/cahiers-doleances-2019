@@ -67,10 +67,15 @@ class TestStructure:
         """Le plus fourni d'abord : c'est l'ordre des sélecteurs et du layout."""
         assert arbre.kids("racine") == ["fiscalite", "services"]
 
-    def test_un_theme_isole_n_est_pas_un_arbre(self):
-        """Sans parent ni enfant, il n'y a rien à parcourir."""
-        g = Grille(topics(("seul", None)), detections(seul=5))
-        assert "seul" not in g.propre
+    def test_un_theme_isole_avec_detections_est_un_arbre_d_un_noeud(self):
+        """Une grille plate n'est faite que de ça : neuf rubriques, aucun parent."""
+        g = Grille(topics(("seul", None), ("autre", None)), detections(seul=5, autre=2))
+        assert g.racines == ["seul", "autre"]
+        assert g.hauteur["seul"] == 0
+        assert g.kids("seul") == []
+
+    def test_un_theme_isole_sans_detection_n_est_pas_un_arbre(self):
+        g = Grille(topics(("seul", None)), detections())
         assert g.racines == []
 
     def test_un_cycle_de_parente_est_ecarte_au_lieu_de_boucler(self):
@@ -97,10 +102,15 @@ class TestGrilleVide:
         assert g.total_detections == 0
 
     def test_une_grille_sans_arbre_se_declare_vide(self):
-        g = Grille(topics(("seul", None)), detections(seul=3))
+        """Des thèmes, des détections, mais aucun arbre : tout est cyclique."""
+        g = Grille(topics(("a", "b"), ("b", "a")), detections(a=3))
         assert g.vide
-        assert len(g) == 1
+        assert len(g) == 2
         assert g.total_detections == 3
+
+    def test_une_grille_plate_avec_detections_n_est_pas_vide(self):
+        g = Grille(topics(("seul", None)), detections(seul=3))
+        assert not g.vide
 
 
 class TestStrates:

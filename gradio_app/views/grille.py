@@ -96,21 +96,17 @@ class Grille:
     # --- structure -------------------------------------------------------
 
     def _structurer(self) -> None:
-        """Écarte les isolés et les cycles, puis construit la hiérarchie.
+        """Écarte les cycles, puis construit la hiérarchie.
 
-        Un thème sans parent et sans enfant n'est pas un arbre ; un cycle de
-        parenté — la livraison en contient — ferait boucler tous les parcours.
-        Les deux sont mis de côté plutôt que corrigés : ce sont des faits de la
-        grille, pas des erreurs à réparer ici.
+        Un cycle de parenté — la livraison en contient — ferait boucler tous
+        les parcours : il est mis de côté plutôt que corrigé, c'est un fait de
+        la grille, pas une erreur à réparer ici. Un thème sans parent ni
+        enfant, lui, est un arbre d'un seul nœud : c'est toute la forme d'une
+        grille plate (le Vrai Débat 2019, neuf rubriques), et `_racines` ne
+        garde de toute façon que les arbres qui portent des détections.
         """
-        est_parent = {p for p in self.parent_nom.values() if p}
-        isoles = {
-            nom
-            for nom in self.par_nom
-            if not self.parent_nom[nom] and nom not in est_parent
-        }
         cycliques = {nom for nom in self.par_nom if self._cyclique(nom)}
-        self.propre = set(self.par_nom) - isoles - cycliques
+        self.propre = set(self.par_nom) - cycliques
 
         self.parent_de = {
             nom: self.parent_nom[nom]
