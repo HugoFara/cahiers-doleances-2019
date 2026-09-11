@@ -1,9 +1,10 @@
 # App Gradio : visualisation et annotation
 
-Une page, quatre onglets, sur un seul serveur :
+Une page, cinq onglets, sur un seul serveur :
 
     /          Par commune  parcourir les contributions (texte lu + PDF) et
                activer deux variables (Anonymisé, Contribution d'intérêt)
+               Carte        d'où viennent les cahiers, et quelle taille de commune parle
                Recherche    chercher dans le texte des doléances
                Lecture      ce qu'une grille fait voir du corpus, et ce qu'elle rate
                Thèmes       explorer une grille de thèmes en cliquant les nœuds
@@ -74,6 +75,18 @@ granularité que le corpus permette : encadrer le passage sur l'image demanderai
 la géométrie des lignes, que l'extraction ne produit pas. Quand le cahier est
 introuvable — S3 muet et pas de copie locale — le libellé reste affiché sans
 lien : un lien mort vaut moins que rien.
+
+**Carte** : un point par commune du corpus, aux coordonnées du COG 2019,
+dimensionné par la population de 2019 (racine carrée : l'aire suit la
+population) et coloré au choix par ses doléances, ses doléances pour mille
+habitants ou la part manuscrite de ses pages. Les communes **muettes** — un
+cahier, aucune page lisible — sont des croix grises : les retirer de la carte
+serait un mensonge de plus. Le survol donne population, strate, cahiers,
+pages (manuscrites, transcrites), doléances. Fond Plotly (contours des pays,
+topojson chargé depuis cdn.plot.ly par le navigateur), pas de tuiles : rien
+n'est envoyé à un serveur de cartes. Pas de limites départementales ; c'est
+la première chose à ajouter si la carte sert (contours Admin Express, licence
+ouverte).
 
 **Recherche** : plein texte sur les doléances (`recherche/`). Ses extraits sont
 **caviardés**, quand la vue par commune montre le texte brut — et l'écart est
@@ -146,6 +159,7 @@ Scaleway : certains PDF font 43 Mo, ils ne transitent pas par l'app. Repli sur
 |---|---|
 | `app.py` | assemble le Blocks, expose les routes du graphe, monte le tout |
 | `views/commune.py` | vue « Par commune » : navigation + annotation |
+| `views/carte.py` | vue « Carte » : un point par commune, population 2019, muettes en croix |
 | `views/recherche.py` | vue « Recherche » : plein texte, extraits caviardés, lien vers la page |
 | `views/lecture.py` | vue « Lecture » : parts par thème, dominante, référence, hors grille lisible |
 | `views/graph.py` | vue thèmes : dessin Plotly et réponses JSON, une grille par run |

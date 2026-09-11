@@ -390,6 +390,64 @@ def population_par_doleance() -> pd.DataFrame:
     return pd.read_sql(q, engine)
 
 
+TRANSCRIPTION_SERVIE = "(SELECT id FROM run WHERE kind = 'transcription' AND active)"
+
+
+def communes_pour_carte() -> pd.DataFrame:
+    """Une ligne par commune du corpus : où elle est, sa taille, ce qu'elle a donné.
+
+    Colonnes : ``code, nom, departement, population, latitude, longitude,
+    cahiers, pages, manuscrites, transcrites, lisibles, doleances``. Les
+    ``lisibles`` sont les pages qui ont un texte de lecture : dactylographiées,
+    ou manuscrites transcrites par le run `transcription` actif. Une commune
+    à zéro page lisible est **muette** — son cahier existe, il ne compte pour
+    rien. La population et les coordonnées sont celles du COG 2019.
+    """
+    q = text(f"""
+        WITH pages AS (
+            SELECT k.city_code,
+                   count(*) AS pages,
+                   count(*) FILTER (WHERE p.needs_ocr) AS manuscrites,
+                   count(*) FILTER (
+                       WHERE p.needs_ocr AND EXISTS (
+                           SELECT 1 FROM page_transcription t
+                           WHERE t.page_extraction_id = p.id
+                             AND t.run_id = {TRANSCRIPTION_SERVIE}
+                       )
+                   ) AS transcrites
+            FROM page_extraction p
+            JOIN contribution k ON k.id = p.contribution_id
+            WHERE k.city_code IS NOT NULL
+            GROUP BY k.city_code
+        ),
+        cahiers AS (
+            SELECT city_code, count(DISTINCT pdf_file) AS cahiers
+            FROM contribution WHERE city_code IS NOT NULL GROUP BY city_code
+        ),
+        dol AS (
+            SELECT k.city_code, count(*) AS doleances
+            FROM doleance d JOIN contribution k ON k.id = d.contribution_id
+            WHERE d.run_id = {DECOUPAGE_SERVI}
+            GROUP BY k.city_code
+        )
+        SELECT v.code, coalesce(v.official_name, v.name) AS nom,
+               left(v.code, 2) AS departement,
+               v.population, v.latitude, v.longitude,
+               coalesce(c.cahiers, 0) AS cahiers,
+               coalesce(p.pages, 0) AS pages,
+               coalesce(p.manuscrites, 0) AS manuscrites,
+               coalesce(p.transcrites, 0) AS transcrites,
+               coalesce(p.pages, 0) - coalesce(p.manuscrites, 0) + coalesce(p.transcrites, 0) AS lisibles,
+               coalesce(d.doleances, 0) AS doleances
+        FROM city v
+        LEFT JOIN cahiers c ON c.city_code = v.code
+        LEFT JOIN pages p ON p.city_code = v.code
+        LEFT JOIN dol d ON d.city_code = v.code
+        ORDER BY v.code
+    """)
+    return pd.read_sql(q, engine)
+
+
 def nombre_de_doleances() -> int:
     """Les doléances du découpage servi : le dénominateur de toute part."""
     q = text(f"SELECT count(*) FROM doleance WHERE run_id = {DECOUPAGE_SERVI}")
