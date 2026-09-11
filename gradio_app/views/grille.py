@@ -27,14 +27,18 @@ CAP = 45             # plafond de nœuds dans le voisinage
 APERCU_CAP = 260     # plafond de nœuds dans la vue d'ensemble
 APERCU_ARBRES = 20   # plafond d'arbres dans la vue d'ensemble
 
-# strates de forêt : elles se définissent par la hauteur, comme notre critère
+# Les arbres d'une grille sont groupés par hauteur : la grille d'août a 371
+# racines, on ne les dessine pas toutes sur un cercle. Les libellés disent la
+# hauteur en clair — les noms de strates de forêt (canopée, sous-bois, semis)
+# ne parlaient à personne, retirés le 2026-09-11.
 STRATES = [
     # clé, libellé, test sur la hauteur, part du cercle allouée
-    ("A", "Canopée", lambda h: h >= 5, 0.62),
-    ("B", "Sous-bois", lambda h: 3 <= h <= 4, 0.26),
-    ("C", "Semis", lambda h: h <= 2, 0.12),
+    ("A", "Grands arbres", lambda h: h >= 5, 0.62),
+    ("B", "Arbres moyens", lambda h: 3 <= h <= 4, 0.26),
+    ("C", "Petits arbres", lambda h: h <= 2, 0.12),
 ]
 LIBELLE_STRATE = {cle: lib for cle, lib, _, _ in STRATES}
+HAUTEUR_STRATE = {"A": "5 niveaux et plus", "B": "3 à 4 niveaux", "C": "1 à 2 niveaux"}
 PROF_APERCU = {"A": 2, "B": 3, "C": 3}   # crans dépliés dans l'aperçu, par strate
 APERCU = "— Vue d'ensemble —"            # sentinelle du 1er sélecteur
 

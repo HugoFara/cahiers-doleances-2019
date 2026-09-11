@@ -1,35 +1,13 @@
 /* Styles de la vue commune, chargés via css_paths au montage du Blocks. */
 
-/* --- navigation entre la vue tableau (/) et la vue graphe (/graphe) --- */
+/* --- en-tête : un titre, les onglets font la navigation --- */
 .nav {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
   margin-bottom: 4px;
 }
 
 .nav h1 {
   margin: 0;
-  font-size: 26px;
-}
-
-.nav-lien {
-  padding: 7px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-  color: #4f46e5;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.nav-lien:hover {
-  background: #eef2ff;
-  border-color: #c7d2fe;
+  font-size: 24px;
 }
 
 /* --- avertissement sur les limites du corpus, au-dessus des onglets --- */
@@ -46,7 +24,7 @@
 .avertissement details {
   margin-top: 10px;
   font-size: 14px;
-  color: #52525b;
+  color: var(--body-text-color-subdued);
 }
 
 .avertissement summary {
@@ -62,7 +40,7 @@
 }
 
 .resultat {
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color-primary);
   padding: 10px 0;
 }
 
@@ -72,7 +50,7 @@
 
 .resultat .ref {
   font-weight: 400;
-  color: #71717a;
+  color: var(--body-text-color-subdued);
   font-size: 13px;
   margin-left: 6px;
 }
@@ -81,12 +59,12 @@
    discrète au repos, elle ne doit pas concurrencer le nom de la commune. */
 a.ref {
   text-decoration: none;
-  border-bottom: 1px dotted #a1a1aa;
+  border-bottom: 1px dotted var(--body-text-color-subdued);
 }
 
 a.ref:hover {
-  color: #4f46e5;
-  border-bottom-color: #4f46e5;
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
 }
 
 .resultat .recopie {
@@ -102,6 +80,6 @@ a.ref:hover {
 }
 
 .aide {
-  color: #52525b;
+  color: var(--body-text-color-subdued);
   font-size: 14px;
 }

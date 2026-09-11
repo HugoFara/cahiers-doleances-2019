@@ -15,7 +15,7 @@ def _cadre(src: str, lien: str, page: str) -> str:
         ouvrir += f" ({page})"
     return (
         f'<iframe src="{src}" width="100%" height="640px" '
-        'style="border:1px solid #ddd;border-radius:8px;"></iframe>'
+        'style="border:1px solid var(--border-color-primary);border-radius:8px;"></iframe>'
         f'<p style="margin:6px 0 0"><a href="{lien}" target="_blank" '
         f'rel="noopener">{ouvrir}</a></p>'
     )

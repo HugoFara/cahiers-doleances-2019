@@ -14,16 +14,31 @@ from gradio_app.views import commune, graph, recherche
 STYLE = Path(__file__).parent / "views" / "style.css"
 
 
-# VUE COMMUNES
+# La vue thèmes est une page à part (Plotly et son évènement de clic, que
+# gr.Plot n'expose pas). Elle est intégrée dans un onglet plutôt que reliée par
+# un lien : trois onglets, un en-tête, un avertissement, un thème — passer du
+# sombre de Gradio au clair d'une autre page cassait le fil. Le cadre reçoit
+# le thème de l'hôte par l'URL, posée au chargement (voir plus bas).
+CADRE_GRAPHE = (
+    '<iframe id="cadre-graphe" src="/graphe?integre=1" title="Thèmes" '
+    'style="width:100%;height:960px;border:0;display:block"></iframe>'
+)
+# Le thème de Gradio est celui du système, ou celui forcé par ?__theme= ; la
+# page intégrée ne le connaît pas, on le lui passe.
+JS_THEME_CADRE = """
+() => {
+  const cadre = document.getElementById("cadre-graphe");
+  if (!cadre) return;
+  const sombre = document.body.classList.contains("dark")
+    || !!document.querySelector(".gradio-container.dark")
+    || (new URLSearchParams(location.search).get("__theme") !== "light"
+        && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  cadre.src = "/graphe?integre=1&theme=" + (sombre ? "dark" : "light");
+}
+"""
+
 with gr.Blocks(title="Cahiers de doléances") as demo:
-    # barre de navigation : la vue graphe est une page à part (voir le docstring),
-    # on y accède par un lien plutôt que par un onglet
-    gr.HTML(
-        '<div class="nav">'
-        '<h1>Visualisation des contributions</h1>'
-        '<a class="nav-lien" href="/graphe">Vue graphe des thèmes →</a>'
-        "</div>"
-    )
+    gr.HTML('<div class="nav"><h1>Cahiers de doléances</h1></div>')
 
     # L'avertissement est au-dessus des onglets, pas dans l'un d'eux : ce qu'un
     # site affiche par défaut décide de la lecture, et ces trois phrases valent
@@ -43,7 +58,11 @@ with gr.Blocks(title="Cahiers de doléances") as demo:
     with gr.Tab("Recherche"):
         recherche.render()
 
+    with gr.Tab("Thèmes"):
+        gr.HTML(CADRE_GRAPHE)
+
     demo.load(load_fn, None, load_outputs)
+    demo.load(None, None, None, js=JS_THEME_CADRE)
 
 
 # VUE GRAPH DE TOPIC
@@ -57,7 +76,7 @@ def graphe_config():
 
 
 @app.post("/graphe/api/apercu")
-def graphe_apercu(strate: str = Body(...), grille: int | None = Body(None)):
+def graphe_apercu(strate: str | None = Body(None), grille: int | None = Body(None)):
     return graph.apercu(strate, grille)
 
 
@@ -109,7 +128,9 @@ gr.mount_gradio_app(
     demo,
     path="/",
     allowed_paths=[str(PDF_DIR)],
-    theme=gr.themes.Soft(),
+    # police système des deux côtés : la page thèmes n'a pas la Montserrat de
+    # Gradio, et deux polices pour une app se voient tout de suite
+    theme=gr.themes.Soft(font=["ui-sans-serif", "system-ui", "sans-serif"]),
     css_paths=[STYLE]
 )
 

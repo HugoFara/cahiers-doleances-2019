@@ -1,28 +1,31 @@
 # App Gradio : visualisation et annotation
 
-Deux interfaces sur un seul serveur :
+Une page, trois onglets, sur un seul serveur :
 
-    /          Par commune  parcourir les contributions (texte extrait + PDF) et
+    /          Par commune  parcourir les contributions (texte lu + PDF) et
                activer deux variables (Anonymisé, Contribution d'intérêt)
                Recherche    chercher dans le texte des doléances
-    /graphe    Vue graphe des thèmes  explorer la taxonomie en cliquant les nœuds
+               Thèmes       explorer une grille de thèmes en cliquant les nœuds
+    /graphe    la vue thèmes seule, la même, avec son en-tête (pour un lien)
 
 Les données sont lues **directement dans la base PostgreSQL**, pas de fichier
 intermédiaire. Les PDF viennent de l'Object Storage Scaleway.
 
 ## L'avertissement, avant tout chiffre
 
-Trois phrases en haut de **chacune des deux pages**, visibles sans clic — un
+Trois phrases en haut de la page, au-dessus des onglets, visibles sans clic — un
 avertissement qu'il faut déplier n'est pas un avertissement. Les précisions et
 les sources sont repliées dessous. Tout est calculé, rien n'est écrit en dur : la
 part de pages écartées, les communes sans aucune page lisible avec leur poids en
 habitants, la grille de thèmes servie parmi celles qui coexistent en base, et les
 mentions de source exigées par la Licence Ouverte 2.0.
 
-La vue graphe est servie hors de Gradio, en HTML : l'avertissement y est injecté
-au moment de la requête, dans un gabarit qui porte un `<!--avertissement-->`.
-C'était la page qui en avait le plus besoin — elle montre une taxonomie, donc une
-lecture du corpus, et elle n'affichait rien.
+La vue thèmes est servie hors de Gradio, en HTML : ouverte seule (`/graphe`),
+l'avertissement y est injecté au moment de la requête, dans un gabarit qui
+porte un `<!--avertissement-->` ; intégrée dans l'onglet, elle cache le sien,
+celui de la page hôte vaut pour elle. C'était la page qui en avait le plus
+besoin — elle montre une taxonomie, donc une lecture du corpus, et elle
+n'affichait rien.
 
 Ce n'est pas un scrupule décoratif. Un site de consultation est un acte
 éditorial : « 34 % des contributions parlent de fiscalité » sera lu comme un
@@ -53,7 +56,7 @@ sur la graphie du corpus, puis sur le code seul. Les 144 contributions dont le
 cahier n'a pas de code à la source ont leur propre entrée en fin de liste, plutôt
 que de rester invisibles.
 
-**On peut changer de grille de thèmes depuis la vue graphe.** La base est faite
+**On peut changer de grille de thèmes depuis la vue thèmes.** La base est faite
 pour que plusieurs coexistent — c'est ce qui rend le choix de l'une visible et
 discutable — mais l'app n'en servait qu'une, calculée à l'import. La logique de
 grille est maintenant dans `views/grille.py`, une classe qui reçoit des lignes et
@@ -81,21 +84,35 @@ plus pertinentes du corpus.
 **Une seule grille servie.** Plusieurs grilles de thèmes coexistent en base
 (`database/runs.py`) ; sans filtre l'app les empilerait, et les noms de thèmes —
 uniques dans une grille, pas dans la table — se confondraient. `GRILLE_SERVIE`
-filtre sur la grille active. Ce filtre n'avait été posé que sur la vue graphe :
+filtre sur la grille active. Ce filtre n'avait été posé que sur la vue thèmes :
 **la vue commune cumulait les détections de toutes les grilles**, ce qui ne se
 voyait pas tant qu'une seule était chargée.
 
-**Vue graphe** : la taxonomie et ses détections sont chargées une fois au
-démarrage (6788 topics, 9579 instances) puis servies en JSON. Le graphe est une
-page maison, pas un onglet Gradio : `gr.Plot` n'expose pas d'évènement de clic,
-or on veut naviguer en cliquant les nœuds. Le Blocks est monté sur la même
-FastAPI via `gr.mount_gradio_app`, après les routes du graphe pour que `/` ne
-masque pas `/graphe`.
+**Vue thèmes** : la taxonomie et ses détections sont chargées une fois par
+grille puis servies en JSON. Le graphe est une page maison, pas un composant
+Gradio : `gr.Plot` n'expose pas d'évènement de clic, or on veut naviguer en
+cliquant les nœuds. Elle est **intégrée dans l'onglet « Thèmes »** par un cadre
+(`/graphe?integre=1&theme=…`) : jusqu'au 11 septembre 2026 on y allait par un
+lien, et l'on passait du thème sombre de Gradio à une page claire, avec une
+autre police et une autre navigation. Le cadre reçoit le thème de l'hôte par
+l'URL ; la page suit la palette du thème Gradio « Soft » en clair comme en
+sombre, et la police est celle du système des deux côtés. Le Blocks est monté
+sur la même FastAPI via `gr.mount_gradio_app`, après les routes du graphe pour
+que `/` ne masque pas `/graphe`.
 
-Les arbres sont rangés en **strates** par hauteur (A canopée, B sous-bois,
-C semis) et la couleur donne la **distance à la racine**, pas le `level` de la
-livraison. C'est un outil d'exploration, pas une représentation proportionnelle
-du corpus : voir `analyse/structure_arbres_v3.ipynb` pour les biais assumés.
+La navigation tient en deux lignes : la grille (et, si la grille en peuple
+plusieurs, les **groupes d'arbres par hauteur** : grands, 5 niveaux et plus ;
+moyens, 3 à 4 ; petits, 1 à 2, avec leur nombre d'arbres et leur part des
+détections), puis un **fil d'Ariane** : vue d'ensemble › racine › niveau ›
+… › descendre. La vue s'ouvre sur le premier groupe peuplé ; une grille de
+quatre thèmes n'a qu'un groupe et ne montre pas le sélecteur. Les groupes
+s'appelaient « strates » (canopée, sous-bois, semis) et l'entrée se faisait
+toujours par la canopée, vide sur toute grille peu profonde : renommés et
+corrigés le 2026-09-11. La couleur donne la **distance à la racine**, pas le
+`level` de la livraison. C'est un outil d'exploration, pas une représentation
+proportionnelle du corpus.
+
+`?grille=<run>&noeud=<nom>` ouvre directement une grille, ou un thème dedans.
 
 **PDF** : la base ne stocke que le nom du fichier, S3 le range sous un préfixe.
 On construit l'index nom → clé au premier appel, puis on sert une **URL
@@ -108,9 +125,9 @@ Scaleway : certains PDF font 43 Mo, ils ne transitent pas par l'app. Repli sur
 | `app.py` | assemble le Blocks, expose les routes du graphe, monte le tout |
 | `views/commune.py` | vue « Par commune » : navigation + annotation |
 | `views/recherche.py` | vue « Recherche » : plein texte, extraits caviardés, lien vers la page |
-| `views/graph.py` | vue graphe : dessin Plotly et réponses JSON, une grille par run |
+| `views/graph.py` | vue thèmes : dessin Plotly et réponses JSON, une grille par run |
 | `views/grille.py` | la grille de thèmes comme objet — sans base ni Plotly, donc testée |
-| `views/static/` | page du graphe (`index.html`, `style.css`, `app.js`) |
+| `views/static/` | page des thèmes (`index.html`, `style.css`, `app.js`) : thème, groupes, fil d'Ariane |
 | `views/style.css` | styles du Blocks, chargé via `css_paths` |
 | `data_helpers.py` | requêtes SQL (SQLAlchemy + pandas) et écriture des annotations |
 | `source.py` | le retour à la source : URL du cahier avec l'ancre `#page=N` |
@@ -139,7 +156,7 @@ uv run python -m gradio_app.app   # http://localhost:7860
 ## Limites connues
 
 - L'avertissement de la vue commune est calculé au démarrage, comme la
-  taxonomie ; celui de la vue graphe est recalculé à chaque requête.
+  taxonomie ; celui de la vue thèmes est recalculé à chaque requête.
 - Le sélecteur de grille n'apparaît que s'il y en a plusieurs en base : avec une
   seule, il n'offrirait aucun choix. L'avertissement, lui, annonce toujours
   laquelle est servie. La grille « cadrage gouvernemental 2019 »
@@ -150,7 +167,7 @@ uv run python -m gradio_app.app   # http://localhost:7860
   `graph.oublier_les_grilles()`).
 - `instance.contribution_id` est NULL **pour la livraison analyse actuelle**, dont
   les documents sont numérotés par l'équipe analyse (`doc 73`) sans correspondance
-  en base : la vue graphe affiche cet identifiant source, et la vue commune
+  en base : la vue thèmes affiche cet identifiant source, et la vue commune
   n'affiche pas les thèmes détectés. Les livraisons produites depuis
   `analyse/export_dataset.py` portent l'`id` de la contribution et sont rattachées
   automatiquement par `load_analysis.py` ; les deux vues se rempliront à ce

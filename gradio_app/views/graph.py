@@ -23,6 +23,7 @@ import plotly.graph_objects as go
 from gradio_app.data_helpers import charger_detections, charger_taxonomie, grilles
 from gradio_app.views.grille import (
     APERCU,
+    HAUTEUR_STRATE,
     LIBELLE_STRATE,
     PROF_APERCU,
     PROF_COULEUR,
@@ -84,13 +85,13 @@ def _trace_noeuds(g, noms, pos, seuil, taille, position_texte):
         text=[(n[:24] + "…" if len(n) > 24 else n) if g.rec(n) >= seuil else ""
               for n in noms],
         textposition=position_texte(noms),
-        textfont=dict(size=9, color="#334155"),
+        textfont=dict(size=9),
         customdata=noms,           # récupéré par plotly_click côté front
         hovertext=[f"{n}<br>{g.role(n)} · {g.rec(n)} détections" for n in noms],
         hoverinfo="text", showlegend=False,
         marker=dict(size=[taille(n) for n in noms],
                     color=[g.couleur(n) for n in noms],
-                    line=dict(width=1, color="#ffffff")),
+                    line=dict(width=1)),
     )
 
 
@@ -99,7 +100,8 @@ def _trace_aretes(paires, pos):
     for a, b in paires:
         ex += [pos[a][0], pos[b][0], None]
         ey += [pos[a][1], pos[b][1], None]
-    return go.Scatter(x=ex, y=ey, mode="lines", line=dict(width=1, color="#d1d5db"),
+    # Sans couleur : le front la pose selon le thème, clair ou sombre.
+    return go.Scatter(x=ex, y=ey, mode="lines", line=dict(width=1),
                       hoverinfo="none", showlegend=False)
 
 
@@ -119,7 +121,7 @@ def _mise_en_page(fig, hauteur, egaliser):
     fig.update_layout(
         showlegend=True,
         legend=dict(orientation="v", xanchor="right", x=1, yanchor="bottom", y=0,
-                    bgcolor="rgba(255,255,255,0.75)", bordercolor="#e5e7eb", borderwidth=1),
+                    borderwidth=1),
         xaxis=dict(visible=False),
         yaxis=dict(visible=False, **({"scaleanchor": "x", "scaleratio": 1} if egaliser else {})),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
@@ -200,41 +202,67 @@ def _html_occurrences(g, nom):
     return "<h4>Occurrences dans les textes</h4>" + "".join(blocs)
 
 
-def _tableau_strates(g, strate, total) -> str:
+def _strates(g) -> list[dict]:
+    """Les groupes d'arbres de la grille, avec ce qu'ils pèsent.
+
+    Le front en fait le sélecteur d'entrée : un groupe vide n'y apparaît pas,
+    et un seul groupe peuplé ne donne aucun sélecteur du tout — une grille
+    de quatre thèmes n'a pas à parler de strates.
+    """
+    total = g.detections_totales()
+    return [
+        {
+            "value": cle,
+            "label": LIBELLE_STRATE[cle],
+            "hauteur": HAUTEUR_STRATE[cle],
+            "arbres": len(g.racines_strate[cle]),
+            "part": round(100 * g.detections_strate(cle) / total) if total else 0,
+        }
+        for cle, _lib, _test, _part in STRATES
+    ]
+
+
+def strate_par_defaut(g) -> str:
+    """Le groupe d'entrée : le premier peuplé, dans l'ordre des hauteurs.
+
+    Entrer sur un groupe vide affichait « aucun arbre » à l'ouverture de toute
+    grille peu profonde, la grille gouvernementale par exemple.
+    """
+    return next((cle for cle, _, _, _ in STRATES if g.racines_strate[cle]), "A")
+
+
+def _tableau_strates(g, strate) -> str:
     lignes = []
-    for cle, lib, _test, _part in STRATES:
-        groupe = g.racines_strate[cle]
-        part = round(100 * g.detections_strate(cle) / total) if total else 0
-        courant = " class='ici'" if cle == strate else ""
-        lignes.append(f"<tr{courant}><td>{cle} · {lib}</td>"
-                      f"<td>{g.bornes_hauteur(cle)}</td><td>{len(groupe)}</td>"
-                      f"<td>{part} %</td></tr>")
+    for groupe in _strates(g):
+        courant = " class='ici'" if groupe["value"] == strate else ""
+        lignes.append(f"<tr{courant}><td>{groupe['label']}</td>"
+                      f"<td>{groupe['hauteur']}</td><td>{groupe['arbres']}</td>"
+                      f"<td>{groupe['part']} %</td></tr>")
     return (
-        "<table><thead><tr><th>Strate</th><th>Hauteur</th><th>Arbres</th>"
-        "<th>Signal</th></tr></thead><tbody>" + "".join(lignes) + "</tbody></table>"
+        "<table><thead><tr><th>Groupe</th><th>Hauteur des arbres</th><th>Arbres</th>"
+        "<th>Détections</th></tr></thead><tbody>" + "".join(lignes) + "</tbody></table>"
     )
 
 
 def _html_strate_vide(g, strate):
-    """Aucune racine dans cette strate — fréquent sur une petite grille.
+    """Aucune racine dans ce groupe — fréquent sur une petite grille.
 
     Le tableau reste affiché : il dit où sont les arbres, ce qui est
     précisément l'information qui manque quand l'écran est vide.
     """
-    total = g.detections_totales()
-    peuplees = [cle for cle, _, _, _ in STRATES if g.racines_strate[cle]]
+    peuplees = [LIBELLE_STRATE[cle] for cle, _, _, _ in STRATES if g.racines_strate[cle]]
     ou = (
-        "Les arbres de cette grille sont en strate "
-        + ", ".join(peuplees)
-        + "."
+        "Les arbres de cette grille sont dans le groupe « "
+        + " », « ".join(peuplees)
+        + " »."
         if peuplees
         else "Cette grille ne porte aucun arbre."
     )
     return (
-        f"<h3>Strate {strate} · {LIBELLE_STRATE[strate]} — aucun arbre</h3>"
-        f"<p class='meta'>{ou} La strate se définit par la hauteur des arbres, "
-        "et une grille peu profonde n'en peuple qu'une.</p>"
-        + _tableau_strates(g, strate, total)
+        f"<h3>{LIBELLE_STRATE[strate]} — aucun arbre</h3>"
+        f"<p class='meta'>{ou} Les groupes suivent la hauteur des arbres, "
+        "et une grille peu profonde n'en peuple qu'un.</p>"
+        + _tableau_strates(g, strate)
     )
 
 
@@ -245,15 +273,20 @@ def _html_apercu(g, strate):
     montres = g.racines_apercu(strate)
     keep, _ = g.squelette(PROF_APERCU[strate], montres)
     part = round(100 * dets / total) if total else 0
+    plusieurs = sum(1 for cle, _, _, _ in STRATES if g.racines_strate[cle]) > 1
 
+    titre = f"{LIBELLE_STRATE[strate]} · {HAUTEUR_STRATE[strate]}" if plusieurs else (
+        g.label or "Vue d'ensemble"
+    )
     return (
-        f"<h3>Strate {strate} · {LIBELLE_STRATE[strate]}</h3>"
-        f"<p><b>{len(rs)} arbres · {dets} détections</b> "
-        f"({part} % du signal) · hauteur {g.bornes_hauteur(strate)}</p>"
+        f"<h3>{titre}</h3>"
+        f"<p><b>{len(rs)} arbre(s) · {dets} détections</b>"
+        + (f" ({part} % de la grille)" if plusieurs else "")
+        + f" · hauteur {g.bornes_hauteur(strate)}</p>"
         f"<p class='meta'>Aperçu : les <b>{len(montres)} arbres les plus gros</b> sur {len(rs)}, "
-        f"jusqu'au cran {PROF_APERCU[strate]} sous la racine ({len(keep)} nœuds). "
-        f"Les autres restent accessibles par le sélecteur.</p>"
-        + _tableau_strates(g, strate, total)
+        f"jusqu'au niveau {PROF_APERCU[strate]} sous la racine ({len(keep)} nœuds). "
+        f"Cliquer un nœud pour y entrer ; les autres arbres sont dans le fil d'Ariane.</p>"
+        + (_tableau_strates(g, strate) if plusieurs else "")
         + "<p class='meta'><b>Taille</b> = détections. <b>Couleur</b> = distance à la racine : "
         "toute racine porte la même couleur, quelle que soit la hauteur de son arbre.</p>"
     )
@@ -317,31 +350,32 @@ def config():
     servie = next((g for g in grilles() if g["active"]), None)
     return {
         "apercu": APERCU,
-        "strates": [{"value": cle, "label": f"{cle} · {LIBELLE_STRATE[cle]}"}
-                    for cle in PROF_APERCU],
         "grilles": [{"value": g["id"], "label": _libelle_grille(g)} for g in grilles()],
         "grille": servie["id"] if servie else None,
     }
 
 
 def _reponse(g, strate, chemin):
-    """Le socle commun aux deux vues : grille courante, strate, sélecteurs."""
+    """Le socle commun aux deux vues : grille, groupes d'arbres, fil d'Ariane."""
     return {
         "grille": g.run_id,
         "strate": strate,
+        "strates": _strates(g) if not g.vide else [],
         "niveaux": _cascade(g, chemin, strate) if not g.vide else [],
     }
 
 
-def apercu(strate, run_id=None):
+def apercu(strate=None, run_id=None):
     g = grille(run_id)
+    if strate is None:
+        strate = strate_par_defaut(g)
     if g.vide:
         return {**_reponse(g, strate, []),
                 "figure": {"data": [], "layout": {}},
                 "description": _html_grille_vide(g),
                 "occurrences": ""}
     if strate not in g.racines_strate:
-        return {"erreur": f"strate inconnue : {strate}"}
+        return {"erreur": f"groupe inconnu : {strate}"}
     # Une strate sans racine n'a rien à dessiner, et le layout radial ne sait
     # pas diviser un cercle en zéro part. Le cas ne se voyait pas sur la grille
     # livrée, dont les trois strates sont peuplées ; il apparaît dès qu'on en

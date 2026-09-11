@@ -3,22 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cahiers de doléances — vue topic</title>
+  <title>Cahiers de doléances — thèmes</title>
   <link rel="stylesheet" href="/graphe/style.css">
   <script src="/graphe/plotly.js"></script>
 </head>
 <body>
+  <!-- En mode intégré (?integre=1, dans l'onglet « Thèmes » de l'app), l'en-tête
+       et l'avertissement sont ceux de la page hôte : cachés ici. -->
   <header>
     <div class="nav">
-      <h1>Cahiers de doléances — vue graphe</h1>
-      <a class="nav-lien" href="/">← Contributions par commune</a>
+      <h1>Cahiers de doléances — thèmes</h1>
+      <a class="nav-lien" href="/">← Communes et recherche</a>
     </div>
-    <!-- rempli par app.js : palier, racine, puis un sélecteur par cran du chemin -->
-    <div id="barre"></div>
   </header>
 
   <!--avertissement-->
 
+  <!-- rempli par app.js : la grille et, s'il y en a plusieurs, les groupes d'arbres -->
+  <div id="outils"></div>
+  <!-- le fil d'Ariane : vue d'ensemble › racine › … › descendre -->
+  <nav id="fil" aria-label="Fil d'Ariane"></nav>
   <p id="etat">Chargement…</p>
 
   <main>
