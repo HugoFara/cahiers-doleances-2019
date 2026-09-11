@@ -1304,6 +1304,43 @@ celle du squelette, à l'identique.
 
 ---
 
+## 2026-09-11 — Le compte rendu du POC est lu : ce que la branche garde, renverse, ou laisse à trancher
+
+**Décision.** Les huit faits du compte rendu du POC qui ne figuraient nulle
+part dans le repo sont consignés en tête du plan (« Ce que le POC avait
+décidé »), et deux priorités changent :
+- la **grille de l'association** passe avant les détections par modèle. Le
+  POC avait conclu qu'une taxonomie définie avec l'association était un
+  préalable ; les deux grilles du repo, émergente et cadrage gouvernemental
+  2019, n'en tiennent pas lieu. Elles restent : l'une mesure ce que le corpus
+  dit de lui-même, l'autre ce que le cadrage de 2019 lui fait dire ;
+- **l'endpoint Scaleway** (Qwen 3.5-35B-A3B, mis à disposition par Data For
+  Good) est à retrouver avant de bâtir un hébergement de plus en local. S'il
+  est encore ouvert, la question d'hébergement de la P3 a une réponse en
+  Union européenne, sous contrôle associatif.
+
+**Périmètre.** La documentation et l'ordre des chantiers. Aucun code, aucune
+donnée.
+
+**Motif.** Un plan écrit sans le mandat du commanditaire répondait à des
+questions que le POC avait choisi de ne pas poser (exhaustivité, publication)
+et ignorait ce qui avait été tranché (taxonomie avec l'association, données
+sous NDA). Les faits sont consignés par rôle, sans recopier le document, qui
+nomme des bénévoles et des liens privés.
+
+**Ce que ça change, et ce que ça ne change pas.** La passe HTR reste
+justifiée, pour une autre raison : une curation de « coups de cœur » ne doit
+pas se faire dans la seule moitié dactylographiée. Le texte de lecture, les
+runs, l'étalon de découpage ne bougent pas. La publication du journal « avec
+le corpus » devient une hypothèse à valider avec l'association : tant que la
+donnée est sous NDA, tout ce qui est écrit ici suppose un usage interne.
+
+**Réversibilité.** Totale : c'est de la documentation.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs
@@ -1320,4 +1357,6 @@ celle du squelette, à l'identique.
 - La normalisation orthographique, si une version normalisée est ajoutée pour la
   recherche — et la garantie que la version de référence, elle, n'est pas touchée.
 - Le périmètre publié : ce qui est mis en ligne, ce qui reste consultable sur
-  place seulement.
+  place seulement. Depuis le 2026-09-11, la question est d'abord celle du NDA
+  qui couvre la donnée remise à l'association.
+- La grille de thèmes de l'association, à définir avec elle (POC, section 6).

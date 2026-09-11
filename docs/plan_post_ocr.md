@@ -11,6 +11,68 @@ contribution par page*, donc `export_dataset.py` envoie *un document = une page*
 page de registre porte souvent plusieurs contributeurs, et une doléance longue court sur
 plusieurs pages. Ni la page ni le cahier entier ne sont « ce qu'a écrit une personne ».
 
+## Ce que le POC avait décidé, et qu'il faut savoir avant de lire la suite
+
+Lu le 2026-09-11 dans le compte rendu du POC (document interne de l'association
+et de Data For Good, non versionné ici : il nomme des bénévoles et des liens
+privés). Huit faits que le repo ne disait nulle part, et pour chacun ce que
+cette branche en fait : gardé, renversé, ou à trancher.
+
+1. **Le commanditaire et la finalité.** L'association Décider et Agir, pour la
+   présidentielle 2027 : mettre en avant des thèmes médiatiquement délaissés et
+   les mécanismes de démocratie participative. En cours de POC, le produit est
+   devenu une mise en valeur individuelle, les « coups de cœur des cahiers »,
+   ce qui a explicitement levé la contrainte d'exhaustivité. Les cases
+   « d'intérêt » et « anonymisé » de l'app sont ce workflow de curation.
+   *Gardé, mais l'argument de la couverture change* : reprendre le manuscrit ne
+   sert pas d'abord la représentativité, il sert à ne pas choisir les coups de
+   cœur parmi la seule moitié dactylographiée.
+2. **La donnée n'est pas publique.** Les cahiers ont été remis à des
+   associations sur clés USB ; les bénévoles ont signé un NDA. Le journal se
+   dit « destiné à être publié avec le corpus » et la P4 parle de commun
+   numérique : c'était un souhait du POC, pas un acquis. Une app Gradio exposée
+   publiquement exposerait la donnée. *À trancher avec l'association* : ce qui
+   peut sortir, sous quelle forme. En attendant, tout ce qui est écrit ici
+   suppose un usage interne.
+3. **Le corpus en base est un échantillon** : trois départements (01 : 232
+   cahiers, 28 : 152, 53 : 132), sur environ 19 935 communes au national. Tous
+   les chiffres de ce plan portent sur ces 516 cahiers. Le « 1 500 € » cité plus
+   bas vient de là : 7 centimes par document en VLM, multiplié par 19 935.
+4. **Un endpoint Scaleway avec Qwen 3.5-35B-A3B a été mis à disposition** par
+   Data For Good pendant le POC. C'est la réponse possible à la question
+   d'hébergement que ce plan repose à chaque étape (modèle en Union européenne,
+   sous le contrôle de l'association), et il n'est configuré nulle part dans le
+   repo. *À retrouver avant de bâtir autre chose en local.*
+5. **Trois types de contenu, pas deux** : texte natif (PyMuPDF), imprimé scanné
+   (PaddleOCR, score observé ~0,99), manuscrit (VLM ; Qwen 3.5 4B lit une partie
+   des écritures, 9B mieux, 3.7 plus « quasi parfait »). Les pages « suspectes »
+   de `with_ocr` sont probablement le deuxième type. Les cahiers Chabin
+   servaient de référence pour comparer les OCR ; ils viennent de Charente et
+   ne sont pas dans nos PDF. *Gardé* : la référence OCR reste à construire sur
+   notre corpus (`reference/`).
+6. **La séparation en contributions est le point dur reconnu.** Avec le texte
+   seul, « ne fonctionne pas » ; avec un VLM comparant les écritures, pas avec
+   des petits modèles. `segmentation/` fait précisément ce que le POC avait
+   écarté, mais avec un étalon pour le mesurer, ce que le POC n'avait pas.
+   *Gardé, sous condition* : l'étalon décide.
+7. **La taxonomie doit être définie avec l'association**, jugée « préalable
+   indispensable » contre l'auto-découverte, parce que deux LLM ou deux
+   passages classent différemment sans référentiel commun. Ni la grille
+   émergente ni le cadrage gouvernemental 2019 ne sont cette grille. Le cahier
+   des charges de l'association existe. *Renversé dans l'ordre des priorités* :
+   la grille de l'association passe avant les détections par modèle.
+8. **L'anonymisation** était « nécessaire à terme, possiblement manuelle ». Le
+   pôle Tech a conseillé un outil de désidentification multilingue à poids
+   ouverts (collection OpenMed sur Hugging Face), qui tourne en local. *Gardé* :
+   c'est un candidat pour la reconnaissance d'entités de la P3.
+
+Trois choix implicites en découlent, que la branche avait hérités sans les
+voir : *une contribution est une page* (conséquence du point 6, pas une
+décision) ; *pas d'exhaustivité*, donc pas d'OCR du manuscrit ni de mesure de
+couverture (point 1) ; *pas d'anonymisation*, parce que NDA et usage interne
+(point 2). Le premier est traité, le deuxième assumé pour la raison dite au
+point 1, le troisième tient tant que rien ne sort.
+
 ## Le principe d'organisation
 
 Choisir des thèmes est déjà une décision. On ne peut pas l'éviter ; on peut la
@@ -82,7 +144,9 @@ trois choses, et la troisième est bloquante :
 ## Ce que coûte l'OCR
 
 **Chiffré le 2026-09-10.** L'équipe initiale avait estimé l'OCR du corpus à
-environ **1 500 €** (chiffre rapporté, non retrouvé dans le repo). Aux prix
+environ **1 500 €** (retrouvé le 2026-09-11 dans le compte rendu du POC : 7
+centimes par document en VLM, sur les 19 935 communes du national ; notre base
+n'en porte que trois départements). Aux prix
 2026 des modèles de documents, ce chiffre est dépassé d'un facteur 50 à 100,
 et c'est un argument décisif pour reprendre le manuscrit :
 
