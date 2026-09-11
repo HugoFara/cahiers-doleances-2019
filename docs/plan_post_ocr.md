@@ -273,7 +273,8 @@ en UE, formats IIIF / ALTO / EAD).
 | Types de support et d'auteur | à faire |
 | Déduplication | fait — 3 % des doléances, `doublons/` |
 | Anonymisation : passe de formes | fait — `anonymisation/` ; 88 % des doléances touchées |
-| Anonymisation : NER, rappel mesuré, occultation image | à faire — **le point dur** |
+| Anonymisation : NER | fait le 2026-09-11 — `anonymisation/ner.py`, CamemBERT-NER en local sur CPU ; noms 1 309 -> 3 582 sur le découpage servi |
+| Anonymisation : rappel mesuré, occultation image | à faire — **le point dur** ; le rappel attend l'étalon annoté, l'image attend la géométrie |
 | Métriques de taxonomie, catégorie « hors grille » | à faire |
 | Recherche plein texte et vectorielle | à faire — **le seul item encore entièrement faisable côté code** |
 | Couverture et représentativité | fait — pondérée par population, `insee/` et `couverture/` |

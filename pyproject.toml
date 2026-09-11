@@ -35,6 +35,19 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff", "ty"]
+# La reconnaissance d'entités nommées (anonymisation/ner.py) : un modèle de
+# token classification en local, sur CPU. Lourd (torch), donc optionnel :
+# `uv sync --extra ner`. torch vient de l'index CPU de PyTorch, pas de PyPI,
+# dont la roue embarque CUDA (plusieurs Go) pour rien ici.
+ner = ["transformers>=4.50", "torch>=2.8", "sentencepiece>=0.2", "protobuf>=4"]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.setuptools.packages.find]
 include = ["anonymisation*", "couverture*", "database*", "doublons*", "extraction*", "gradio_app*", "insee*", "reference*", "segmentation*"]

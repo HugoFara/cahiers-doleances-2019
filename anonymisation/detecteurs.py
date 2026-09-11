@@ -27,11 +27,15 @@ ADRESSE = "adresse"
 NOM = "nom"
 ROLE_PUBLIC = "role_public"
 INSTITUTION = "institution"
+# Produit par la reconnaissance d'entités nommées (`ner.py`) : un lieu cité.
+LIEU = "lieu"
 
-# Genres qui ne sont pas des données personnelles : une adresse de mairie ou une
-# fonction publique n'a pas à être occultée, et l'occulter viderait les textes de
-# leur objet. Ils l'emportent sur les autres genres lors de la fusion.
-NON_PERSONNELS = frozenset({ROLE_PUBLIC, INSTITUTION})
+# Genres qui ne sont pas des données personnelles : une adresse de mairie, une
+# fonction publique ou un lieu cité n'ont pas à être occultés, et les occulter
+# viderait les textes de leur objet. Ils l'emportent sur les autres genres lors
+# de la fusion. Le lieu qui identifie à lui seul (« la seule infirmière du
+# village ») est la réidentification contextuelle du plan, hors de portée ici.
+NON_PERSONNELS = frozenset({ROLE_PUBLIC, INSTITUTION, LIEU})
 
 
 @dataclass(frozen=True)
@@ -61,9 +65,7 @@ _EMAIL_INSTITUTION = re.compile(
 
 # Numéros français, avec les séparateurs qu'on trouve dans les cahiers :
 # 06 12 34 56 78, 06.12.34.56.78, 0612345678, +33 6 12 34 56 78.
-_TELEPHONE = re.compile(
-    r"(?<!\d)(?:\+33[\s.-]?|0)\d(?:[\s.-]?\d{2}){4}(?!\d)"
-)
+_TELEPHONE = re.compile(r"(?<!\d)(?:\+33[\s.-]?|0)\d(?:[\s.-]?\d{2}){4}(?!\d)")
 
 _IBAN = re.compile(r"\bFR\d{2}(?:[\s]?[A-Z0-9]{4}){5}[\s]?[A-Z0-9]{3}\b")
 
@@ -159,7 +161,9 @@ def signatures(texte: str) -> list[Passage]:
         if propre and len(propre) <= LONGUEUR_SIGNATURE and _ressemble_a_un_nom(propre):
             decalage = len(ligne) - len(ligne.lstrip())
             trouves.append(
-                Passage(debut + decalage, debut + decalage + len(propre), NOM, "signature")
+                Passage(
+                    debut + decalage, debut + decalage + len(propre), NOM, "signature"
+                )
             )
         position = debut - 1  # le saut de ligne
     return sorted(trouves, key=lambda p: p.debut)

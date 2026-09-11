@@ -590,6 +590,60 @@ passe, l'autre qui a pris une décision.
 
 ---
 
+## 2026-09-11 — Les noms cités sans marqueur sont repérés par un modèle, en local
+
+**Décision.** La passe d'anonymisation gagne une reconnaissance d'entités
+nommées (`anonymisation/ner.py`, `--ner`) : `Jean-Baptiste/camembert-ner`,
+CamemBERT affiné sur WikiNER, exécuté en local sur CPU. Les personnes
+deviennent des passages `nom` (caviardés), les lieux `lieu` et les
+organisations `institution` (non caviardés). Chaque passage porte son
+détecteur (`ner:<modèle>`) : la NER et les formes s'auditent séparément dans
+le même run. Le seuil des personnes est à 0,4, celui des lieux et
+organisations à 0,6.
+
+**Périmètre.** Le repérage. Ni la politique de caviardage, ni le rappel, qui
+reste à mesurer.
+
+**Motif.** Le plan tenait la NER pour le point dur de la P3, bloquée sur la
+décision d'hébergement. Elle est prise depuis ce matin pour les scans, en
+local, et vaut pour les noms. Le modèle est choisi sur mesure, contre les
+modèles de désidentification conseillés pendant le POC (collection OpenMed) :
+sur 25 doléances tirées au sort, le plus gros d'entre eux (434M, entraîné sur
+des données synthétiques de formulaires) mettait neuf fois plus de temps,
+rendait des centaines d'« adresses Litecoin » et de « mots de passe », et
+coupait les noms en sous-mots. CamemBERT-NER rendait des personnes entières,
+84 contre 29 par la passe de formes. Le seuil bas est le sens de l'erreur du
+module : un faux positif coûte un mot, un nom manqué est une fuite.
+
+**Ce que ça donne, mesuré.** Sur les 1 002 doléances du découpage servi : 19 306
+passages dans 968 doléances (97 %), contre 4 164 dans 884 pour les formes
+seules. Les noms passent de 1 309 à 3 582 ; 196 doléances où aucun nom
+n'était repéré en ont désormais au moins un. Téléphones, courriels, adresses
+et liens : inchangés, parce qu'une première passe combinée en perdait (214
+adresses sur 255, le modèle voyant un lieu là où la forme voyait une adresse)
+et que la règle de combinaison a été corrigée avant de garder le run. Lieux :
+9 260, organisations : 3 827, non caviardés. 8 min 40 s sur CPU.
+
+**Alternatives écartées.** Un LLM par consigne (Ollama sur le GPU) : plus
+souple, non déterministe, et le GPU transcrit le manuscrit jusqu'à minuit.
+Les modèles OpenMed : ci-dessus. Caviarder aussi les lieux : viderait les
+textes de leur objet, un lieu n'est pas une donnée personnelle en soi ; le
+lieu qui identifie à lui seul relève de la réidentification contextuelle, à
+traiter autrement.
+
+**Ce que ça ne règle pas.** Le rappel, sans échantillon annoté. Les
+personnalités publiques nommées (« Macron ») sont des personnes pour le
+modèle et sont caviardées comme les autres : la règle « dans leur rôle, on ne
+cache pas » reste à consigner, et c'est la relecture qui les rend pour
+l'instant. L'occultation sur l'image, sans géométrie.
+
+**Réversibilité.** Un run ; le précédent (formes seules) reste en base,
+comparable. Désactiver le nouveau ramène à l'ancien.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le choix des grilles de thèmes, et le statut donné à chacune.

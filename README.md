@@ -223,13 +223,16 @@ extraction  ->  page_extraction  ->  segmentation  ->  doleance
 
 ```bash
 uv run python -m anonymisation --auteur "prénom nom"
+uv sync --extra ner && uv run python -m anonymisation --ner   # + entités nommées, en local
 ```
 
-**88 % des doléances contiennent au moins un passage repéré** — nom, courriel,
-téléphone, adresse. Ce n'est pas une anonymisation : les noms cités sans
-marqueur ne sont pas vus, le rappel n'est pas mesuré, et rien n'est occulté sur
-les images. Rien ici ne permet de déclarer une doléance publiable ; voir
-[anonymisation/README.md](anonymisation/README.md) pour ce qui manque.
+**97 % des doléances contiennent au moins un passage repéré** : nom, courriel,
+téléphone, adresse, et depuis le 11 septembre 2026 les noms cités au fil du
+texte, par un modèle d'entités nommées qui tourne sur la machine (rien ne
+sort). Ce n'est pas une anonymisation : le rappel n'est pas mesuré, et rien
+n'est occulté sur les images. Rien ici ne permet de déclarer une doléance
+publiable ; voir [anonymisation/README.md](anonymisation/README.md) pour ce
+qui manque.
 
 La table ne contient que des offsets — le texte d'origine reste intact et fait
 foi, le caviardage est produit à la lecture.
