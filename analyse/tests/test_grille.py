@@ -126,3 +126,42 @@ class TestCadrageGouvernemental2019:
     def test_elle_se_charge(self, session):
         run = charger(session, CADRAGE, auteur="x")
         assert session.query(Topic).filter(Topic.run_id == run.id).count() == 24
+
+
+VRAI_DEBAT = Path(__file__).resolve().parents[1] / "grilles" / "vrai_debat_2019.json"
+
+
+class TestVraiDebat2019:
+    """La grille du Vrai Débat : neuf rubriques, à plat, libellés reproduits."""
+
+    @pytest.fixture
+    def vrai_debat(self) -> dict:
+        return lire_grille(VRAI_DEBAT)
+
+    def test_les_neuf_rubriques_de_la_plateforme_dans_son_ordre(self, vrai_debat):
+        assert [t["name"] for t in vrai_debat["topics"]] == [
+            "Démocratie, Institutions",
+            "Transition écologique & solidaire, Agriculture & Alimentation, Transport",
+            "Justice, Police, Armée",
+            "Europe, Affaires étrangères, Outre-mer",
+            "Santé, Solidarité, Handicap",
+            "Économie, Finances, Travail, Comptes publics",
+            "Éducation, Jeunesse, Enseignement supérieur, Recherche et Innovation",
+            "Sport, Culture",
+            "Expression Libre & sujets de société",
+        ]
+
+    def test_elle_est_plate(self, vrai_debat):
+        """Une rubrique par proposition sur la plateforme : pas de sous-thèmes."""
+        assert all(t["parent"] is None for t in vrai_debat["topics"])
+
+    def test_la_source_est_nommee_et_datee(self, vrai_debat):
+        assert vrai_debat["source"]["url"].startswith("https://levraidebat.org/")
+        assert vrai_debat["source"]["consultee_le"]
+
+    def test_rien_n_est_marque_valide_d_avance(self, vrai_debat):
+        assert not any(t["validated"] for t in vrai_debat["topics"])
+
+    def test_elle_se_charge(self, session):
+        run = charger(session, VRAI_DEBAT, auteur="x")
+        assert session.query(Topic).filter(Topic.run_id == run.id).count() == 9

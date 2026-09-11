@@ -134,6 +134,12 @@ trois choses, et la troisième est bloquante :
   quatre thèmes et les vingt questions de la Lettre aux Français, reproduits mot
   pour mot, chargés en run non actif. Il lui manque ses détections, qui
   demandent un modèle — donc la P3.
+  **Une troisième depuis le 2026-09-11**, `vrai_debat_2019.json` : les neuf
+  rubriques de la plateforme des gilets jaunes, à plat, avec leur distribution
+  de référence (économie 31 %, démocratie 20 %, écologie 16 %, santé 10 %).
+  Les deux grilles de cadrage ont leurs détections par mots-clés, étalon bas
+  d'un futur modèle ; trois lectures chiffrées du même corpus, c'est ce qu'il
+  faut apporter à l'atelier de grille avec l'association.
 - **Une catégorie « hors grille » visible, avec son volume.** C'est la seule
   façon de voir ce que la grille ne capte pas. À afficher à côté de tout
   comptage.

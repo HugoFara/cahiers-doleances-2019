@@ -68,6 +68,33 @@ touche presque tout. Quatre requêtes ont été élaguées après mesure, dont
 lui-même (334 et 267 doléances) ; le lexique le consigne. Aucune détection sur
 les racines : `taxonomie/` compte 4 thèmes sans détection, c'est voulu.
 
+**Une troisième grille, celle de l'autre camp : le Vrai Débat 2019.**
+`grilles/vrai_debat_2019.json` reproduit les neuf rubriques de la plateforme
+lancée par des gilets jaunes en janvier 2019 (même moteur que granddebat.fr),
+libellés tels quels, à plat : l'auteur d'une proposition en choisissait une
+seule. Elle a ce que les deux autres n'ont pas, une **distribution de
+référence** (25 000 propositions : économie 31 %, démocratie 20 %, transition
+écologique 16 %, santé 10 %), donc une question à poser au corpus : les gens
+qui écrivent en mairie parlent-ils de la même chose que ceux qui déposaient en
+ligne ? Son lexique, `grilles/vrai_debat_2019.mots_cles.json`, suit les
+périmètres ministériels des rubriques, pas le propos, et consigne ce qui a
+été écarté après mesure (« maire » et « président », l'adresse de la lettre ;
+« loyer », que la configuration sans accent réduit à « loi »).
+
+```bash
+uv run python -m analyse.grille analyse/grilles/vrai_debat_2019.json
+uv run python -m analyse.mots_cles analyse/grilles/vrai_debat_2019.mots_cles.json
+```
+
+Mesuré le 2026-09-11 sur les mêmes 1 002 doléances dactylographiées : **639
+rattachées (64 %), 3 158 rattachements, 4,9 rubriques par doléance**, 45 %
+des doléances rattachées touchent six rubriques ou plus, texte couvert 13 %.
+Les rubriques par volume de doléances : démocratie 512, économie 509,
+écologie 398, santé 394, expression libre 346, éducation 298, Europe 277,
+justice 251, sport et culture 173. La comparaison avec les parts du Vrai
+Débat n'est pas directe (une rubrique par proposition là-bas, 4,9 par
+doléance ici) ; elle le deviendra avec un rattachement qui choisit.
+
 ## Exporter le corpus pour l'analyse
 
 `analyse/export_dataset.py` écrit le CSV `id,content` attendu par

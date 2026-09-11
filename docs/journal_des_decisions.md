@@ -864,6 +864,68 @@ rejoue en une commande sur le corpus complet une fois le manuscrit transcrit.
 
 ---
 
+## 2026-09-11 — La grille du Vrai Débat est la troisième, pour avoir un point de comparaison
+
+**Décision.** Une troisième grille de cadrage, `analyse/grilles/vrai_debat_2019.json` :
+les neuf rubriques de la plateforme lancée par des gilets jaunes le 30 janvier
+2019 (Démocratie et institutions ; Transition écologique, agriculture,
+transport ; Justice, police, armée ; Europe, affaires étrangères, outre-mer ;
+Santé, solidarité, handicap ; Économie, finances, travail, comptes publics ;
+Éducation, jeunesse, recherche ; Sport, culture ; Expression libre), libellés
+et ordre reproduits, à plat. Son lexique de mots-clés et son run de
+rattachement, non actif, suivent exactement le modèle du cadrage
+gouvernemental. Les quatre « blocs » de l'analyse LERASS / Triangle n'y sont
+pas : ce sont des résultats, pas une grille.
+
+**Périmètre.** Une grille et ses détections lexicales. Rien de ce qui est
+servi ne change.
+
+**Motif.** Une grille sans point de comparaison ne dit rien du corpus. Celle-ci
+est la seule des trois à venir avec une **distribution de référence** :
+25 000 propositions, économie 31 %, démocratie 20 %, écologie 16 %, santé
+10 %, les cinq autres autour de 5 %. Elle pose donc une question que
+l'association se pose vraiment : les gens qui écrivent en mairie parlent-ils
+de la même chose que ceux qui déposaient en ligne ? Et elle vient de l'autre
+camp que la Lettre aux Français, ce qui rend le cadrage gouvernemental
+discutable par contraste, au lieu de le laisser seul.
+
+**Ce qu'elle a contre elle, dit d'avance.** Ses rubriques sont des
+périmètres ministériels, pas des problèmes : la taxe carbone et le prix du
+carburant, les deux camps de 2018, tombent dans la même case ; la fiscalité
+n'a pas de rubrique à elle ; les services publics de proximité, vraisemblable
+premier sujet de nos trois départements ruraux, sont éclatés sur quatre
+rubriques ; le logement n'en a aucune (placé en expression libre, choix
+consigné dans le lexique). Elle classait des propositions d'une phrase, une
+rubrique par proposition ; nos doléances font 750 mots.
+
+**Mesuré** (`taxonomie/`, 2026-09-11, 1 002 doléances dactylographiées) :
+639 rattachées (64 %), 3 158 rattachements, **4,9 rubriques par doléance**,
+45 % des doléances rattachées en touchent six ou plus, 13 % du texte couvert.
+Par rubrique : démocratie 512, économie 509, écologie 398, santé 394,
+expression libre 346, éducation 298, Europe 277, justice 251, sport et
+culture 173. Ce n'est pas encore comparable aux parts du Vrai Débat, une
+rubrique par proposition là-bas ; ça le deviendra avec un rattachement qui
+choisit une rubrique dominante, et c'est alors le premier résultat
+publiable du projet.
+
+**Élagué après mesure.** « maire » (531 doléances) et « président » (345) :
+l'adresse de la lettre, pas un thème. Et quatre mots que la configuration de
+recherche sans accent confond avec un autre : « loyer » se réduit à « loi »,
+« aidants » à « aide », « environnement » à « environ », « voile » à
+« voilà ». C'est une limite de l'étalon bas à connaître : un lexique se
+vérifie radical par radical, pas mot par mot.
+
+**Alternatives écartées.** Les quatre blocs LERASS comme grille : ce sont
+les conclusions d'une analyse, les adopter reviendrait à en importer le
+résultat. Fusionner les deux cadrages en une grille : on perdrait la
+comparaison, qui est tout l'intérêt.
+
+**Réversibilité.** Totale : deux runs non actifs, supprimables.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs

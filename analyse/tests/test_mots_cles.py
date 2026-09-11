@@ -224,3 +224,24 @@ class TestLexiqueCadrage2019:
         for requete in lexique["requetes"].values():
             assert "doléances" not in requete.lower()
             assert "grand débat" not in requete.lower()
+
+
+class TestLexiqueVraiDebat2019:
+    """Le lexique du Vrai Débat vise ses neuf rubriques, et ne nomme pas le document."""
+
+    def test_le_lexique_vise_les_9_rubriques_de_la_grille(self):
+        lexique = lire_lexique(GRILLES / "vrai_debat_2019.mots_cles.json")
+        grille = mots_cles.lire_grille(GRILLES / lexique["grille"])
+        verifier_cibles(lexique, grille)
+        assert set(lexique["requetes"]) == {t["id"] for t in grille["topics"]}
+        assert len(lexique["requetes"]) == 9
+
+    def test_aucune_requete_ne_nomme_le_document_ni_son_contexte(self):
+        """Le corpus parle de lui-même et des gilets jaunes : ce n'est pas un thème."""
+        lexique = lire_lexique(GRILLES / "vrai_debat_2019.mots_cles.json")
+        for requete in lexique["requetes"].values():
+            bas = requete.lower()
+            assert "doléances" not in bas
+            assert "grand débat" not in bas
+            assert "vrai débat" not in bas
+            assert "gilets jaunes" not in bas
