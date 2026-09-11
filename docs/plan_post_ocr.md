@@ -302,7 +302,7 @@ en UE, formats IIIF / ALTO / EAD).
 | Standards IIIF / ALTO / EAD, export en masse | à faire |
 | Avertissements et couverture affichés dans l'app | fait — les deux vues, `gradio_app/avertissements.py` |
 | Changer de grille depuis l'app | à faire — demande de paramétrer `views/graph.py` par run |
-| Grille « cadrage gouvernemental 2019 » | définie — `analyse/grilles/`, 4 thèmes, 20 questions ; **sans détections** tant qu'il n'y a pas de modèle |
+| Grille « cadrage gouvernemental 2019 » | définie — `analyse/grilles/`, 4 thèmes, 20 questions ; détections **par mots-clés** depuis le 2026-09-11 (`analyse/mots_cles.py`, run à part : 65 % des doléances, 7,4 questions chacune — étalon bas) ; un modèle attend la P3 |
 
 **Ce que le découpage donne aujourd'hui** : sur les 2 855 pages de
 `topic-builder/data/cahiers/dataset.csv`, **1 002 doléances** dans 469 cahiers,

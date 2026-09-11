@@ -1,0 +1,27 @@
+{
+  "grille": "cadrage_gouvernemental_2019.json",
+  "detecteur": "mots-clés",
+  "note": "Un jeu de mots-clés par question de la Lettre aux Français, syntaxe websearch_to_tsquery (les mots s'ajoutent, `or` alterne, les guillemets font une expression), sur la configuration sans accent de recherche/. Choix éditoriaux, non validés : ils servent d'étalon bas — ce qu'un rattachement sans modèle sait faire — pas de lecture de référence. Une doléance est rattachée à la question dès qu'un terme y apparaît, sans pondération. Écartés après mesure du 2026-09-11 : « cahier de doléances » et « grand débat » (le document se nomme lui-même, 334 et 267 doléances), « consultation » (médicale aussi), « Europe » / « européen » seuls (141 et 169, toute l'UE), « assemblées » seul (166).",
+  "requetes": {
+    "gd2019-fiscalite-01": "impôt or taxe or fiscalité or fiscal or TVA or CSG or ISF or \"taxe d'habitation\" or \"impôt sur le revenu\" or \"taxe foncière\"",
+    "gd2019-fiscalite-02": "économies or gaspillage or \"dépenses publiques\" or \"dépense publique\" or \"train de vie\" or \"réduire les dépenses\" or \"argent public\"",
+    "gd2019-fiscalite-03": "\"service public\" or \"services publics\" or hôpital or école or \"la poste\" or gendarmerie or \"maison de services\" or maternité or trésorerie",
+    "gd2019-fiscalite-04": "\"pacte social\" or solidarité or retraite or \"sécurité sociale\" or chômage or RSA or \"aides sociales\" or \"aide sociale\" or allocation or \"minimum vieillesse\" or handicap",
+    "gd2019-etat-01": "échelon or \"mille-feuille\" or millefeuille or décentralisation or intercommunalité or \"communauté de communes\" or département or région or \"fusion des communes\" or \"conseil départemental\" or \"conseil régional\"",
+    "gd2019-etat-02": "administration or fonctionnaire or bureaucratie or \"haut fonctionnaire\" or \"hauts fonctionnaires\" or simplification or dématérialisation or démarches or \"réforme de l'État\"",
+    "gd2019-etat-03": "rural or ruralité or \"zone rurale\" or \"zones rurales\" or \"désert médical\" or \"déserts médicaux\" or \"petites communes\" or \"petite commune\" or enclavement or \"milieu rural\" or campagne or \"quartiers\"",
+    "gd2019-ecologie-01": "\"taxe carbone\" or \"transition écologique\" or pollueur or \"pollueur payeur\" or carburant or gazole or diesel or essence or \"prix du carburant\" or kérosène",
+    "gd2019-ecologie-02": "chaudière or \"voiture électrique\" or \"véhicule électrique\" or isolation or rénovation or \"prime à la conversion\" or \"crédit d'impôt\" or \"aide à la rénovation\" or \"panneaux solaires\" or \"pompe à chaleur\"",
+    "gd2019-ecologie-03": "\"transport en commun\" or \"transports en commun\" or covoiturage or train or TER or \"ligne de train\" or \"circuit court\" or \"circuits courts\" or bio or \"agriculture locale\" or \"produits locaux\" or chauffage or \"se chauffer\"",
+    "gd2019-ecologie-04": "scientifique or science or GIEC or \"échelon européen\" or \"niveau européen\" or \"accord de Paris\" or \"réchauffement climatique\" or climat or \"échelle européenne\"",
+    "gd2019-democratie-01": "\"vote blanc\" or \"vote obligatoire\" or abstention or \"votes blancs\"",
+    "gd2019-democratie-02": "proportionnelle or législatives or \"mode de scrutin\" or scrutin or \"représentation proportionnelle\"",
+    "gd2019-democratie-03": "\"nombre de députés\" or \"nombre de parlementaires\" or \"nombre d'élus\" or \"réduire le nombre\" or \"trop d'élus\" or parlementaire or \"nombre de sénateurs\" or \"moins de députés\"",
+    "gd2019-democratie-04": "Sénat or sénateur or CESE or \"conseil économique\" or \"assemblée nationale\" or \"deuxième chambre\" or \"seconde chambre\"",
+    "gd2019-democratie-05": "\"participation citoyenne\" or \"démocratie participative\" or participatif or concertation or \"conseil citoyen\" or \"budget participatif\" or \"consultation citoyenne\" or \"consultation des citoyens\"",
+    "gd2019-democratie-06": "\"tirés au sort\" or \"tirage au sort\" or \"tiré au sort\" or \"citoyens non élus\" or \"assemblée citoyenne\" or \"jury citoyen\"",
+    "gd2019-democratie-07": "référendum or RIC or \"initiative citoyenne\" or \"initiative populaire\" or plébiscite or \"référendum d'initiative\"",
+    "gd2019-democratie-08": "immigration or immigré or migrant or intégration or asile or réfugié or étranger or quota or \"regroupement familial\" or \"sans papiers\"",
+    "gd2019-democratie-09": "laïcité or laïque or religion or religieux or islam or voile or \"valeurs de la République\" or communautarisme or \"signes religieux\""
+  }
+}

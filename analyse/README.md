@@ -15,7 +15,8 @@ Ce paquet gère l'aller et le retour :
 | `load_analysis.py` | la livraison (`taxonomy.json`, `instances.json`) vers `topic` et `instance` |
 | `identifiants.py` | le format d'identifiant de document, partagé par les deux |
 | `grille.py` | une grille écrite à la main, chargée sans détections |
-| `grilles/` | les grilles de cadrage versionnées, avec leur source |
+| `mots_cles.py` | le rattachement d'une grille par mots-clés — sans modèle, étiqueté tel quel |
+| `grilles/` | les grilles de cadrage versionnées, avec leur source, et leurs lexiques |
 
 ## Deux grilles, dès le départ
 
@@ -42,12 +43,30 @@ l'app et `taxonomie/` peut la comparer aux autres. Recharger le même fichier me
 la grille à jour au lieu d'en créer une seconde ; `--activer` en fait la grille
 servie.
 
-**Ce qu'elle n'a pas : des détections.** Rattacher chaque doléance à l'un de
-ses thèmes demande un modèle — LLM ou embeddings — et donc la décision
-d'hébergement du plan. Un premier rattachement lexical, sur l'index plein texte,
-serait possible avant : il serait bon sur « fiscalité » et mauvais sur
-« démocratie », et devrait être étiqueté comme tel (`detector`) pour que
-`taxonomie/` dise de combien.
+**Ses détections, pour l'instant : des mots-clés.** Rattacher chaque doléance
+à l'un de ses thèmes avec un modèle attend la P3. En attendant,
+`analyse/mots_cles.py` fait ce qu'un rattachement *sans* modèle sait faire :
+un jeu de mots-clés par question (`grilles/cadrage_gouvernemental_2019.mots_cles.json`,
+syntaxe de `recherche/`), une requête sur l'index plein texte, une instance par
+doléance qui répond — verbatim sur le premier terme trouvé, résumé listant les
+termes qui ont mordu.
+
+```bash
+uv run python -m analyse.mots_cles analyse/grilles/cadrage_gouvernemental_2019.mots_cles.json
+uv run python -m taxonomie --run <id>      # ce que ça vaut
+```
+
+Le résultat est un **run à part, non actif**, `model = "mots-clés"`, requêtes
+dans ses paramètres, thèmes de la grille copiés dedans : la grille de
+`grille.py` reste sans détections, et un modèle, plus tard, se comparera au
+même étalon bas. Mesuré le 2026-09-11 sur les 1 002 doléances du découpage
+servi (corpus dactylographié) : **655 doléances rattachées à au moins une
+question (65 %), 4 857 rattachements, 7,4 questions par doléance** — un
+détecteur de vocabulaire, pas de propos : une doléance de 750 mots en moyenne
+touche presque tout. Quatre requêtes ont été élaguées après mesure, dont
+« cahier de doléances » et « grand débat », qui rattachaient le document à
+lui-même (334 et 267 doléances) ; le lexique le consigne. Aucune détection sur
+les racines : `taxonomie/` compte 4 thèmes sans détection, c'est voulu.
 
 ## Exporter le corpus pour l'analyse
 

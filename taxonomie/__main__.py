@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from database.db import check_connection, get_engine
-from database.models import Doleance, Instance, PageExtraction, Topic
+from database.models import Doleance, Instance, PageExtraction, Run, Topic
 from database.runs import ANALYSE, run_actif
 from taxonomie.mesures import couverture, hierarchie, reutilisation
 
@@ -83,13 +83,14 @@ def main(run_choisi: int | None = None) -> int:
             run_id, label = run.id, run.label
         else:
             run_id = run_choisi
-            label = session.execute(
+            choisi = session.get(Run, run_id)
+            a_des_themes = session.execute(
                 select(Topic.run_id).where(Topic.run_id == run_id).limit(1)
             ).scalar()
-            label = f"#{run_id}" if label else None
-            if label is None:
+            if choisi is None or not a_des_themes:
                 print(f"Aucun thème pour le run #{run_id}.", file=sys.stderr)
                 return 1
+            label = choisi.label
 
         themes = session.execute(
             select(Topic.id, Topic.parent_id, Topic.name).where(Topic.run_id == run_id)

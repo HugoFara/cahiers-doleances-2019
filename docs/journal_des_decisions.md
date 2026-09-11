@@ -816,9 +816,59 @@ l'étiqueter comme tel pour que `taxonomie/` mesure de combien il est mauvais.
 
 ---
 
+## 2026-09-11 — La grille gouvernementale a des détections par mots-clés, dites telles quelles
+
+**Décision.** Les doléances sont rattachées aux 20 questions de la Lettre aux
+Français par un **détecteur lexical** : un jeu de mots-clés par question
+(`analyse/grilles/cadrage_gouvernemental_2019.mots_cles.json`), une requête
+sur l'index plein texte de `recherche/`, une instance par doléance qui répond.
+Le résultat est un run `analyse` à part, **non actif**, `model = "mots-clés"`,
+requêtes dans ses paramètres. La grille chargée hier reste sans détections.
+
+**Périmètre.** Les détections de cette grille, sur le découpage servi. Pas la
+grille elle-même, pas le découpage.
+
+**Motif.** Une grille sans détections n'est pas discutable — on ne peut pas
+dire ce qu'elle voit du corpus. Un modèle attend la P3. Un détecteur de
+vocabulaire ne l'attend pas, et il donne deux choses : une lecture immédiate
+du corpus par le cadrage de 2019, et l'**étalon bas** auquel un modèle devra
+se comparer — s'il ne fait pas mieux que des mots-clés, il n'apporte rien. À
+condition d'être étiqueté comme tel : `model`, `detector` et le résumé de
+chaque instance le disent.
+
+**Ce que ça vaut, mesuré** (`taxonomie/`, 2026-09-11, 1 002 doléances
+dactylographiées) : 655 doléances rattachées (65 %), 4 857 rattachements, 7,4
+questions par doléance — une doléance de 750 mots en moyenne mentionne
+presque tout. Texte couvert par les verbatims : 19 %, mécanique (fenêtre de
+260 caractères). Aucun verbatim introuvable. Les racines n'ont pas de
+détections, par construction.
+
+**Choix du lexique, et ce qui a été élagué après mesure.** Les mots-clés sont
+éditoriaux, non validés. Quatre retraits, consignés dans le fichier : « cahier
+de doléances » et « grand débat » (le document se nomme lui-même — 334 et 267
+doléances sur la participation citoyenne), « consultation » (médicale aussi),
+« Europe » / « européen » seuls (141 et 169, toute l'Union), « assemblées »
+seul (166). Restent des termes larges assumés — « impôt », « taxe »,
+« département », « région » — parce que les questions le sont.
+
+**Alternatives écartées.** Mettre les détections dans le run de la grille :
+un modèle, ensuite, aurait dû soit les écraser, soit cohabiter sans qu'on
+sache d'où vient quoi. Pondérer, exiger deux termes, exclure des négations :
+ce serait un demi-modèle sans en avoir la mesure ; l'étalon bas doit rester
+bas et lisible.
+
+**Réversibilité.** Totale : un run non actif, supprimable. Le lexique se
+rejoue en une commande sur le corpus complet une fois le manuscrit transcrit.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
-- Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs détections.
+- Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs
+  détections par un modèle (les mots-clés du 2026-09-11 sont un étalon bas,
+  pas un statut).
 - Les règles d'anonymisation : ce qui est occulté, ce qui ne l'est pas
   (personnalités publiques dans leur rôle), le seuil de rappel accepté.
 - L'arbitrage précision géographique / protection pour les très petites communes
