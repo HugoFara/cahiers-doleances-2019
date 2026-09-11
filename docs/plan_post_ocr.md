@@ -144,6 +144,13 @@ endpoint UE (+10 %) et du self-host sélectif ; les modèles locaux tranchent la
 question d'office. Une clé `MISTRAL_API_KEY` est en place dans `.env` pour
 essayer l'API sur l'échantillon de référence.
 
+**Tranché le 2026-09-11** (journal) : la passe complète est locale —
+`ornith-1.5:9b` sur GPU, retesté comme prévu : 6 à 20 s/page, et sur 3 pages
+il lit mieux que glm-ocr et que Mistral. Le batch Mistral est écarté par les
+conditions du service (rétention des fichiers, pas de *Zero Data Retention*) ;
+le mode existe dans `with_ocr` (`--batch`) au cas où ces conditions
+changeraient. 33 pages ont été envoyées à l'API avant la décision.
+
 ## Priorité 1 — faire du squelette un squelette
 
 - ~~**Runs et versions.**~~ Fait. L'app annonce la grille servie sur ses deux
@@ -373,7 +380,7 @@ IIIF / ALTO / EAD).
 | Runs et versions (grilles concurrentes, `doleance` versionnée) | fait — `database/runs.py`, table `run` |
 | Jeu de référence annoté (200-300 doléances) | outillage fait — `reference/` ; **reste à annoter** |
 | Chiffrer la part manuscrite écartée | fait — 47 % des pages, `couverture/` |
-| Reprendre le manuscrit (HTR) | outillage fait — `extraction/with_ocr/` (Mistral + Ollama), essai concluant le 2026-09-10 (wordfreq 0,13 → 0,90 sur 15 pages, corpus ~25 $) ; reste la passe complète, mesurée sur l'étalon et cadrée P3 |
+| Reprendre le manuscrit (HTR) | **passe complète lancée le 2026-09-11** — `ornith-1.5:9b` en local sur GPU, 2 510 pages, 8 à 14 h ; hébergement tranché (journal, 2026-09-11 : rien ne sort) ; reste la mesure sur l'étalon |
 | Commune -> INSEE | fait — 459 communes contre 307 par graphie |
 | Population et coordonnées (Code officiel géographique) | fait — `insee/referentiel/`, millésime pivot 2019 |
 | Types de support et d'auteur | fait — `typologie/` ; 20 % des doléances ne sont pas des contributions |

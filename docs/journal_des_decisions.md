@@ -1194,13 +1194,75 @@ jolie.
 
 ---
 
+## 2026-09-11 — Le manuscrit est transcrit en local, pas par une API
+
+**Décision.** La passe complète de transcription du manuscrit (2 510 pages
+`needs_ocr`) tourne sur un modèle à poids ouverts, `ornith-1.5:9b` servi par
+Ollama sur un GPU que l'équipe contrôle : **aucun scan ne quitte nos
+machines**. Mistral OCR n'est pas retenu pour cette passe ; il ne le sera, s'il
+l'est, qu'en synchrone, sur un compte payant avec opt-out de l'entraînement et
+*Zero Data Retention* accordés — jamais en batch — et après validation par un
+DPO. Run de genre `transcription`, format JPEG à 300 DPI, paramètres et
+modèle portés par le run.
+
+**Périmètre.** Le choix du backend OCR et de l'hébergement des scans. Pas la
+qualité de la transcription, qui reste à mesurer sur l'étalon (`reference/`).
+
+**Motif.** Un nom au bas d'une opinion politique est une donnée de l'article 9
+du RGPD, et c'est très exactement le contenu de ces pages. Confier les scans
+à une API fait de l'éditeur un sous-traitant (art. 28) : contrat de
+traitement, base légale documentée, registre — l'alignement avec les Archives
+que le plan demande avant de figer quoi que ce soit. Et les conditions de
+Mistral, lues le 2026-09-11, écartent d'elles-mêmes le mode batch : sur le
+plan gratuit « input and output data are used by default to train our
+models, unless you opt out » ; les fichiers batch restent stockés jusqu'à
+suppression et le *Zero Data Retention* « does not apply to … batch
+processing files, /v1/files » ; le ZDR n'existe qu'en pay-as-you-go, sur
+demande motivée, « at our discretion ». Le rabais de 50 % et la rétention
+vont ensemble. Le modèle local, lui, tranche la question d'office — c'est
+l'option que le plan listait dès le 2026-09-10.
+
+**Ce qui a déjà été envoyé.** Avant cette décision, **33 pages** de scans
+bruts sont parties à l'API Mistral : 31 pour l'essai du 2026-09-10 (une page
+seule, 15 typées et 15 manuscrites tirées au sort), 2 pour l'essai du mode
+batch le 2026-09-11 — celles-ci en fichier, supprimé de la plateforme le jour
+même. Le compte était en plan gratuit ; l'opt-out de l'entraînement est à
+vérifier dans la console. C'est consigné pour que ce soit contestable.
+
+**Alternatives écartées.** *Mistral en batch* : moitié prix (~5 $ pour le
+manuscrit) et géométrie ligne à ligne — le préalable de l'occultation sur
+l'image —, mais rétention des fichiers et pas de ZDR. *Mistral en synchrone
+avec ZDR* : possible, plein tarif (~10 $), reste conditionné au DPO ; c'est la
+voie à rouvrir si la géométrie devient nécessaire à la P3, en second run à
+côté de celui-ci. *glm-ocr en local* : le défaut du module, plus rapide, mais
+sur 3 pages jugées image sous les yeux il lit moins bien (« quand chose » pour
+« grand chose », artefacts LaTeX) et boucle sur une page vide — 35 000
+caractères. Ornith lit les trois pages juste, wordfreq 0,97 contre 0,83.
+
+**Conséquence mesurée.** 6 à 20 s par page sur GPU, 8 à 14 h pour le
+manuscrit, 0 €. Deux limites d'ornith, à traiter en aval : c'est un modèle de
+langue autant que de vision — il ajoute des guillemets, normalise « ① » en
+« 1) », et **sur une page vide il écrit une ligne de commentaire** (« L'image
+ne contient aucun texte ») au lieu de rien, même consigné de ne rien produire.
+Et pas de géométrie : `layout` reste NULL.
+
+**Réversibilité.** Totale : un run, supprimable avec ses lignes. Une deuxième
+passe — autre modèle, ou Mistral sous les conditions ci-dessus — coexiste en
+base et se compare sur l'étalon ; c'est pour cela que le squelette n'est
+jamais écrasé.
+
+**Auteur.** Équipe technique — *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs
   détections par un modèle (les mots-clés du 2026-09-11 sont un étalon bas,
   pas un statut).
 - Le modèle d'embedding, sa dimension et son lieu d'exécution — même décision
-  d'hébergement que pour la reconnaissance d'entités nommées.
+  d'hébergement que pour la reconnaissance d'entités nommées ; pour l'OCR, elle
+  est prise (2026-09-11 : en local).
 - Les règles d'anonymisation : ce qui est occulté, ce qui ne l'est pas
   (personnalités publiques dans leur rôle), le seuil de rappel accepté.
 - L'arbitrage précision géographique / protection pour les très petites communes
