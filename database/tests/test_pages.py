@@ -10,7 +10,9 @@ from database.pages import (
     AUCUNE,
     SQUELETTE,
     TRANSCRIPTION_ACTIVE,
+    derives,
     est_commentaire_page_vide,
+    est_derive,
     lire_pages,
 )
 from database.runs import TRANSCRIPTION, creer_run
@@ -167,3 +169,58 @@ def test_le_filtre_par_contribution(session):
     assert [p.texte for p in lire_pages(session, contributions=[2])] == ["b"]
     assert [p.texte for p in lire_pages(session, contributions=[])] == []
     assert [p.texte for p in lire_pages(session)] == ["a", "b"]
+
+
+# --- dérives du modèle -------------------------------------------------------
+
+PHRASE = "Il faut baisser les impôts et rouvrir la gare de notre village. "
+LIGNE_BOUCLE = "1) Je demande le RIC\n"
+
+
+@pytest.mark.parametrize(
+    "texte",
+    [
+        # trop de caractères pour une page, quel que soit le contenu
+        "".join(f"paragraphe {i} : {PHRASE}" for i in range(220)),
+        # trop de mots pour une page
+        " ".join(f"mot{i}" for i in range(2_100)),
+        # la même ligne, des milliers de fois
+        LIGNE_BOUCLE * 5_000,
+        # les mêmes n-grammes, en boucle, sur une page de taille plausible
+        PHRASE * 30,
+    ],
+)
+def test_une_derive_est_reconnue(texte):
+    assert est_derive(texte)
+
+
+@pytest.mark.parametrize(
+    "texte",
+    [
+        "",
+        "Il faut baisser les impôts.",
+        # une vraie page dense : 600 mots distincts, des lignes distinctes
+        "\n".join(" ".join(f"mot{i * 12 + j}" for j in range(12)) for i in range(50)),
+        # un refrain répété quelques fois dans une page normale — pas une boucle
+        (PHRASE * 3) + " ".join(f"autre{i}" for i in range(300)),
+        # une liste numérotée au refrain répété, mais aux demandes distinctes
+        "\n".join(f"{i}) Je demande que l'on rouvre {lieu}" for i, lieu in enumerate(
+            ["la gare", "la poste", "l'école", "la maternité", "le tribunal"] * 8
+        )),
+    ],
+)
+def test_une_page_normale_n_est_pas_une_derive(texte):
+    assert not est_derive(texte)
+
+
+def test_une_derive_transcrite_ne_se_lit_pas_mais_reste_transcrite(session):
+    run = _run(session)
+    page = _page(session, 4, "bruit du squelette", True)
+    _transcrire(session, run, page, LIGNE_BOUCLE * 5_000)
+    lues = lire_pages(session, garder_illisibles=True)
+    assert [(p.texte, p.source) for p in lues] == [("", TRANSCRIPTION_ACTIVE)]
+    assert [t.page_number for t in derives(session)] == [4]
+
+
+def test_sans_run_actif_il_n_y_a_pas_de_derive(session):
+    assert derives(session) == []
