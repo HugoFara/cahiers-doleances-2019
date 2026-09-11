@@ -1131,6 +1131,53 @@ sélecteur son intérêt.
 
 ---
 
+## 2026-09-11 — L'app lit le corpus par une grille, et montre ce que la grille rate
+
+**Décision.** Un onglet « Lecture » : pour la grille choisie, la part des
+doléances par thème (rattachées, puis en rubrique dominante), la part
+**hors grille**, la distribution de référence de la grille quand elle en a
+une, et dessous les doléances qu'aucun thème ne voit, les plus longues
+d'abord, caviardées. La vue thèmes (l'arbre) reste, pour la grille
+émergente. Les grilles gagnent une clé `reference` facultative, vérifiée au
+chargement et copiée dans les paramètres des runs.
+
+**Périmètre.** L'app et le format des grilles. Aucune détection ne change.
+
+**Motif.** L'arbre montre la *grille* : comment son auteur a rangé ses
+catégories. Il sert celui qui a produit la grille, et sur une grille plate
+il n'a rien à montrer que neuf points. La question utile est « qu'est-ce
+que la grille fait voir du corpus, et qu'est-ce qu'elle rate ». Le hors
+grille lisible est la vue la plus honnête qu'on puisse donner d'une grille,
+et la matière première de l'atelier avec l'association : on y lit ce que ni
+le gouvernement ni les gilets jaunes n'avaient prévu comme rubrique.
+
+**Ce que ça montre, sur les mots-clés du Vrai Débat** (1 002 doléances
+dactylographiées) : 36 % hors grille ; en rattachement multiple, démocratie
+51 %, économie 51 %, écologie 40 %, santé 39 % ; en rubrique dominante,
+**économie 40 %, démocratie 10 %, écologie 6 %, santé 2 %**, contre 31 / 20 /
+16 / 10 sur la plateforme. La dominante se lit avec sa règle : le thème qui
+a le plus de termes qui mordent, ce qui avantage les lexiques les plus
+fournis (l'économie a le plus de termes). C'est un artefact du détecteur
+autant qu'un fait du corpus, et c'est écrit sous le graphique ; un modèle
+qui choisit une rubrique rendra la comparaison honnête.
+
+**Une première version comptait les instances** : les mots-clés n'en font
+qu'une par thème et par doléance, tout était à égalité, et la première
+rubrique de la grille dominait 51 % des doléances. Corrigé avant d'être
+montré ; consigné parce que c'est le genre d'erreur qu'un graphique rend
+crédible.
+
+**Alternatives écartées.** Une carte par commune : demande les contours
+communaux, et une choroplèthe sur 459 communes dont 37 muettes est surtout
+jolie. La matrice de co-occurrence et le croisement par taille de commune :
+après, si ces deux vues donnent quelque chose sur le manuscrit.
+
+**Réversibilité.** Un onglet, une clé facultative.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs

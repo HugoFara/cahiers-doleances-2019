@@ -139,6 +139,7 @@ def ouvrir_run(
         existant.parameters = {
             **(existant.parameters or {}),
             "requetes": lexique["requetes"],
+            "reference": grille.get("reference"),
         }
         return existant
     run = creer_run(
@@ -153,6 +154,7 @@ def ouvrir_run(
             "topics": len(grille["topics"]),
             "run_decoupage": run_decoupage.id,
             "requetes": lexique["requetes"],
+            "reference": grille.get("reference"),
         },
         corpus=f"doléances du run #{run_decoupage.id} « {run_decoupage.label} »",
         author=auteur,

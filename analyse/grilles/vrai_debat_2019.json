@@ -6,6 +6,22 @@
     "consultee_le": "2026-09-11",
     "note": "Les neuf rubriques sont celles de la plateforme (moteur Cap Collectif, le même que granddebat.fr), reproduites dans son ordre et avec ses libellés ; l'auteur d'une proposition en choisissait une seule au dépôt. La grille est plate : pas de sous-thèmes. Les parts de propositions citées en description viennent du bilan publié par la plateforme (25 000 propositions, 1 million de votes ; économie 31 %, démocratie 20 %, transition écologique 16 %, santé 10 %, environ 1 300 propositions pour chacune des cinq autres — Le Journal Toulousain, mars 2019). Les quatre « blocs » de l'analyse LERASS / Triangle (transformation du système politique, services publics, justice fiscale et sociale, urgence écologique) sont un résultat, pas une grille : ils ne figurent pas ici. La grille vient du camp contestataire de 2019 ; elle est reproduite pour être comparée au cadrage gouvernemental, pas parce qu'elle serait neutre."
   },
+  "reference": {
+    "titre": "Part des 25 000 propositions déposées sur la plateforme, par rubrique",
+    "source": "bilan publié par la plateforme, repris par Le Journal Toulousain, mars 2019 ; les cinq rubriques sans chiffre publié sont comptées à parts égales dans le reste (environ 1 300 propositions chacune)",
+    "unite": "pourcentage de propositions, une rubrique par proposition",
+    "parts": {
+      "vd2019-economie": 31,
+      "vd2019-democratie": 20,
+      "vd2019-ecologie": 16,
+      "vd2019-sante": 10,
+      "vd2019-justice": 4.6,
+      "vd2019-europe": 4.6,
+      "vd2019-education": 4.6,
+      "vd2019-sport-culture": 4.6,
+      "vd2019-expression-libre": 4.6
+    }
+  },
   "topics": [
     {
       "id": "vd2019-democratie",

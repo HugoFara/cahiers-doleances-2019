@@ -41,6 +41,7 @@ SANS_COMMUNE = "00000"
 #  les vues sont vides — exactement ce qu'on veut sur une base pas encore
 #  chargée, sans branchement supplémentaire.
 GRILLE_SERVIE = "(SELECT id FROM run WHERE kind = 'analyse' AND active)"
+DECOUPAGE_SERVI = "(SELECT id FROM run WHERE kind = 'segmentation' AND active)"
 
 
 def _graphies() -> dict[str, list[str]]:
@@ -268,7 +269,7 @@ def grilles() -> list[dict]:
     en changer sans redémarrer l'app.
     """
     q = text("""
-        SELECT r.id, r.label, r.active, r.created_at, r.model, r.author,
+        SELECT r.id, r.label, r.active, r.created_at, r.model, r.author, r.parameters,
                (SELECT count(*) FROM topic WHERE run_id = r.id) AS topics,
                (SELECT count(*) FROM instance WHERE run_id = r.id) AS detections
         FROM run r
@@ -328,6 +329,68 @@ def charger_detections(run_id: int | None = None) -> pd.DataFrame:
         ORDER BY i.id
     """)
     return pd.read_sql(q, engine, params=params)
+
+
+def detections_par_doleance(run_id: int) -> pd.DataFrame:
+    """Une ligne par (thème, doléance) rattachés, avec le nombre de détections.
+
+    Seules les doléances du découpage servi comptent : une livraison dont les
+    identifiants désignent un autre corpus n'en rattache aucune, et la vue le
+    dit plutôt que de compter des documents qu'on ne peut pas relire.
+
+    `n` mesure l'intensité du rattachement, pour choisir un thème dominant :
+    le nombre d'instances, sauf pour les runs « mots-clés », qui n'en font
+    qu'une par thème et par doléance — là, c'est le nombre de termes qui ont
+    mordu, que l'instance liste dans son résumé.
+
+    Args:
+        run_id: le run de genre `analyse` à lire.
+    """
+    q = text(f"""
+        SELECT t.id AS topic_id, t.external_id, t.name AS topic,
+               i.doleance_id,
+               sum(CASE WHEN i.summary LIKE 'mots-clés :%'
+                        THEN array_length(string_to_array(i.summary, ','), 1)
+                        ELSE 1 END) AS n
+        FROM instance i
+        JOIN topic t ON t.id = i.topic_id
+        WHERE i.run_id = :run_id
+          AND i.doleance_id IN (SELECT id FROM doleance WHERE run_id = {DECOUPAGE_SERVI})
+        GROUP BY t.id, t.external_id, t.name, i.doleance_id
+        ORDER BY t.id, i.doleance_id
+    """)
+    return pd.read_sql(q, engine, params={"run_id": int(run_id)})
+
+
+def grilles_lisant_les_doleances() -> set[int]:
+    """Les runs d'analyse dont au moins une détection vise une doléance du découpage servi."""
+    q = text(f"""
+        SELECT DISTINCT i.run_id
+        FROM instance i
+        WHERE i.doleance_id IN (SELECT id FROM doleance WHERE run_id = {DECOUPAGE_SERVI})
+    """)
+    with engine.connect() as conn:
+        return {int(r[0]) for r in conn.execute(q)}
+
+
+def nombre_de_doleances() -> int:
+    """Les doléances du découpage servi : le dénominateur de toute part."""
+    q = text(f"SELECT count(*) FROM doleance WHERE run_id = {DECOUPAGE_SERVI}")
+    with engine.connect() as conn:
+        return int(conn.execute(q).scalar() or 0)
+
+
+def doleances_sans_detection(run_id: int, limite: int = 30):
+    """(total, résultats) : ce que la grille ne voit pas, les plus longues d'abord."""
+    from sqlalchemy.orm import Session
+
+    from recherche.requetes import compter_sans_detection, sans_detection
+
+    with Session(engine) as session:
+        return (
+            compter_sans_detection(session, int(run_id)),
+            sans_detection(session, int(run_id), limite),
+        )
 
 
 #  avertissements : ce que l'app doit dire avant de montrer un chiffre

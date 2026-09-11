@@ -1,10 +1,11 @@
 # App Gradio : visualisation et annotation
 
-Une page, trois onglets, sur un seul serveur :
+Une page, quatre onglets, sur un seul serveur :
 
     /          Par commune  parcourir les contributions (texte lu + PDF) et
                activer deux variables (Anonymisé, Contribution d'intérêt)
                Recherche    chercher dans le texte des doléances
+               Lecture      ce qu'une grille fait voir du corpus, et ce qu'elle rate
                Thèmes       explorer une grille de thèmes en cliquant les nœuds
     /graphe    la vue thèmes seule, la même, avec son en-tête (pour un lien)
 
@@ -81,6 +82,22 @@ cahier qui lui donnait son contexte. Les doublons y sont signalés, sans quoi un
 recherche présenterait la lettre présidentielle comme les cinq contributions les
 plus pertinentes du corpus.
 
+**Lecture** : la part des doléances par thème, pour la grille choisie, avec
+trois barres par thème — doléances rattachées (plusieurs thèmes possibles),
+**rubrique dominante** (une par doléance : celle qui a le plus de détections,
+ou pour les mots-clés le plus de termes qui ont mordu), et la **distribution
+de référence** de la grille quand son fichier en porte une (`reference` dans
+`analyse/grilles/*.json`, copiée dans les paramètres du run). La barre **hors
+grille** ferme le graphique : sans elle, « 34 % parlent de fiscalité » ne dit
+pas sur quelle part du corpus il porte. Dessous, les doléances que la grille
+ne voit pas, les plus longues d'abord, caviardées comme des résultats de
+recherche (`recherche.requetes.sans_detection`). La vue thèmes montre la
+*grille*, celle-ci montre le *corpus* : sur une grille plate l'arbre n'a rien
+à dire, et même sur une grille profonde il répond à « comment la grille est
+rangée », pas à « de quoi parlent les doléances ». Les runs « mots-clés »
+sont nommés tels quels dans le titre : un détecteur de vocabulaire, l'étalon
+bas d'un futur modèle.
+
 **Une seule grille servie.** Plusieurs grilles de thèmes coexistent en base
 (`database/runs.py`) ; sans filtre l'app les empilerait, et les noms de thèmes —
 uniques dans une grille, pas dans la table — se confondraient. `GRILLE_SERVIE`
@@ -125,6 +142,7 @@ Scaleway : certains PDF font 43 Mo, ils ne transitent pas par l'app. Repli sur
 | `app.py` | assemble le Blocks, expose les routes du graphe, monte le tout |
 | `views/commune.py` | vue « Par commune » : navigation + annotation |
 | `views/recherche.py` | vue « Recherche » : plein texte, extraits caviardés, lien vers la page |
+| `views/lecture.py` | vue « Lecture » : parts par thème, dominante, référence, hors grille lisible |
 | `views/graph.py` | vue thèmes : dessin Plotly et réponses JSON, une grille par run |
 | `views/grille.py` | la grille de thèmes comme objet — sans base ni Plotly, donc testée |
 | `views/static/` | page des thèmes (`index.html`, `style.css`, `app.js`) : thème, groupes, fil d'Ariane |

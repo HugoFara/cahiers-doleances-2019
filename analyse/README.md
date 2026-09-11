@@ -86,6 +86,12 @@ uv run python -m analyse.grille analyse/grilles/vrai_debat_2019.json
 uv run python -m analyse.mots_cles analyse/grilles/vrai_debat_2019.mots_cles.json
 ```
 
+Le fichier porte aussi une clé `reference` : la distribution mesurée par la
+source chez elle (titre, source, parts par thème), vérifiée au chargement
+(chaque part vise un thème) et copiée dans les paramètres du run de la grille
+et de ses rattachements. C'est ce que l'onglet « Lecture » de l'app trace en
+grisé à côté des parts du corpus.
+
 Mesuré le 2026-09-11 sur les mêmes 1 002 doléances dactylographiées : **639
 rattachées (64 %), 3 158 rattachements, 4,9 rubriques par doléance**, 45 %
 des doléances rattachées touchent six rubriques ou plus, texte couvert 13 %.

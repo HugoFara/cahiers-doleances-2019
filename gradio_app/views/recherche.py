@@ -50,7 +50,7 @@ def _reference(r) -> str:
     )
 
 
-def _resultat(r) -> str:
+def resultat_html(r) -> str:
     ou = html.escape(r.commune or r.code_commune or "commune inconnue")
     marques = ""
     if r.recopie:
@@ -80,7 +80,7 @@ def chercher(requete: str) -> str:
         )
 
     entete = f"<p><strong>{total}</strong> doléance(s) · {len(resultats)} montrée(s)</p>"
-    liste = "".join(_resultat(r) for r in resultats)
+    liste = "".join(resultat_html(r) for r in resultats)
     note = (
         '<p class="aide">Extraits caviardés : les passages personnels repérés '
         "sont occultés, et un passage non relu l'est aussi. Ce n'est pas une "

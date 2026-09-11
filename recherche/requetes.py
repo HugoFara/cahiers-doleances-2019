@@ -93,6 +93,39 @@ _SQL = f"""
     LIMIT :limite
 """
 
+# Les doléances du découpage servi qu'un run d'analyse ne rattache à rien :
+# le « hors grille » de `taxonomie/`, mais lisible. Les plus longues d'abord,
+# parce qu'une doléance de trois pages que la grille ne voit pas est plus
+# instructive qu'un mot.
+_SQL_SANS_DETECTION = f"""
+    SELECT d.id, d.pdf_name, d.text, d.num_words, d.start_page, d.end_page,
+           k.city_code, v.official_name, v.name,
+           dg.cities
+    FROM doleance d
+    LEFT JOIN contribution k ON k.id = d.contribution_id
+    LEFT JOIN city v ON v.code = k.city_code
+    LEFT JOIN duplicate_member dm ON dm.doleance_id = d.id
+    LEFT JOIN duplicate_group dg
+           ON dg.id = dm.group_id AND dg.run_id = {DOUBLONS_SERVIS}
+    WHERE d.run_id = {DECOUPAGE_SERVI}
+      AND NOT EXISTS (
+          SELECT 1 FROM instance i
+          WHERE i.run_id = :run_analyse AND i.doleance_id = d.id
+      )
+    ORDER BY d.num_words DESC NULLS LAST, d.id
+    LIMIT :limite
+"""
+
+_SQL_COMPTE_SANS_DETECTION = f"""
+    SELECT count(*)
+    FROM doleance d
+    WHERE d.run_id = {DECOUPAGE_SERVI}
+      AND NOT EXISTS (
+          SELECT 1 FROM instance i
+          WHERE i.run_id = :run_analyse AND i.doleance_id = d.id
+      )
+"""
+
 _SQL_PASSAGES = f"""
     SELECT doleance_id, start, "end", kind, confirmed
     FROM pii_span
@@ -188,6 +221,61 @@ def chercher(
                 rang=float(ligne.rang or 0.0),
                 mots=ligne.num_words,
                 extrait=fenetre(texte, mots),
+                caviarde=caviardage,
+                communes_du_groupe=ligne.cities,
+                page_debut=ligne.start_page,
+                page_fin=ligne.end_page,
+            )
+        )
+    return resultats
+
+
+def compter_sans_detection(session: Session, run_analyse: int) -> int:
+    """Combien de doléances du découpage servi ce run d'analyse ne voit pas."""
+    return (
+        session.execute(text(_SQL_COMPTE_SANS_DETECTION), {"run_analyse": run_analyse})
+        .scalar()
+        or 0
+    )
+
+
+def sans_detection(
+    session: Session,
+    run_analyse: int,
+    limite: int = LIMITE_DEFAUT,
+    *,
+    caviardage: bool = True,
+) -> list[Resultat]:
+    """Les doléances qu'un run d'analyse ne rattache à aucun thème, les plus longues d'abord.
+
+    Même rendu qu'une recherche — extrait caviardé, référence au cahier — mais
+    l'extrait ouvre sur le début du texte : il n'y a pas de terme à montrer,
+    c'est précisément le propos.
+
+    Args:
+        session: session ouverte sur la base.
+        run_analyse: le run de genre `analyse` dont on lit le hors grille.
+        limite: nombre maximum de résultats, plafonné par `LIMITE_MAX`.
+        caviardage: occulter les passages personnels dans les extraits.
+    """
+    lignes = session.execute(
+        text(_SQL_SANS_DETECTION),
+        {"run_analyse": run_analyse, "limite": min(max(1, limite), LIMITE_MAX)},
+    ).all()
+    passages = _passages(session, [ligne.id for ligne in lignes]) if caviardage else {}
+    resultats = []
+    for ligne in lignes:
+        brut = ligne.text or ""
+        texte = caviarder(brut, passages.get(ligne.id, [])) if caviardage else brut
+        resultats.append(
+            Resultat(
+                doleance_id=ligne.id,
+                cahier=ligne.pdf_name,
+                commune=ligne.official_name or ligne.name,
+                code_commune=ligne.city_code,
+                rang=0.0,
+                mots=ligne.num_words,
+                extrait=fenetre(texte, []),
                 caviarde=caviardage,
                 communes_du_groupe=ligne.cities,
                 page_debut=ligne.start_page,

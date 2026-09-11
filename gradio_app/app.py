@@ -9,7 +9,7 @@ from gradio_app.avertissements import details, essentiel, liste_markdown
 from gradio_app.avertissements import html as avertissement_html
 from gradio_app.data_helpers import etat_du_corpus
 from gradio_app.source import PDF_DIR
-from gradio_app.views import commune, graph, recherche
+from gradio_app.views import commune, graph, lecture, recherche
 
 STYLE = Path(__file__).parent / "views" / "style.css"
 
@@ -57,6 +57,9 @@ with gr.Blocks(title="Cahiers de doléances") as demo:
 
     with gr.Tab("Recherche"):
         recherche.render()
+
+    with gr.Tab("Lecture"):
+        lecture.render()
 
     with gr.Tab("Thèmes"):
         gr.HTML(CADRE_GRAPHE)

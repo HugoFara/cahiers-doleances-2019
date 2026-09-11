@@ -59,6 +59,16 @@ def lire_grille(fichier: Path) -> dict:
     for t in topics:
         if t["parent"] is not None and t["parent"] not in ids:
             raise ValueError(f"{fichier.name} : « {t['id']} » a pour parent inconnu « {t['parent']} »")
+    reference = grille.get("reference")
+    if reference is not None:
+        # une distribution de référence : ce que la source de la grille a
+        # mesuré chez elle, pour comparer — chaque part vise un thème
+        for cle in ("titre", "source", "parts"):
+            if cle not in reference:
+                raise ValueError(f"{fichier.name} : référence sans « {cle} »")
+        inconnus = sorted(set(reference["parts"]) - ids)
+        if inconnus:
+            raise ValueError(f"{fichier.name} : la référence vise des thèmes inconnus {inconnus}")
     return grille
 
 
@@ -76,7 +86,7 @@ def resoudre_run(session: Session, fichier: Path, grille: dict, *, auteur: str |
         label=grille["label"],
         source=source,
         model=None,
-        parameters={"topics": len(grille["topics"])},
+        parameters={"topics": len(grille["topics"]), "reference": grille.get("reference")},
         corpus="aucune détection : grille de cadrage",
         author=auteur,
         notes=f"{provenance.get('titre', '')} — {provenance.get('url', '')}".strip(" —"),
