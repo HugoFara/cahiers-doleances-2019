@@ -91,7 +91,12 @@ de référence** de la grille quand son fichier en porte une (`reference` dans
 grille** ferme le graphique : sans elle, « 34 % parlent de fiscalité » ne dit
 pas sur quelle part du corpus il porte. Dessous, les doléances que la grille
 ne voit pas, les plus longues d'abord, caviardées comme des résultats de
-recherche (`recherche.requetes.sans_detection`). La vue thèmes montre la
+recherche (`recherche.requetes.sans_detection`). Entre les deux, deux
+croisements : la **co-occurrence** des thèmes dans une même doléance,
+rapportée au hasard parmi les doléances rattachées (1 = indépendants ; la
+longueur pousse tout au-dessus de 1, ce sont les écarts qui se lisent), et
+les thèmes par **taille de commune** (strates de population du COG 2019,
+`city.population`), en part des doléances de la strate. La vue thèmes montre la
 *grille*, celle-ci montre le *corpus* : sur une grille plate l'arbre n'a rien
 à dire, et même sur une grille profonde il répond à « comment la grille est
 rangée », pas à « de quoi parlent les doléances ». Les runs « mots-clés »

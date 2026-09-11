@@ -1167,10 +1167,26 @@ rubrique de la grille dominait 51 % des doléances. Corrigé avant d'être
 montré ; consigné parce que c'est le genre d'erreur qu'un graphique rend
 crédible.
 
+**Deux croisements de plus, le soir même.** La co-occurrence thème ×
+thème, rapportée au hasard *parmi les doléances rattachées* (rapportée au
+découpage entier, le hors grille gonflait tout d'un même facteur, 1,6 à
+2,8, et la matrice ne disait rien). Résultat : 1,05 à 1,76, et ce sont les
+petites rubriques (sport, justice, Europe) qui vont le plus ensemble, parce
+qu'elles n'apparaissent que dans les longues lettres qui parlent de tout.
+La longueur est le premier facteur, avant tout propos ; la vue le dit sous
+le graphique. Et les thèmes par **taille de commune** (population du COG
+2019, strates 500 / 2 000 / 10 000 ; 159, 395, 310, 103 doléances, 35 sans
+commune) : le **hors grille tombe de 47 % dans les communes de moins de
+500 habitants à 15 % dans celles de 10 000 et plus**. Le détecteur, et
+vraisemblablement toute grille lexicale, voit les villes mieux que les
+villages, dont les doléances sont plus courtes et parlent d'un seul
+sujet. C'est le résultat le plus utile de la journée pour l'association :
+la voix que les cahiers devaient faire entendre est celle que la grille
+capte le moins.
+
 **Alternatives écartées.** Une carte par commune : demande les contours
 communaux, et une choroplèthe sur 459 communes dont 37 muettes est surtout
-jolie. La matrice de co-occurrence et le croisement par taille de commune :
-après, si ces deux vues donnent quelque chose sur le manuscrit.
+jolie.
 
 **Réversibilité.** Un onglet, une clé facultative.
 

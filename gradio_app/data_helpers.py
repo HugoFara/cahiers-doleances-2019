@@ -373,6 +373,23 @@ def grilles_lisant_les_doleances() -> set[int]:
         return {int(r[0]) for r in conn.execute(q)}
 
 
+def population_par_doleance() -> pd.DataFrame:
+    """``doleance_id, population`` pour chaque doléance du découpage servi.
+
+    La population est celle du Code officiel géographique 2019 (`city.population`,
+    posée par `insee.cog`) ; NULL quand la commune n'est pas rattachée. Une
+    commune déléguée porte sa propre population, pas celle de sa parente.
+    """
+    q = text(f"""
+        SELECT d.id AS doleance_id, v.population
+        FROM doleance d
+        LEFT JOIN contribution k ON k.id = d.contribution_id
+        LEFT JOIN city v ON v.code = k.city_code
+        WHERE d.run_id = {DECOUPAGE_SERVI}
+    """)
+    return pd.read_sql(q, engine)
+
+
 def nombre_de_doleances() -> int:
     """Les doléances du découpage servi : le dénominateur de toute part."""
     q = text(f"SELECT count(*) FROM doleance WHERE run_id = {DECOUPAGE_SERVI}")
