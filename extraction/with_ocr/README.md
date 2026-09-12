@@ -62,6 +62,28 @@ La passe commite toutes les 20 pages et se reprend par `--run-id` : les pages
 déjà transcrites du run sont sautées, l'unicité (run, page) l'interdit en
 base. Une page en échec est loggée et sautée, la passe continue.
 
+**Dérives.** Un modèle local s'emballe parfois : il boucle sur une ligne ou
+un mot jusqu'à produire des dizaines de milliers de caractères (13 pages sur
+2 984 au run 18, jusqu'à 50 000 caractères, que le score wordfreq ne voit
+pas). Trois parades, mesurées le 2026-09-12 :
+
+- la génération est **plafonnée** (`OLLAMA_NUM_PREDICT`, 2 048 tokens : une
+  page A4 manuscrite en fait moins de 1 500) — une dérive coûte trente
+  secondes, pas dix minutes ;
+- la dérive est un accident de tirage, pas une propriété de la page (la même
+  page dérive à un appel et pas au suivant) : un résultat en dérive
+  (`database.pages.est_derive`) ou arrêté par le plafond est **retiré** à
+  graine fixée, `OLLAMA_RETIRAGES` fois au plus, et le premier tirage propre
+  est gardé ; sinon le dernier, que la lecture écarte ;
+- `--perimetre derives`, avec `--run-id`, **rejoue les pages en dérive d'un
+  run** dans ce run : leurs transcriptions sont retirées, refaites, et le run
+  compte ces reprises (`derives_reprises`). Un run ouvert avant le plafond le
+  note à la reprise (`num_predict`, `retirages`), comme il note une extension
+  de périmètre.
+
+Une pénalité de répétition (`repeat_penalty` 1,15) a été essayée et écartée :
+elle ne réduit pas les dérives et abîme le texte (sauts de ligne perdus).
+
 ## Ce qu'elle produit
 
 Un run de genre `transcription` (`database/runs.py`) et ses lignes

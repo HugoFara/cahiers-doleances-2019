@@ -1424,6 +1424,47 @@ activer l'un d'eux avec le découpage #2 ramène l'état d'avant.
 
 ---
 
+## 2026-09-12 — Les dérives du modèle sont plafonnées, retirées, et les 13 pages du run 18 rejouées
+
+**Décision.** Le backend ollama plafonne la génération à 2 048 tokens
+(`OLLAMA_NUM_PREDICT`) ; un résultat en dérive (`est_derive`) ou arrêté par
+le plafond est retiré à graine fixée, trois fois au plus, et le premier
+tirage propre est gardé. Un périmètre `derives` rejoue les pages en dérive
+d'un run **dans ce run** : c'est la même couche, le même modèle ; le run
+compte ces reprises (`derives_reprises`) et note les réglages qu'il n'avait
+pas à l'ouverture (`num_predict`, `retirages`).
+
+**Pourquoi dans le même run.** La dérive est un accident de tirage, pas une
+propriété de la page. Mesuré le matin même sur les 13 pages, deux tirages
+chacune : la même page dérive à un appel et pas au suivant (page 1000 :
+1 170 caractères puis 8 331 au plafond ; page 2430 : l'inverse). Un second
+run « pages en dérive » aurait figé une distinction qui n'existe pas dans
+la donnée. La pénalité de répétition (`repeat_penalty` 1,15) a été essayée
+et écartée : autant de plafonds atteints (6 contre 5) et, deux fois sur 13,
+tout le texte d'une page sur une seule ligne.
+
+**Ce que ça donne, mesuré.** Les 13 pages (17 000 à 51 000 caractères,
+jusqu'à 11 178 lignes pour 13 distinctes) rejouées en 10 min 13 s sur le
+GPU distant : 11 retirages, 0 page restée en dérive ; elles font désormais
+400 à 3 800 caractères, 4 à 61 lignes, wordfreq 0,82 à 0,98. Run 18 :
+2 984 pages, wordfreq moyen 0,91, dépôt texte sous `data/` mis à jour (13
+fichiers réécrits). Aucune relecture humaine : la fidélité au scan de ces
+13 pages reste à vérifier comme celle des 2 971 autres, sur l'étalon.
+
+**Conséquence à tirer.** Le découpage #26 a été ouvert avant la fin de la
+passe suspecte (474 pages, terminée à 2 h 23) et avant cette reprise : le
+texte lu a changé pour quelque 400 pages. Le redécoupage, les doublons, les
+lexiques et l'anonymisation sont à rejouer ; à consigner quand c'est fait.
+
+**Réversibilité.** Les anciennes transcriptions des 13 pages ne sont plus
+ni en base ni dans le dépôt texte, réécrit ; leur profil (tailles, lignes)
+est dans cette entrée, et c'est ce qui compte. Rejouer une page tient en
+une commande.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs

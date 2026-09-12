@@ -7,14 +7,17 @@ la rejouer et la juger. Les transcriptions s'y rattachent ; le squelette
 où elle s'était arrêtée, sans repayer les pages déjà faites.
 """
 
-from sqlalchemy import and_, or_, select, true
+from sqlalchemy import and_, delete, or_, select, true
 from sqlalchemy.orm import Session
 
 from database.models import PageExtraction, PageTranscription, Run
+from database.pages import derives
 from database.runs import TRANSCRIPTION, creer_run
 from extraction.with_ocr.config import OcrConfig
 
 PERIMETRES = ("manuscrit", "typé", "suspect", "tout")
+# Pas un périmètre du corpus mais du run : ses pages en dérive, à refaire.
+DERIVES = "derives"
 
 
 def perimetres(perimetre: str) -> list[str]:
@@ -182,3 +185,61 @@ def etendre_perimetre(session: Session, run: Run, demande: str | None) -> str:
     run.corpus = nouveau
     session.flush()
     return nouveau
+
+
+def pages_en_derive(
+    session: Session, run: Run, limite: int | None = None
+) -> list[PageExtraction]:
+    """Retire du run ses transcriptions en dérive et rend leurs pages, à refaire.
+
+    La dérive (`database.pages.est_derive`) est un accident de tirage du
+    modèle : la même page, rejouée, ne dérive en général pas. La passe la
+    rejoue donc dans le **même** run — c'est la même couche, le même modèle —
+    et le run compte ces reprises dans ses paramètres (``derives_reprises``).
+
+    Returns:
+        Les pages dont la transcription vient d'être retirée, dans l'ordre de
+        leurs ids, `limite` au plus ; vide si le run n'a pas de dérive.
+    """
+    ids = [t.page_extraction_id for t in derives(session, run.id)][:limite]
+    if not ids:
+        return []
+    session.execute(
+        delete(PageTranscription).where(
+            PageTranscription.run_id == run.id,
+            PageTranscription.page_extraction_id.in_(ids),
+        )
+    )
+    parametres = dict(run.parameters or {})
+    run.parameters = {
+        **parametres,
+        "derives_reprises": parametres.get("derives_reprises", 0) + len(ids),
+    }
+    session.flush()
+    return list(
+        session.scalars(
+            select(PageExtraction)
+            .where(PageExtraction.id.in_(ids))
+            .order_by(PageExtraction.id)
+        )
+    )
+
+
+def noter_backend(session: Session, run: Run, backend) -> None:
+    """Le run porte les réglages de génération du backend, s'il en a.
+
+    Un run ouvert avant le plafond de tokens (run 18) ne les a pas : la
+    reprise les note, comme elle note une extension de périmètre, pour que
+    le run dise ce qui a réellement tourné.
+    """
+    reglages = {
+        cle: getattr(backend, cle)
+        for cle in ("num_predict",)
+        if getattr(backend, cle, None) is not None
+    }
+    if getattr(backend, "retirable", False):
+        reglages["retirages"] = OcrConfig.OLLAMA_RETIRAGES.value
+    parametres = dict(run.parameters or {})
+    if reglages and any(parametres.get(k) != v for k, v in reglages.items()):
+        run.parameters = {**parametres, **reglages}
+        session.flush()

@@ -17,11 +17,18 @@ Exemples :
     uv run python -m extraction.with_ocr --backend ollama --model glm-ocr
     uv run python -m extraction.with_ocr --run-id 3     # reprend le run 3
     uv run python -m extraction.with_ocr --batch --format jpeg  # moitié prix, en heures
+    uv run python -m extraction.with_ocr --backend ollama --run-id 18 --perimetre derives
+                                                        # rejoue les pages en dérive du run 18
+
+Une transcription en **dérive** — le modèle qui boucle, jusqu'au plafond de
+tokens — est retirée à graine fixée, quelques fois, avant d'être gardée telle
+quelle ; `database.pages.est_derive` l'écarte alors à la lecture.
 """
 
 import argparse
 import sys
 import time
+from dataclasses import dataclass
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -29,17 +36,21 @@ from tqdm import tqdm
 
 from database.db import check_connection, get_engine
 from database.models import PageTranscription, Run
+from database.pages import est_derive
 from database.runs import TRANSCRIPTION
 from extraction.with_ocr import batch as mode_batch
 from extraction.with_ocr.backends import ErreurOcr, fabrique_backend
 from extraction.with_ocr.config import OcrConfig
 from extraction.with_ocr.normalize import normaliser
 from extraction.with_ocr.persist import (
+    DERIVES,
     PERIMETRES,
     enregistrer,
     etendre_perimetre,
+    noter_backend,
     ouvrir_run,
     pages_a_transcrire,
+    pages_en_derive,
 )
 from extraction.with_ocr.render import FORMATS, PdfIntrouvable, rendre_page
 from extraction.with_ocr.settings import logger
@@ -64,13 +75,15 @@ def parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--perimetre",
-        choices=PERIMETRES,
+        choices=PERIMETRES + (DERIVES,),
         default=None,
         help=(
             "manuscrit : pages needs_ocr (défaut) ; typé : le reste ; "
             "suspect : typé sous le seuil de qualité (formulaires remplis à "
             "la main) ; tout : le corpus entier. Avec --run-id, étend la passe "
-            "à ce périmètre (le run note « manuscrit+suspect »)"
+            "à ce périmètre (le run note « manuscrit+suspect ») ; "
+            "derives : avec --run-id seulement, rejoue les pages du run dont "
+            "la transcription est une dérive du modèle"
         ),
     )
     p.add_argument(
@@ -139,6 +152,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.batch and args.backend != "mistral":
         logger.error("--batch n'existe que pour le backend mistral")
         return 1
+    if args.perimetre == DERIVES and args.run_id is None:
+        logger.error("--perimetre derives demande --run-id : les dérives sont celles d'un run")
+        return 1
     engine = get_engine()
     check_connection(engine)
     backend = fabrique_backend(args.backend, args.model)
@@ -149,7 +165,9 @@ def main(argv: list[str] | None = None) -> int:
             if run is None:
                 return 1
             parametres = run.parameters or {}
-            perimetre = etendre_perimetre(session, run, args.perimetre)
+            perimetre = etendre_perimetre(
+                session, run, None if args.perimetre == DERIVES else args.perimetre
+            )
             dpi = parametres.get("dpi", args.dpi)
             format = parametres.get("format", args.format)
             en_batch = args.batch or bool(mode_batch.lots_du_run(run))
@@ -174,8 +192,14 @@ def main(argv: list[str] | None = None) -> int:
             perimetre = args.perimetre or "manuscrit"
             dpi, format = args.dpi, args.format
             en_batch = args.batch
+        noter_backend(session, run, backend)
 
-        pages = pages_a_transcrire(session, run, perimetre, args.limite)
+        if args.perimetre == DERIVES:
+            pages = pages_en_derive(session, run, args.limite)
+            session.commit()
+            perimetre = f"{DERIVES} ({perimetre})"
+        else:
+            pages = pages_a_transcrire(session, run, perimetre, args.limite)
         if en_batch:
             attendues = mode_batch.pages_en_attente(run)
             pages = [p for p in pages if p.id not in attendues]
@@ -190,11 +214,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         t0 = time.time()
+        bilan = Bilan()
         if en_batch:
-            echecs = _passe_batch(session, run, backend, pages, dpi, format)
+            bilan.echecs = _passe_batch(session, run, backend, pages, dpi, format)
         else:
-            echecs = _passe_sequentielle(session, run, backend, pages, dpi, format)
+            bilan = _passe_sequentielle(session, run, backend, pages, dpi, format)
         duree = time.time() - t0
+        echecs = bilan.echecs
 
         transcrites = (
             session.execute(
@@ -214,6 +240,12 @@ def main(argv: list[str] | None = None) -> int:
         logger.info("  run            : %d (%s)", run.id, run.label)
         logger.info("  transcrites    : %d (run entier)", transcrites)
         logger.info("  échecs         : %d", echecs)
+        if bilan.retirages or bilan.derives:
+            logger.info(
+                "  dérives        : %d retirage(s), %d page(s) restée(s) en dérive",
+                bilan.retirages,
+                bilan.derives,
+            )
         logger.info(
             "  qualité wordfreq : %.2f", qualite if qualite is not None else 0.0
         )
@@ -242,13 +274,43 @@ def _passe_batch(session, run, backend, pages, dpi, format) -> int:
     return mode_batch.attendre(session, run, client)
 
 
-def _passe_sequentielle(session, run, backend, pages, dpi, format) -> int:
+@dataclass
+class Bilan:
+    """Ce que la passe compte en plus des pages : ses accidents."""
+
+    echecs: int = 0
+    retirages: int = 0
+    derives: int = 0
+
+
+def _transcrire(backend, image: bytes, format: str) -> tuple[str, object, int]:
+    """Le texte normalisé d'une page, retiré si le modèle s'est emballé.
+
+    Un résultat en dérive ou arrêté par le plafond est retiré à graine fixée
+    (1, 2, …), `OLLAMA_RETIRAGES` fois au plus, si le backend le permet ; le
+    premier tirage propre est gardé, sinon le dernier — que la lecture
+    écartera. Rend (texte, résultat, nombre de retirages).
+    """
+    resultat = backend.transcrire(image, format)
+    texte = normaliser(resultat.texte)
+    retirages = 0
+    if getattr(backend, "retirable", False):
+        while (resultat.plafonne or est_derive(texte)) and (
+            retirages < OcrConfig.OLLAMA_RETIRAGES.value
+        ):
+            retirages += 1
+            resultat = backend.transcrire(image, format, seed=retirages)
+            texte = normaliser(resultat.texte)
+    return texte, resultat, retirages
+
+
+def _passe_sequentielle(session, run, backend, pages, dpi, format) -> Bilan:
     """Transcrit page à page, en commitant régulièrement."""
-    echecs = 0
+    bilan = Bilan()
     for compteur, page in enumerate(tqdm(pages, desc=f"OCR {backend.nom}"), start=1):
         try:
             image = rendre_page(page.pdf_name, page.page_number, dpi, format)
-            resultat = backend.transcrire(image, format)
+            texte, resultat, retirages = _transcrire(backend, image, format)
         except (PdfIntrouvable, ErreurOcr, ValueError, OSError) as exc:
             logger.warning(
                 "page %d (%s p%d) en échec : %s",
@@ -257,9 +319,27 @@ def _passe_sequentielle(session, run, backend, pages, dpi, format) -> int:
                 page.page_number,
                 exc,
             )
-            echecs += 1
+            bilan.echecs += 1
             continue
-        texte = normaliser(resultat.texte)
+        bilan.retirages += retirages
+        if est_derive(texte):
+            bilan.derives += 1
+            logger.warning(
+                "page %d (%s p%d) : dérive du modèle après %d retirage(s), gardée "
+                "telle quelle — écartée à la lecture",
+                page.id,
+                page.pdf_name,
+                page.page_number,
+                retirages,
+            )
+        elif retirages:
+            logger.info(
+                "page %d (%s p%d) : propre au retirage %d",
+                page.id,
+                page.pdf_name,
+                page.page_number,
+                retirages,
+            )
         enregistrer(
             session,
             run,
@@ -271,7 +351,7 @@ def _passe_sequentielle(session, run, backend, pages, dpi, format) -> int:
         if compteur % OcrConfig.COMMIT_EVERY.value == 0:
             session.commit()
     session.commit()
-    return echecs
+    return bilan
 
 
 if __name__ == "__main__":

@@ -84,7 +84,7 @@ def deposer(session: Session, run: Run, racine: Path) -> tuple[Path, int, int]:
             page.quality_score, len(texte), str(fichier.relative_to(dossier)),
         ))
     with (dossier / "manifeste.csv").open("w", encoding="utf-8", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         w.writerow(COLONNES)
         w.writerows(lignes)
     return dossier, ecrites, inchangees

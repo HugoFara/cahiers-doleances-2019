@@ -87,6 +87,35 @@ def test_ollama_rend_le_texte_et_passe_num_ctx(monkeypatch):
     assert captures["payload"]["stream"] is False
 
 
+def test_ollama_plafonne_la_generation_et_le_dit(monkeypatch):
+    captures = {}
+
+    def post(url, json=None, timeout=None):
+        captures["options"] = json["options"]
+        return _reponse(payload={"response": "la la la", "done_reason": "length"})
+
+    monkeypatch.setattr(backends.requests, "post", post)
+    resultat = OllamaBackend(num_predict=2048).transcrire(b"png")
+    assert captures["options"]["num_predict"] == 2048
+    assert "seed" not in captures["options"]
+    assert resultat.plafonne is True
+
+
+def test_ollama_retire_a_graine_fixee(monkeypatch):
+    captures = {}
+
+    def post(url, json=None, timeout=None):
+        captures["options"] = json["options"]
+        return _reponse(payload={"response": "propre", "done_reason": "stop"})
+
+    monkeypatch.setattr(backends.requests, "post", post)
+    resultat = OllamaBackend().transcrire(b"png", seed=2)
+    assert captures["options"]["seed"] == 2
+    assert resultat.plafonne is False
+    assert OllamaBackend.retirable is True
+    assert not getattr(MistralBackend, "retirable", False)
+
+
 def test_ollama_en_erreur_leve_erreur_ocr(monkeypatch):
     monkeypatch.setattr(
         backends.requests,

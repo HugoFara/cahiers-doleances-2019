@@ -24,11 +24,14 @@ class OcrResult:
         texte: texte brut du backend, avant normalisation.
         layout: lignes avec coordonnées, quand le backend les donne.
         duree_s: temps d'appel, pour le bilan de la passe.
+        plafonne: la génération a été arrêtée par le plafond de tokens, pas
+            par le modèle — le texte est tronqué, ou le modèle s'emballait.
     """
 
     texte: str
     layout: list[dict] | None = None
     duree_s: float = 0.0
+    plafonne: bool = False
 
 
 class ErreurOcr(RuntimeError):
@@ -126,6 +129,8 @@ class OllamaBackend:
     """
 
     nom = "ollama"
+    # un tirage à graine fixée est possible : la passe peut retirer une dérive
+    retirable = True
 
     def __init__(
         self,
@@ -133,25 +138,37 @@ class OllamaBackend:
         url: str | None = None,
         num_ctx: int | None = None,
         timeout_s: int | None = None,
+        num_predict: int | None = None,
     ):
         self.model = model or OcrConfig.OLLAMA_MODEL.value
         self.url = (url or settings.ollama_url).rstrip("/")
         self.num_ctx = num_ctx or OcrConfig.OLLAMA_NUM_CTX.value
         self.timeout_s = timeout_s or OcrConfig.OLLAMA_TIMEOUT_S.value
+        self.num_predict = num_predict or OcrConfig.OLLAMA_NUM_PREDICT.value
 
-    def transcrire(self, image: bytes, format: str = "png") -> OcrResult:
+    def transcrire(
+        self, image: bytes, format: str = "png", seed: int | None = None
+    ) -> OcrResult:
         """Transcrit une page rendue en image (le format est indifférent ici).
+
+        Args:
+            image: la page rendue.
+            format: indifférent pour ollama, gardé pour le contrat commun.
+            seed: graine du tirage ; None laisse le serveur tirer au sort.
 
         Raises:
             ErreurOcr: toutes les tentatives ont échoué.
         """
         b64 = base64.b64encode(image).decode()
+        options = {"num_ctx": self.num_ctx, "num_predict": self.num_predict}
+        if seed is not None:
+            options["seed"] = seed
         payload = {
             "model": self.model,
             "prompt": OcrConfig.OLLAMA_PROMPT.value,
             "images": [b64],
             "stream": False,
-            "options": {"num_ctx": self.num_ctx},
+            "options": options,
         }
         t0 = time.time()
         derniere = ""
@@ -163,9 +180,11 @@ class OllamaBackend:
                     timeout=self.timeout_s,
                 )
                 if reponse.status_code == 200:
+                    data = reponse.json()
                     return OcrResult(
-                        texte=reponse.json().get("response", ""),
+                        texte=data.get("response", ""),
                         duree_s=round(time.time() - t0, 2),
+                        plafonne=data.get("done_reason") == "length",
                     )
                 derniere = f"HTTP {reponse.status_code} : {reponse.text[:200]}"
             except requests.RequestException as exc:

@@ -10,8 +10,10 @@ from database.runs import TRANSCRIPTION
 from extraction.with_ocr.persist import (
     enregistrer,
     etendre_perimetre,
+    noter_backend,
     ouvrir_run,
     pages_a_transcrire,
+    pages_en_derive,
 )
 
 
@@ -167,3 +169,76 @@ def test_la_reprise_etend_le_run_au_perimetre_demande(session):
     assert run.corpus == "manuscrit+suspect"
     # demandé une seconde fois : déjà couvert, rien ne change
     assert etendre_perimetre(session, run, "suspect") == "manuscrit+suspect"
+
+
+
+DERIVE = "la même ligne\n" * 200  # boucle de lignes : `est_derive` la voit
+
+
+def test_les_pages_en_derive_sont_retirees_du_run_pour_etre_refaites(session):
+    run = _run(session)
+    saine = _page(session, page_number=1)
+    folle = _page(session, page_number=2)
+    autre_folle = _page(session, page_number=3)
+    enregistrer(session, run, saine, "un texte sage", None, 0.9)
+    enregistrer(session, run, folle, DERIVE, None, 0.9)
+    enregistrer(session, run, autre_folle, DERIVE, None, 0.9)
+    session.flush()
+
+    pages = pages_en_derive(session, run)
+
+    assert [p.id for p in pages] == [folle.id, autre_folle.id]
+    restantes = session.query(PageTranscription).filter_by(run_id=run.id).all()
+    assert [t.page_extraction_id for t in restantes] == [saine.id]
+    assert run.parameters["derives_reprises"] == 2
+    # la reprise ordinaire les revoit, et rien d'autre
+    assert [p.id for p in pages_a_transcrire(session, run, "tout")] == [
+        folle.id,
+        autre_folle.id,
+    ]
+
+
+def test_la_limite_ne_retire_que_ce_qu_elle_va_refaire(session):
+    run = _run(session)
+    a, b = _page(session, page_number=1), _page(session, page_number=2)
+    enregistrer(session, run, a, DERIVE, None, 0.9)
+    enregistrer(session, run, b, DERIVE, None, 0.9)
+    session.flush()
+
+    assert [p.id for p in pages_en_derive(session, run, limite=1)] == [a.id]
+    assert [p.id for p in pages_en_derive(session, run)] == [b.id]
+    assert run.parameters["derives_reprises"] == 2
+
+
+def test_sans_derive_rien_n_est_retire(session):
+    run = _run(session)
+    enregistrer(session, run, _page(session), "sage", None, 0.9)
+    session.flush()
+    assert pages_en_derive(session, run) == []
+    assert "derives_reprises" not in run.parameters
+
+
+class _Ollama:
+    retirable = True
+    num_predict = 2048
+
+
+class _Mistral:
+    pass
+
+
+def test_la_reprise_note_le_plafond_de_generation(session):
+    run = _run(session)
+    noter_backend(session, run, _Ollama())
+    assert run.parameters["num_predict"] == 2048
+    assert run.parameters["retirages"] >= 1
+    avant = dict(run.parameters)
+    noter_backend(session, run, _Ollama())
+    assert run.parameters == avant
+
+
+def test_un_backend_sans_reglage_ne_change_pas_le_run(session):
+    run = _run(session)
+    avant = dict(run.parameters)
+    noter_backend(session, run, _Mistral())
+    assert run.parameters == avant

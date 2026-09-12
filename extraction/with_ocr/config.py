@@ -36,6 +36,17 @@ class OcrConfig(enum.Enum):
     # une page peut prendre des minutes : le timeout est large.
     OLLAMA_NUM_CTX = 16384
     OLLAMA_TIMEOUT_S = 1800
+    # Plafond de génération. Une page A4 manuscrite tient en moins de 1 500
+    # tokens ; sans plafond, le modèle qui s'emballe (13 pages sur 2 984 au
+    # run 18) produit jusqu'à 50 000 caractères en dix minutes. À 2 048, une
+    # dérive coûte trente secondes et reste sous le seuil de
+    # `database.pages.MAX_CARACTERES_PAGE`.
+    OLLAMA_NUM_PREDICT = 2048
+    # La dérive est un accident de tirage, pas une propriété de la page :
+    # mesuré le 2026-09-12, la même page dérive à un appel et pas au suivant.
+    # Un résultat en dérive ou plafonné est donc retiré, à graine fixée pour
+    # être rejouable, autant de fois au plus.
+    OLLAMA_RETIRAGES = 3
     # Consigne de transcription diplomatique : ne rien corriger, ne rien
     # commenter. Elle va dans `run.parameters`.
     OLLAMA_PROMPT = (
