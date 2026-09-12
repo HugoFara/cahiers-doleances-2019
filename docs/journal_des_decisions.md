@@ -1465,6 +1465,38 @@ une commande.
 
 ---
 
+## 2026-09-12 — Toute la chaîne est rejouée sur le run 18 complet : découpage #31
+
+**Décision.** Le run 18 étant complet (2 510 manuscrites, 474 suspectes,
+13 dérives reprises), la chaîne aval est rejouée d'un trait, dans l'ordre :
+découpage (#31, actif), doublons (#32), les deux lexiques de mots-clés
+(runs #19 et #25 repris), anonymisation (#33, formes + NER, sur la machine
+dédiée). Le découpage #26 avait été ouvert à 0 h 30, avant la fin de la
+passe suspecte et avant la reprise des dérives ; le texte lu avait changé
+pour quelque 400 pages.
+
+**Mesuré, #26 → #31.** Doléances 1 531 → 1 557 ; communes avec une doléance
+inchangées (toutes) ; mots moyens / médians par doléance 709 / 285 →
+689 / 277 ; doublons 12 groupes, 29 doléances → 13 groupes, 32 doléances.
+Mots-clés : cadrage gouvernemental 8 797 → 9 157 rattachements, 299
+doléances hors grille (19 %) ; Vrai Débat 6 169 rattachements, 285 hors
+grille (18 %, contre 20 %). Anonymisation
+#33 : 28 033 passages dans 1 515 doléances (97 %) — lieux 12 517, noms
+6 198, institutions 5 610, rôles publics 2 122, téléphones 510, adresses
+494, courriels 358, liens 224 ; contre 27 655 dans 1 484 au run #30.
+
+**Ce que ça dit.** Les pages suspectes et les dérives reprises changent le
+texte, pas la structure : mêmes communes, une trentaine de doléances de
+plus, doublons quasi identiques. Le découpage est stable à la marge du
+corpus lu, ce qui est ce qu'on attend d'un découpage par signaux de texte.
+
+**Réversibilité.** Les runs #26, #29 et #30 restent en base, inactifs ;
+réactiver #26 rend l'état de la nuit.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs
