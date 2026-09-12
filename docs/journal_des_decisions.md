@@ -1497,6 +1497,39 @@ réactiver #26 rend l'état de la nuit.
 
 ---
 
+## 2026-09-12 — La fidélité de l'OCR est mesurée là où une vérité existe : l'imprimé
+
+**Constat.** Il n'y a pas d'étalon manuscrit. `reference/` annote des
+frontières de doléances, pas du texte, et son dossier `etalon/` est vide :
+personne n'a encore transcrit une page à la main. Le score wordfreq du run
+18 (0,91) dit que le modèle écrit du français, pas qu'il lit la page.
+
+**Décision.** Mesurer ce qui peut l'être : sur des pages typées dont la
+couche texte du PDF est bonne, faire transcrire l'image par le même modèle,
+même consigne, même normalisation, même retirage des dérives, et comparer
+(`extraction/with_ocr/fidelite.py` : CER, WER, CER sans accents ni casse ni
+ponctuation ; tirage stratifié par département, graine fixe, rien de
+persisté).
+
+**Mesuré.** ornith-1.5:9b, 30 pages typées, 67 616 caractères : CER moyen
+0,026 (médian 0,019, max 0,110), WER moyen 0,079, CER plié 0,014. Longueur
+transcrite sur référence de 0,96 à 1,02 partout. Le premier tirage, sans
+retirage, donnait 0,067 : deux pages étaient parties en boucle (CER 0,81 et
+0,57) et sont revenues à 0,066 et 0,020 au tirage suivant, ce qui confirme,
+sur l'imprimé, ce que la reprise des 13 dérives montrait sur le manuscrit.
+
+**Ce que ça ne dit pas.** Rien sur le manuscrit. Ce chiffre borne ce que la
+chaîne perd quand la lecture est facile ; la couche de référence est
+elle-même imparfaite, une part du 2,6 % lui revient. La fidélité sur le
+manuscrit demande un étalon transcrit à la main : une vingtaine de pages
+tirées dans le manuscrit, corrigées par une personne à partir du scan, et
+figées comme `reference/` fige ses frontières. C'est le prochain instrument
+à construire, et il ne peut pas être construit sans quelqu'un qui lit.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs

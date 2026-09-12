@@ -444,7 +444,7 @@ IIIF / ALTO / EAD).
 | Runs et versions (grilles concurrentes, `doleance` versionnée) | fait — `database/runs.py`, table `run` |
 | Jeu de référence annoté (200-300 doléances) | outillage fait — `reference/` ; **reste à annoter** |
 | Chiffrer la part manuscrite écartée | fait — 47 % des pages, `couverture/` |
-| Reprendre le manuscrit (HTR) | **passe complète lancée le 2026-09-11** — `ornith-1.5:9b` en local sur GPU, 2 510 pages, 8 à 14 h, puis le périmètre `suspect` (474 pages) en file ; hébergement tranché (journal, 2026-09-11 : rien ne sort) ; reste la mesure sur l'étalon |
+| Reprendre le manuscrit (HTR) | **passe complète lancée le 2026-09-11** — `ornith-1.5:9b` en local sur GPU, 2 510 pages, 8 à 14 h, puis le périmètre `suspect` (474 pages) en file ; hébergement tranché (journal, 2026-09-11 : rien ne sort) ; **passe complète le 2026-09-12** (2 984 pages, dérives plafonnées et retirées) ; fidélité mesurée sur l'imprimé (CER 0,026, `with_ocr/fidelite.py`), **pas encore sur le manuscrit** : l'étalon transcrit à la main manque |
 | Le manuscrit dans la lecture du corpus | fait — `database/pages.py`, texte de lecture unique (transcription active, sinon squelette) ; segmentation, export, couverture et app branchés ; reste à redécouper en nouveau run à la fin de la passe |
 | Commune -> INSEE | fait — 459 communes contre 307 par graphie |
 | Population et coordonnées (Code officiel géographique) | fait — `insee/referentiel/`, millésime pivot 2019 |

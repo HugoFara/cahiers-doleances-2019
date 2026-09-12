@@ -12,7 +12,9 @@ from dataclasses import dataclass
 
 import requests
 
+from database.pages import est_derive
 from extraction.with_ocr.config import OcrConfig
+from extraction.with_ocr.normalize import normaliser
 from extraction.with_ocr.settings import logger, settings
 
 
@@ -206,3 +208,26 @@ def fabrique_backend(backend: str, model: str | None = None):
     if backend == OllamaBackend.nom:
         return OllamaBackend(model=model)
     raise ValueError(f"backend inconnu : {backend!r} (mistral | ollama)")
+
+
+def transcrire_propre(
+    backend, image: bytes, format: str
+) -> tuple[str, OcrResult, int]:
+    """Le texte normalisé d'une page, retiré si le modèle s'est emballé.
+
+    Un résultat en dérive ou arrêté par le plafond est retiré à graine fixée
+    (1, 2, …), `OLLAMA_RETIRAGES` fois au plus, si le backend le permet ; le
+    premier tirage propre est gardé, sinon le dernier — que la lecture
+    écartera. Rend (texte, résultat, nombre de retirages).
+    """
+    resultat = backend.transcrire(image, format)
+    texte = normaliser(resultat.texte)
+    retirages = 0
+    if getattr(backend, "retirable", False):
+        while (resultat.plafonne or est_derive(texte)) and (
+            retirages < OcrConfig.OLLAMA_RETIRAGES.value
+        ):
+            retirages += 1
+            resultat = backend.transcrire(image, format, seed=retirages)
+            texte = normaliser(resultat.texte)
+    return texte, resultat, retirages

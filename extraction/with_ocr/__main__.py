@@ -39,9 +39,8 @@ from database.models import PageTranscription, Run
 from database.pages import est_derive
 from database.runs import TRANSCRIPTION
 from extraction.with_ocr import batch as mode_batch
-from extraction.with_ocr.backends import ErreurOcr, fabrique_backend
+from extraction.with_ocr.backends import ErreurOcr, fabrique_backend, transcrire_propre
 from extraction.with_ocr.config import OcrConfig
-from extraction.with_ocr.normalize import normaliser
 from extraction.with_ocr.persist import (
     DERIVES,
     PERIMETRES,
@@ -283,34 +282,13 @@ class Bilan:
     derives: int = 0
 
 
-def _transcrire(backend, image: bytes, format: str) -> tuple[str, object, int]:
-    """Le texte normalisé d'une page, retiré si le modèle s'est emballé.
-
-    Un résultat en dérive ou arrêté par le plafond est retiré à graine fixée
-    (1, 2, …), `OLLAMA_RETIRAGES` fois au plus, si le backend le permet ; le
-    premier tirage propre est gardé, sinon le dernier — que la lecture
-    écartera. Rend (texte, résultat, nombre de retirages).
-    """
-    resultat = backend.transcrire(image, format)
-    texte = normaliser(resultat.texte)
-    retirages = 0
-    if getattr(backend, "retirable", False):
-        while (resultat.plafonne or est_derive(texte)) and (
-            retirages < OcrConfig.OLLAMA_RETIRAGES.value
-        ):
-            retirages += 1
-            resultat = backend.transcrire(image, format, seed=retirages)
-            texte = normaliser(resultat.texte)
-    return texte, resultat, retirages
-
-
 def _passe_sequentielle(session, run, backend, pages, dpi, format) -> Bilan:
     """Transcrit page à page, en commitant régulièrement."""
     bilan = Bilan()
     for compteur, page in enumerate(tqdm(pages, desc=f"OCR {backend.nom}"), start=1):
         try:
             image = rendre_page(page.pdf_name, page.page_number, dpi, format)
-            texte, resultat, retirages = _transcrire(backend, image, format)
+            texte, resultat, retirages = transcrire_propre(backend, image, format)
         except (PdfIntrouvable, ErreurOcr, ValueError, OSError) as exc:
             logger.warning(
                 "page %d (%s p%d) en échec : %s",

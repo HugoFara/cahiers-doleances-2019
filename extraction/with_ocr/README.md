@@ -121,6 +121,38 @@ jamais commités.
   ollama local. À trancher avant la passe complète — voir
   `docs/plan_post_ocr.md`, section « Ce que coûte l'OCR ».
 
+## Fidélité, là où une vérité existe
+
+Il n'y a pas d'étalon manuscrit : personne n'a encore transcrit à la main un
+échantillon de pages, et `reference/` annote des frontières de doléances,
+pas du texte. `fidelite.py` mesure ce qui peut l'être aujourd'hui : sur des
+pages **typées** dont la couche texte du PDF est bonne (wordfreq ≥ 0,9,
+800 à 4 000 caractères), le backend transcrit l'image et on compare à la
+couche, en caractères (CER) et en mots (WER), plus un CER « plié » sans
+accents, casse ni ponctuation, qui isole le contenu de l'orthographe. Tirage
+stratifié par département, graine fixe ; rien n'est persisté.
+
+```bash
+uv run python -m extraction.with_ocr.fidelite --backend ollama --model ornith-1.5:9b --taille 30
+uv run python -m extraction.with_ocr.fidelite --pages 2709,4425     # des pages précises
+```
+
+**Mesuré le 2026-09-12, ornith-1.5:9b, 30 pages typées (67 616 caractères)** :
+CER moyen **0,026**, médian 0,019, max 0,110 ; WER moyen 0,079, médian
+0,074 ; CER plié moyen 0,014 — la moitié des erreurs de caractères sont
+d'accent, de casse ou de ponctuation. Longueur transcrite / référence entre
+0,96 et 1,02 sur toutes les pages : ni troncature, ni ajout. Sans le
+retirage des dérives, le même tirage donnait un CER moyen de 0,067 à cause
+de deux pages parties en boucle (0,81 et 0,57), revenues à 0,066 et 0,020
+au tirage suivant — la dérive est bien un accident, et le retirage la
+corrige aussi ici.
+
+C'est une mesure sur l'imprimé, pas sur le manuscrit : elle borne ce que
+le modèle, la consigne et la normalisation perdent quand la lecture est
+facile. La couche texte de référence est elle-même imparfaite (en-têtes
+corrompus, mesuré le 2026-09-10) : une part du 2,6 % lui revient. La
+fidélité sur le manuscrit attend un étalon transcrit à la main.
+
 ## Tests
 
 ```bash
@@ -130,4 +162,4 @@ uv run --extra dev pytest extraction/with_ocr/tests/
 Unitaires, sans réseau ni base : normalisation, rendu (PDF fabriqué),
 parsing des réponses de backends (requêtes bouchonnées), périmètres et
 reprise sur SQLite en mémoire, lots et récolte du mode batch (client
-bouchonné).
+bouchonné), retirage des dérives, mesures de fidélité et tirage.

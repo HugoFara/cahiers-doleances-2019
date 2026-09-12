@@ -1,7 +1,6 @@
-"""La commande : le retirage des dérives, backend bouchonné."""
+"""Le retirage des dérives, backend bouchonné."""
 
-from extraction.with_ocr.__main__ import _transcrire
-from extraction.with_ocr.backends import OcrResult
+from extraction.with_ocr.backends import OcrResult, transcrire_propre
 from extraction.with_ocr.config import OcrConfig
 
 DERIVE = "la même ligne\n" * 200
@@ -23,7 +22,7 @@ class _Backend:
 
 def test_un_resultat_propre_n_est_pas_retire():
     backend = _Backend(OcrResult("un texte sage"))
-    texte, _, retirages = _transcrire(backend, b"png", "png")
+    texte, _, retirages = transcrire_propre(backend, b"png", "png")
     assert texte == "un texte sage"
     assert retirages == 0
     assert backend.graines == [None]
@@ -33,7 +32,7 @@ def test_une_derive_est_retiree_a_graine_fixee_jusqu_au_propre():
     backend = _Backend(
         OcrResult(DERIVE), OcrResult("encore", plafonne=True), OcrResult("propre")
     )
-    texte, resultat, retirages = _transcrire(backend, b"png", "png")
+    texte, resultat, retirages = transcrire_propre(backend, b"png", "png")
     assert texte == "propre"
     assert resultat.plafonne is False
     assert retirages == 2
@@ -43,7 +42,7 @@ def test_une_derive_est_retiree_a_graine_fixee_jusqu_au_propre():
 def test_le_dernier_tirage_est_garde_si_tout_derive():
     n = OcrConfig.OLLAMA_RETIRAGES.value
     backend = _Backend(*[OcrResult(DERIVE) for _ in range(n + 1)])
-    texte, _, retirages = _transcrire(backend, b"png", "png")
+    texte, _, retirages = transcrire_propre(backend, b"png", "png")
     assert retirages == n
     assert texte.startswith("la même ligne")
 
@@ -58,6 +57,6 @@ def test_un_backend_sans_retirage_garde_son_premier_resultat():
             return OcrResult(DERIVE)
 
     backend = _Mistral()
-    _, _, retirages = _transcrire(backend, b"png", "png")
+    _, _, retirages = transcrire_propre(backend, b"png", "png")
     assert retirages == 0
     assert backend.appels == 1
