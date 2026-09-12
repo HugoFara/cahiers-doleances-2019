@@ -1353,6 +1353,7 @@ les pages suspectes. Tant qu'elle n'a pas tourné, les extraits de la
 recherche et de l'onglet Lecture ne sont pas caviardés pour ce découpage ;
 l'app tourne en usage interne, sur cette machine, et c'est consigné ici
 plutôt que masqué.
+*Levé le jour même : voir l'entrée suivante.*
 
 **Avant la lecture, une règle de plus.** Onze pages du run 18 sont des
 dérives du modèle (boucles, emballement jusqu'à 50 000 caractères) que le
@@ -1385,6 +1386,39 @@ lexique le plus fourni gagne encore, c'est l'artefact déjà consigné.
 
 **Réversibilité.** Réactiver le run #2 ramène tout le monde au typé seul ;
 les runs de mots-clés se rejouent dessus en une commande.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
+## 2026-09-12 — L'anonymisation est rejouée sur le découpage #26, sur une machine à part
+
+**Décision.** Run d'anonymisation #30 « formes, signatures et entités
+nommées », actif, sur les 1 531 doléances du découpage #26. Même passe que
+le 2026-09-11 (formes + signatures + CamemBERT-NER, seuils inchangés), mais
+exécutée sur une machine dédiée, sur CPU, la base restant ici et jointe par
+un tunnel SSH inverse : le poste de travail ne porte plus les passes modèle.
+Les pages suspectes du run 18 (474, terminées à 2 h 23) sont dans le texte
+lu, donc dans ce découpage et dans cette passe.
+
+**Ce que ça donne, mesuré.** 27 655 passages dans 1 484 doléances (97 %) :
+lieux 12 686, noms 5 949, institutions 5 464, rôles publics 2 054,
+téléphones 490, adresses 460, courriels 346, liens 206. Sur le découpage #2,
+la même passe donnait 19 306 passages dans 968 doléances ; le rapport suit le
+nombre de doléances (× 1,53 pour × 1,43) avec un peu plus de noms par
+doléance, le manuscrit signant davantage que le typé. 10 min 21 s sur 16
+cœurs.
+
+**Conséquence dans l'app.** Les extraits de la recherche et de l'onglet
+Lecture sont de nouveau caviardés pour le découpage servi ; la réserve
+consignée le matin même est levée. Le rappel reste non mesuré : l'étalon
+annoté à la main n'existe toujours pas.
+
+**Ménage.** Un run #27, ouvert par une tentative locale interrompue avant
+toute détection (0 passage), a été supprimé.
+
+**Réversibilité.** Les runs #3 et #23 (découpage #2) restent en base ;
+activer l'un d'eux avec le découpage #2 ramène l'état d'avant.
 
 **Auteur.** Équipe technique, *à nommer avant publication*.
 
