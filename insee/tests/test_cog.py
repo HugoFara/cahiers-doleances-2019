@@ -250,3 +250,54 @@ def test_le_referentiel_versionne_couvre_les_departements_du_corpus():
     assert departements == {"01", "28", "39", "53"}
     # Un code par département, pris dans les noms de fichiers du corpus.
     assert {"01053", "28012", "39198", "53007"} <= set(referentiel)
+
+
+def test_les_contours_se_lisent_en_anneaux_latitude_longitude(tmp_path):
+    import json
+
+    from insee.cog import contours_departements
+
+    (tmp_path / "departements.geojson").write_text(
+        json.dumps(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "properties": {"code": "53", "nom": "Mayenne"},
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [[[-0.9, 48.0], [-0.5, 48.0], [-0.5, 48.4], [-0.9, 48.0]]],
+                        },
+                    },
+                    {
+                        "type": "Feature",
+                        "properties": {"code": "2A", "nom": "Corse-du-Sud"},
+                        "geometry": {
+                            "type": "MultiPolygon",
+                            "coordinates": [
+                                [[[9.0, 41.5], [9.2, 41.5], [9.0, 41.5]]],
+                                [[[8.5, 41.9], [8.6, 41.9], [8.5, 41.9]], [[8.55, 41.91], [8.56, 41.91], [8.55, 41.91]]],
+                            ],
+                        },
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    contours = contours_departements(tmp_path)
+
+    assert contours["53"] == [[(48.0, -0.9), (48.0, -0.5), (48.4, -0.5), (48.0, -0.9)]]
+    assert len(contours["2A"]) == 2  # deux morceaux, le trou du second ignoré
+    assert contours["2A"][1] == [(41.9, 8.5), (41.9, 8.6), (41.9, 8.5)]
+    assert contours_departements(tmp_path / "ailleurs") == {}
+
+
+def test_le_referentiel_versionne_couvre_la_metropole():
+    from insee.cog import contours_departements
+
+    contours = contours_departements()
+    assert len(contours) == 96
+    assert {"01", "28", "39", "53", "2A", "2B"} <= set(contours)
+    assert all(anneau[0] == anneau[-1] for anneaux in contours.values() for anneau in anneaux)

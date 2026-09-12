@@ -9,9 +9,10 @@ tracées à part, en croix grise : leur absence de la carte serait un mensonge
 de plus.
 
 Le fond de carte est celui de Plotly (contours des pays), pas un fond de
-tuiles : rien n'est envoyé à un serveur de cartes, et le contour de la France
-suffit à situer trois départements. Les limites départementales n'y sont pas ;
-le survol donne le code INSEE, qui les porte.
+tuiles : rien n'est envoyé à un serveur de cartes. Les **contours des
+départements** viennent du référentiel versionné (`insee/referentiel/
+departements.geojson`, IGN Admin Express simplifié) : tous en gris clair,
+ceux du corpus plus marqués. Le survol d'une commune donne son code INSEE.
 """
 
 import html
@@ -23,6 +24,7 @@ import plotly.graph_objects as go
 
 from gradio_app.data_helpers import communes_pour_carte
 from gradio_app.views.lecture import strate
+from insee.cog import contours_departements
 
 COULEURS = {
     "doléances": ("doleances", "doléances", "Blues"),
@@ -31,6 +33,8 @@ COULEURS = {
 }
 COULEUR_DEFAUT = "doléances"
 TAILLE_MIN, TAILLE_MAX = 5, 34
+CONTOUR_FOND = "rgba(138,138,138,0.35)"
+CONTOUR_CORPUS = "rgba(90,90,90,0.9)"
 
 AIDE = (
     "Un point par commune, <strong>placé</strong> aux coordonnées du Code "
@@ -70,6 +74,37 @@ def preparer(communes: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def traces_contours(
+    contours: dict[str, list[list[tuple[float, float]]]], corpus: set[str]
+) -> list[tuple[str, list[float | None], list[float | None]]]:
+    """Deux tracés de lignes — le fond, puis les départements du corpus —
+    chacun une suite d'anneaux séparés par ``None``, ce que Plotly lit comme
+    des segments disjoints dans un seul tracé.
+
+    Args:
+        contours: ``{code: [anneau, …]}`` de `contours_departements`.
+        corpus: codes des départements où le corpus a des communes.
+
+    Returns:
+        ``[(nom, latitudes, longitudes), …]``, sans le tracé du corpus s'il est
+        vide ; vide si aucun contour n'est disponible.
+    """
+    traces = []
+    for nom, codes in (
+        ("départements", [c for c in sorted(contours) if c not in corpus]),
+        ("départements du corpus", [c for c in sorted(contours) if c in corpus]),
+    ):
+        latitudes: list[float | None] = []
+        longitudes: list[float | None] = []
+        for code in codes:
+            for anneau in contours[code]:
+                latitudes.extend([lat for lat, _ in anneau] + [None])
+                longitudes.extend([lon for _, lon in anneau] + [None])
+        if latitudes:
+            traces.append((nom, latitudes, longitudes))
+    return traces
+
+
 def _survol(c) -> str:
     pop = f"{int(c.population):,}".replace(",", " ") if pd.notna(c.population) else "?"
     transcrites = f", {c.transcrites} transcrite(s)" if c.transcrites else ""
@@ -92,6 +127,15 @@ def figure(couleur: str = COULEUR_DEFAUT) -> go.Figure:
     if df.empty:
         fig.update_layout(title="Aucune commune à placer")
         return fig
+
+    corpus = {str(code)[:2] for code in df["code"].dropna()}
+    for nom, latitudes, longitudes in traces_contours(contours_departements(), corpus):
+        fond = nom == "départements"
+        fig.add_scattergeo(
+            lat=latitudes, lon=longitudes, mode="lines", name=nom,
+            line={"width": 0.6 if fond else 1.2, "color": CONTOUR_FOND if fond else CONTOUR_CORPUS},
+            hoverinfo="skip", showlegend=False,
+        )
 
     parlantes = df[~df["muette"]]
     muettes = df[df["muette"]]

@@ -84,9 +84,10 @@ cahier, aucune page lisible — sont des croix grises : les retirer de la carte
 serait un mensonge de plus. Le survol donne population, strate, cahiers,
 pages (manuscrites, transcrites), doléances. Fond Plotly (contours des pays,
 topojson chargé depuis cdn.plot.ly par le navigateur), pas de tuiles : rien
-n'est envoyé à un serveur de cartes. Pas de limites départementales ; c'est
-la première chose à ajouter si la carte sert (contours Admin Express, licence
-ouverte).
+n'est envoyé à un serveur de cartes. Les limites départementales viennent du
+référentiel versionné (`insee/referentiel/departements.geojson`, Admin
+Express simplifié, licence ouverte) : toute la métropole en gris clair, les
+départements du corpus plus marqués.
 
 **Recherche** : plein texte sur les doléances (`recherche/`). Ses extraits sont
 **caviardés**, quand la vue par commune montre le texte brut — et l'écart est

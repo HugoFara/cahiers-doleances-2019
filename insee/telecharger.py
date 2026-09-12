@@ -28,6 +28,11 @@ disposition du dossier :
   Les communes disparues depuis n'y sont pas et restent sans coordonnées.
 - `passage.csv` — table de passage 2019 → millésime courant, construite depuis le
   fichier des mouvements de communes, qui recense les événements depuis 1943.
+- `departements.geojson` — contours simplifiés des 96 départements
+  métropolitains, pour situer les communes sur une carte. Tracés IGN Admin
+  Express (édition 2018, licence ouverte) tels que simplifiés par le projet
+  france-geojson ; coordonnées arrondies au millième de degré (~100 m), ce qui
+  suffit à un fond de carte et divise le fichier par trois.
 
 Usage :
 
@@ -36,6 +41,7 @@ Usage :
 
 import csv
 import io
+import json
 import zipfile
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -57,6 +63,11 @@ COG_MOUVEMENTS = (
 COG_COURANT = "https://www.insee.fr/fr/statistiques/fichier/8740222/v_commune_2026.csv"
 POPULATIONS = "https://www.insee.fr/fr/statistiques/fichier/4265429/ensemble.zip"
 GEOMETRIE = "https://geo.api.gouv.fr/departements/{departement}/communes?fields=code,centre"
+CONTOURS = (
+    "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/"
+    "departements-version-simplifiee.geojson"
+)
+DECIMALES_CONTOUR = 3
 
 # Types d'entité du COG. COM est une commune de plein exercice ; COMD et COMA
 # sont des communes déléguées et associées, c'est-à-dire des communes absorbées
@@ -102,6 +113,7 @@ class Rapport:
     sans_population: list[str] = field(default_factory=list)
     avec_coordonnees: int = 0
     passages: int = 0
+    contours: int = 0
 
     def resume(self) -> list[str]:
         types = " · ".join(f"{t} {n}" for t, n in sorted(self.par_type.items()))
@@ -110,6 +122,7 @@ class Rapport:
             f"sans population légale : {len(self.sans_population)}",
             f"avec coordonnées : {self.avec_coordonnees}",
             f"lignes de table de passage vers {MILLESIME_COURANT} : {self.passages}",
+            f"contours de départements : {self.contours}",
         ]
 
 
@@ -202,10 +215,45 @@ def _renommage(code: str, apres: dict[str, list[dict]]) -> dict | None:
     return max(noms, key=lambda m: m["DATE_EFF"]) if noms else None
 
 
+def _arrondir(coordonnees, decimales: int):
+    """Arrondit récursivement les coordonnées d'une géométrie GeoJSON."""
+    if isinstance(coordonnees, (int, float)):
+        return round(coordonnees, decimales)
+    return [_arrondir(c, decimales) for c in coordonnees]
+
+
+def contours(contenu: bytes, decimales: int = DECIMALES_CONTOUR) -> dict:
+    """La collection des contours, réduite à ce que la carte lit : code, nom,
+    géométrie arrondie. Tous les départements, pas seulement ceux du corpus :
+    un fond de carte sans voisins ne situe rien."""
+    source = json.loads(contenu.decode("utf-8"))
+    features = [
+        {
+            "type": "Feature",
+            "properties": {"code": f["properties"]["code"], "nom": f["properties"]["nom"]},
+            "geometry": {
+                "type": f["geometry"]["type"],
+                "coordinates": _arrondir(f["geometry"]["coordinates"], decimales),
+            },
+        }
+        for f in sorted(source["features"], key=lambda f: f["properties"]["code"])
+    ]
+    return {"type": "FeatureCollection", "features": features}
+
+
+def ecrire_contours(dossier: Path, collection: dict) -> int:
+    """Écrit `departements.geojson`, compact ; rend le nombre de contours."""
+    (dossier / "departements.geojson").write_text(
+        json.dumps(collection, ensure_ascii=False, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    return len(collection["features"])
+
+
 def construire(
     dossier: Path, departements: Iterable[str], cache: Path
 ) -> Rapport:
-    """Reconstruit les trois extraits du référentiel pour ces départements.
+    """Reconstruit les extraits du référentiel pour ces départements.
 
     Args:
         dossier: où écrire les CSV (`insee/referentiel/`).
@@ -315,4 +363,7 @@ def construire(
             ])
             rapport.passages += 1
 
+    rapport.contours = ecrire_contours(
+        dossier, contours(_telecharger(CONTOURS, cache / "departements-version-simplifiee.geojson"))
+    )
     return rapport

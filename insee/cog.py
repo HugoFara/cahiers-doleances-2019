@@ -23,6 +23,7 @@ Deux pièges, tous deux rencontrés sur le corpus réel :
 """
 
 import csv
+import json
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
@@ -284,3 +285,31 @@ def enrichir(session: Session, referentiel: dict[str, Commune] | None = None) ->
 
     rapport.doubles = doubles_comptes({v.code for v in villes}, referentiel)
     return rapport
+
+
+def contours_departements(
+    dossier: Path = REFERENTIEL,
+) -> dict[str, list[list[tuple[float, float]]]]:
+    """Les contours des départements, ``{code: [anneau, …]}``, chaque anneau
+    une liste de ``(latitude, longitude)`` fermée.
+
+    Lit `departements.geojson` (voir `insee/referentiel/SOURCES.md`). Un
+    département en plusieurs morceaux (îles) a plusieurs anneaux ; les trous
+    sont ignorés, un fond de carte n'en a pas besoin.
+    """
+    fichier = dossier / "departements.geojson"
+    if not fichier.exists():
+        return {}
+    collection = json.loads(fichier.read_text(encoding="utf-8"))
+    contours: dict[str, list[list[tuple[float, float]]]] = {}
+    for feature in collection.get("features", []):
+        geometrie = feature["geometry"]
+        polygones = (
+            [geometrie["coordinates"]]
+            if geometrie["type"] == "Polygon"
+            else geometrie["coordinates"]
+        )
+        contours[feature["properties"]["code"]] = [
+            [(lat, lon) for lon, lat in polygone[0]] for polygone in polygones
+        ]
+    return contours

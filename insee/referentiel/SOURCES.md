@@ -1,7 +1,8 @@
 # Provenance des extraits
 
-Ces trois fichiers sont des **extraits** de référentiels publics, réduits aux
-départements présents dans le corpus (01, 28, 39, 53). Ils sont versionnés
+Ces fichiers sont des **extraits** de référentiels publics, réduits aux
+départements présents dans le corpus (01, 28, 39, 53) — sauf les contours, qui
+couvrent la métropole. Ils sont versionnés
 plutôt que téléchargés à la volée : le chargement en base doit être reproductible
 hors ligne, et une URL qui bouge chez le producteur ne doit pas casser une
 mesure publiée. Ils se reconstruisent avec
@@ -123,3 +124,21 @@ qui s'appliqueront à toute publication du corpus, pas seulement à ce dossier :
 La troisième n'est pas une formalité pour ce projet : c'est exactement le risque
 que la pondération par population fait courir si elle est publiée sans dire ce
 qu'elle mesure.
+
+## `departements.geojson`
+
+Contours des 96 départements métropolitains, `FeatureCollection` GeoJSON avec
+`code` et `nom` pour propriétés, coordonnées `[longitude, latitude]`.
+
+- **Tracés** : IGN, ADMIN EXPRESS COG, édition 2018 (licence ouverte), tels que
+  **simplifiés** par le projet france-geojson de Grégoire David —
+  <https://github.com/gregoiredavid/france-geojson>, fichier
+  `departements-version-simplifiee.geojson`. Extraction du **2026-09-12**.
+- **Arrondi** : coordonnées ramenées au millième de degré (~100 m) par
+  `insee.telecharger.contours`, ce qui divise le fichier par trois sans que
+  l'œil le voie à l'échelle d'une carte de France.
+
+Tous les départements et pas seulement les quatre du corpus : un fond de carte
+sans voisins ne situe rien. Sert uniquement à l'onglet « Carte » de l'app
+(`gradio_app/views/carte.py`) ; rien n'en est chargé en base. Le millésime est
+sans importance ici : les limites départementales n'ont pas bougé depuis 2019.

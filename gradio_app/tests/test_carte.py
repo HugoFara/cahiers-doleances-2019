@@ -45,3 +45,30 @@ class TestPreparer:
     def test_le_survol_ne_laisse_pas_passer_de_balise(self):
         df = preparer(_communes(("01001", "<b>A</b>", "01", 500, 46.0, 5.0, 1, 3, 0, 0, 3, 1)))
         assert "&lt;b&gt;A&lt;/b&gt;" in df.iloc[0]["survol"]
+
+
+class TestContours:
+    def test_le_fond_et_le_corpus_sont_deux_traces_separes_par_none(self):
+        from gradio_app.views.carte import traces_contours
+
+        contours = {
+            "01": [[(46.0, 5.0), (46.5, 5.0), (46.5, 5.5), (46.0, 5.0)]],
+            "28": [[(48.0, 1.0), (48.5, 1.0), (48.0, 1.0)]],
+            "2A": [[(41.5, 9.0), (42.0, 9.0), (41.5, 9.0)], [(41.3, 9.2), (41.4, 9.2), (41.3, 9.2)]],
+        }
+        traces = traces_contours(contours, corpus={"01", "28"})
+
+        assert [t[0] for t in traces] == ["départements", "départements du corpus"]
+        fond, corpus = traces
+        # la Corse a deux anneaux : deux None, un par anneau
+        assert fond[1].count(None) == 2 and fond[1][:3] == [41.5, 42.0, 41.5]
+        assert corpus[1].count(None) == 2
+        assert corpus[2][:4] == [5.0, 5.0, 5.5, 5.0]
+
+    def test_sans_contour_aucun_trace(self):
+        from gradio_app.views.carte import traces_contours
+
+        assert traces_contours({}, corpus={"01"}) == []
+        assert [t[0] for t in traces_contours({"01": [[(46.0, 5.0)]]}, corpus=set())] == [
+            "départements"
+        ]
