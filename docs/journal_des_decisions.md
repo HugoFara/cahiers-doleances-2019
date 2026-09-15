@@ -1530,6 +1530,112 @@ figées comme `reference/` fige ses frontières. C'est le prochain instrument
 
 ---
 
+## 2026-09-15 — Le corpus change d'échelle : les cahiers citoyens des 100 départements sont extraits
+
+**Décision.** Le versement BnF « Grand débat national » (Archives
+nationales, inventaires 2021) est téléchargé depuis le Drive de
+l'association et branché tel quel sur la chaîne : `PATH_TO_DATA` pointe sur
+`data/raw/national`, parcouru récursivement (`BnF_GDN_<dept>_PDF/CC/`, un
+dossier par département, `Bnf_GDN_65` compris). L'extraction native est
+rejouée sur l'ensemble ; les 516 cahiers de l'échantillon (01, 28, 53)
+gardent leurs lignes, leurs runs et leurs identifiants.
+
+**Mesuré.** 19 931 cahiers citoyens ; **19 901 en base, 281 045 pages,
+125 719 `needs_ocr` (44,7 %)**, 14,1 pages par cahier ; 1 651 cahiers
+entièrement manuscrits, 2 889 entièrement dactylographiés, 30 vides
+(pages de garde seules). La part manuscrite va d'environ 35 % à 58 % selon
+le département (80, 43, 19, 58, 42, 66, 62 en tête). Le 47 % de
+l'échantillon tenait. À 21 s/page (run 18), l'HTR du manuscrit national
+représente une trentaine de jours de GPU, plus les pages suspectes.
+
+**Deux règles écrites sur l'échantillon, mises en défaut par l'échelle.**
+
+1. Un moteur de base par cahier : invisible sur 516, il sature les 100
+   connexions de Postgres à 25 cahiers/s — 12 638 échecs au premier
+   passage. Corrigé (un moteur, passé à chaque extraction) ; la reprise ne
+   refait que ce qui manque, la commande est relançable.
+2. « Arrêt au premier *Fin des pages écrites* ». Dans une soixantaine de
+   cahiers la feuille de fin est scannée en page 2, à la place d'une page
+   de garde : zéro page retenue, jusqu'à 229 pages écrites derrière.
+   Corrigé : le marqueur n'est plus cherché sur les pages de garde ; 56
+   cahiers, 1 219 pages récupérés. **Non corrigé, à trancher** : un PDF
+   peut relier plusieurs *plis* (feuilles « SEPARATEUR PLI » de
+   l'opérateur, jusqu'à 16 marqueurs dans un cahier), et l'arrêt au
+   premier marqueur en écarte la suite. Audit sur les 19 931 fichiers :
+   619 sans marqueur ; 2 100 avec une seule page derrière (dos, couverture
+   — rien de perdu) ; **281 cahiers avec du contenu derrière, ~1 661 pages
+   dactylographiées et ~1 578 manuscrites ignorées**, dont
+   `CC_01000_190304_01053` — Bourg-en-Bresse, préfecture de l'Ain, 290
+   pages, marqueur en page 83 : **163 pages hors de tout ce qui a été
+   mesuré sur le 01 depuis le début**. Ce sont les gros cahiers, donc les
+   grandes communes. La règle à adopter est vraisemblablement « arrêt au
+   dernier marqueur » ; la ré-extraction touche des pages qui portent des
+   transcriptions et des runs, elle demande d'*ajouter* des pages sans
+   supprimer les existantes. Non fait ce jour.
+
+**Ce que le filtre de longueur laisse dehors.** Les fichiers CC font
+459 078 pages ; ~40 000 sont des pages de garde, ~3 200 suivent un premier
+marqueur, et **~135 000 ont moins de 10 caractères de texte** et ne sont
+jamais persistées. Sondage (400 cahiers, 300 pages) : 73 % blanches, 26 %
+avec très peu d'encre, 1 % écrites ; à l'œil, une page « peu d'encre » sur
+six porte quelques lignes manuscrites. Quelques milliers de pages courtes,
+écrites à la main, sont donc écartées avant le tri `needs_ocr` et ne
+partiront pas à l'HTR : le seuil est textuel là où il faudrait un seuil
+d'encre. Consigné, non corrigé.
+
+**Réversibilité.** `PATH_TO_DATA=data/raw/pdfs` et les 516 cahiers sont
+l'état d'avant ; les lignes nationales se reconnaissent à leur nom de
+fichier (département hors 01, 28, 53) et se suppriment d'un `DELETE`.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
+## 2026-09-15 — Le périmètre est « cahiers citoyens », par défaut et sans motif consigné ; les courriers entrent
+
+**Constat.** Le versement classe les contributions numérisées en quatre
+catégories, comptées depuis les 100 inventaires :
+
+| Code | Catégorie | Documents | Pages |
+|---|---|---|---|
+| CC | Cahiers citoyens (registres en mairie) | 19 879 | 457 950 |
+| CO | Contributions individuelles (courriers) | 13 850 | 109 354 |
+| CR | Comptes rendus de réunions d'initiative locale | 8 615 | 59 181 |
+| IL | Comptes rendus envoyés en pièce jointe de courriels | 1 623 | 22 348 |
+
+Le script de téléchargement du 2026-09-14 (`download_cc.sh`, non versionné
+— sous `data/`) ne prend que `CC`. Ce choix n'a été consigné nulle part et
+personne ne l'a motivé ; il tient sans doute à ce que toute la chaîne est
+construite sur les registres (le rattachement INSEE lit le code commune
+dans le nom de fichier, que seuls les noms CC portent ; l'échantillon est
+CC seulement), et à ce que le projet s'appelle « cahiers ». Ce sont des
+reconstitutions, pas la raison.
+
+**Décision.** Les CO sont téléchargés (~36 Go pour
+les trois catégories restantes, les CO d'abord). Motif : un courrier
+individuel est une doléance au sens du plan — « ce qu'a écrit une
+personne » — et 24 % des doléances de l'échantillon sont déjà des
+courriers collés dans les registres ; écarter les CO écarte ceux qui ont
+écrit sans passer par la mairie. CR et IL restent dehors pour l'instant :
+un compte rendu de réunion n'est pas la parole d'un contributeur, la
+question de leur place est ouverte.
+
+**Ce qui ne suit pas sans travail.** Les noms CO/CR/IL portent le code
+postal et non le code INSEE (`CO_01000_190215_D_02389`) : le rattachement
+à la commune demande une table code postal → communes, avec ambiguïté. Le
+suffixe `D` / `M` / `MD` (dactylographié / manuscrit / mixte ?) est une
+annotation de l'opérateur à vérifier ; si elle est fiable, c'est un
+`needs_ocr` de niveau document, gratuit. `A_lire/_RGPD_chercheur.pdf`
+(Archives nationales, 2020) pose le cadre « recherche historique » du
+traitement : à lire avant de trancher le périmètre publié.
+
+**Réversibilité.** Le dossier `CO/` se supprime ; rien n'en dépend en base
+tant que l'extraction n'y a pas été lancée.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs
