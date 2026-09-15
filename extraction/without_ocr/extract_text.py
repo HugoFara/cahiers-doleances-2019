@@ -11,6 +11,7 @@ from extraction.without_ocr.config import (
     ExtractionConfig,
     city_regex,
 )
+from extraction.without_ocr.discovery import categorie
 from extraction.without_ocr.persist import save_page_extractions
 from extraction.without_ocr.settings import logger
 from extraction.without_ocr.timing import timed
@@ -59,6 +60,17 @@ def find_city(metadata_text: str) -> str | None:
     if match is None:
         return None
     return match.group(1).strip().upper()
+
+
+def pages_de_garde(pdf_name: str) -> int:
+    """How many leading pages are metadata, not content, for this document.
+
+    Two for a cahier citoyen (and for anything outside the deposit's naming
+    convention, the historical default); none for letters and meeting reports.
+    """
+    return ExtractionConfig.SKIP_FIRST_N_PAGES_PAR_CATEGORIE.value.get(
+        categorie(pdf_name) or "", ExtractionConfig.SKIP_FIRST_N_PAGES.value
+    )
 
 
 def find_end_page(pages: list[str], start: int = 0) -> int | None:
@@ -162,7 +174,7 @@ def extract_pdf_pages(filepath: str | Path, engine: Engine | None = None) -> lis
         raw_pages.append(doc[i].get_text())
     doc.close()
 
-    skip = ExtractionConfig.SKIP_FIRST_N_PAGES.value
+    skip = pages_de_garde(pdf_name)
     metadata_text = "\n".join(raw_pages[:skip])
     city = find_city(metadata_text) or ""
     logger.info("City extracted from metadata: %s", city or "(not found)")

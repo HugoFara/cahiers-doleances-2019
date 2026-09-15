@@ -1,6 +1,8 @@
 """Unit tests for city extraction (regex) and end markers."""
 
-from extraction.without_ocr.extract_text import find_city, find_end_page
+import pytest
+
+from extraction.without_ocr.extract_text import find_city, find_end_page, pages_de_garde
 
 
 def test_find_city_nominal():
@@ -86,3 +88,18 @@ def test_find_end_page_ignores_pages_before_start():
 def test_find_end_page_from_start_without_later_marker():
     pages = ["garde", "Fin des pages écrites", "écrite"]
     assert find_end_page(pages, start=2) is None
+
+
+@pytest.mark.parametrize(
+    ("nom", "attendu"),
+    [
+        ("CC_01000_190304_01053_MD_15462.pdf", 2),
+        ("CO_01000_190215_D_02389.pdf", 0),
+        ("CR_01150_190304_MD_02737.pdf", 0),
+        ("IL_28220_190322_M_01189.pdf", 0),
+        ("Cahier_citoyen_test.pdf", 2),
+    ],
+)
+def test_les_pages_de_garde_dependent_de_la_categorie(nom, attendu):
+    """Un registre a une couverture et une feuille de garde ; une lettre commence en page 1."""
+    assert pages_de_garde(nom) == attendu

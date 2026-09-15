@@ -15,8 +15,12 @@ class ExtractionConfig(enum.Enum):
     END_MARKER = "Fin des pages écrites"
 
     # Number of first pages considered metadata (parsed for the city but not
-    # persisted as PageExtraction rows).
+    # persisted as PageExtraction rows). A convention of the cahiers citoyens:
+    # a cover page and a guard sheet. Letters and meeting reports (CO, CR, IL)
+    # start on page 1 — measured on the deposit, 2026-09-15: skipping two
+    # pages emptied every two-page letter and beheaded the others.
     SKIP_FIRST_N_PAGES = 2
+    SKIP_FIRST_N_PAGES_PAR_CATEGORIE = {"CO": 0, "CR": 0, "IL": 0}
 
     # wordfreq quality score threshold below which a non-empty page is suspected
     # to be handwritten (needs_ocr=True). Typical values: clean French ~0.85,
