@@ -1664,6 +1664,74 @@ implémenté.
 
 ---
 
+## 2026-09-15 — Les courriers sont quatre genres de documents ; la taxonomie des supports est une couche, la grille de thèmes en est une autre
+
+**Constat.** 600 courriers (CO) tirés — 300 rattachés à un département,
+300 « sans provenance identifiée » (dossier `00`, 12 290 fichiers absents
+des inventaires) — ne sont pas un genre mais quatre, lisibles dans la
+forme : la **lettre libre** (79 % / 47 %), le **courriel imprimé** (16 % /
+16 %, `From:`, `Subject:`), le **questionnaire imprimé du Grand débat**
+(3 % / 37 % — le livret officiel à quatre thèmes, « Le Diagnostic », cases
+à cocher, réponses à la main), le **formulaire web de Matignon** (3 % / 0,
+`magec.pm.gouv.fr`, « carnet de doléances », prénom et nom en champs
+nommés). Les « sans provenance » sont pour l'essentiel les retours postaux
+du questionnaire national et des courriels envoyés directement à Paris.
+
+Les lettres libres sont plus longues qu'une doléance de registre
+(médiane 540 mots typés contre 277) et ne parlent pas de la même chose
+selon le circuit : passées par un département, du quotidien — impôts 61 %,
+services publics 52 %, retraites 48 %, salaires 40 % ; envoyées à la
+mission nationale, des institutions — impôts 69 %, RIC / référendum 57 %,
+élus 53 %, immigration 50 %. (Comptage strict par mots entiers, sur les
+lettres typées ; le rattachement par mots-clés des grilles, lui, touchait
+100 % des thèmes sur toutes les lettres : la correspondance par préfixe ne
+se transpose pas aux CO, et le questionnaire imprimé porte de toute façon
+tous les mots-clés de la grille gouvernementale — il *est* cette grille,
+imprimée.)
+
+**Décision.** Une taxonomie des supports est établie pour les CO, et ce
+n'est pas une grille de lecture : la ligne est celle posée le 2026-09-10
+(« une doléance est d'abord un genre de document, pas un contenu »).
+
+- Une taxonomie des supports décrit ce que l'archive *est* — des faits de
+  forme, et des catégories qui ne sont pas les nôtres : le Grand débat a
+  imprimé un questionnaire, Matignon a ouvert un formulaire, la BnF a
+  classé en CC / CO / CR / IL. Les nommer rend visible une classification
+  qui, tue, agirait quand même.
+- Une grille de thèmes décrit ce que les documents *disent* — là on
+  choisit, et le projet en tient trois pour ne pas faire semblant.
+- Le choix est dans ce qu'on fait de la taxonomie : décider que le texte
+  imprimé du questionnaire n'est pas une contribution mais que ses réponses
+  manuscrites le sont est une décision de périmètre, du même ordre que
+  celle qui écarte la lettre présidentielle des registres. Elle est donc
+  **versionnée dans un run de typologie**, contestable et réversible, jamais
+  dans la structure.
+
+Concrètement : l'axe *support* de `typologie/` s'étend (`questionnaire_gdn`,
+`courriel`, `formulaire_matignon`, pré-imprimé rempli), et un attribut
+*provenance* — mairie (CC), préfecture ou élu (CO départemental), mission
+nationale (CO `00`) — est ajouté : ce n'est pas un genre, c'est un circuit,
+et il faut le tenir constant avant de comparer des thèmes. Les règles de
+support restent des règles de forme, mesurables sur l'étalon.
+
+**Ce que la taxonomie fait voir sans interpréter.** Le corpus contient des
+gens qui ont répondu *dans* la grille gouvernementale (le questionnaire) et
+des gens qui ont écrit *à côté* (les lettres). La mesure de « ce qu'une
+grille rate » change de sens selon le support ; elle devra être donnée par
+support.
+
+**Pour l'anonymisation.** Le formulaire de Matignon porte prénom et nom en
+champs structurés, les courriels leur adresse d'expéditeur : des en-têtes
+systématiques, faciles à repérer, à traiter en premier.
+
+**Suite immédiate.** Les CO sont extraits en base (`--categorie CO`) ;
+aucune couche ne les lit encore — le découpage, la typologie et
+l'anonymisation viendront en runs à part.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs
