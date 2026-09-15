@@ -1,6 +1,8 @@
 """Extract all PDFs from PATH_TO_DATA and persist them page by page.
 
-Displays a concise recap of each created Contribution and the total
+Cahiers already in ``page_extraction`` are skipped up front, so the command
+can be interrupted and relaunched on a large deposit and only does what is
+left. Displays a concise recap of each created Contribution and the total
 extraction time.
 """
 
@@ -37,12 +39,20 @@ def main() -> int:
     succeeded: list[int] = []
 
     with Session(engine) as session:
-        for pdf_path in tqdm(pdf_paths, desc="Extracting PDFs"):
+        already = set(
+            session.execute(select(PageExtraction.pdf_name).distinct()).scalars()
+        )
+        todo = [p for p in pdf_paths if p.name not in already]
+        skipped = len(pdf_paths) - len(todo)
+        if skipped:
+            logger.info(f"  already extracted: {skipped} PDF(s), skipped")
+
+        for pdf_path in tqdm(todo, desc="Extracting PDFs"):
             logger.debug(f"\nSelected PDF: {pdf_path.name}")
             logger.debug(f"Full path: {pdf_path.resolve()}")
 
             try:
-                contribution_ids = extract_pdf_pages(pdf_path)
+                contribution_ids = extract_pdf_pages(pdf_path, engine=engine)
             except Exception as exc:  # noqa: BLE001 - catch any per-PDF failure to keep the batch running
                 logger.warning(f"Failed to extract {pdf_path.name}: {exc}")
                 failed.append(pdf_path.name)
@@ -89,6 +99,7 @@ def main() -> int:
 
     logger.info("\n=== Summary ===")
     logger.info(f"  processed: {len(succeeded)}")
+    logger.info(f"  skipped (already extracted): {skipped}")
     logger.info(f"  failed: {len(failed)}")
     if failed:
         logger.info(f"  failed files: {', '.join(failed)}")

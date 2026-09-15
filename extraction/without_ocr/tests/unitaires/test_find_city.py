@@ -75,3 +75,14 @@ def test_find_end_page_no_noise_before():
 def test_find_end_page_marker_at_start():
     pages = ["Fin des pages écrites", "page1"]
     assert find_end_page(pages) == 0
+
+
+def test_find_end_page_ignores_pages_before_start():
+    """La feuille de fin scannée à la place d'une page de garde n'est pas une fin."""
+    pages = ["garde", "Fin des pages écrites", "écrite", "écrite", "Fin des pages écrites"]
+    assert find_end_page(pages, start=2) == 4
+
+
+def test_find_end_page_from_start_without_later_marker():
+    pages = ["garde", "Fin des pages écrites", "écrite"]
+    assert find_end_page(pages, start=2) is None

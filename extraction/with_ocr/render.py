@@ -11,6 +11,7 @@ from pathlib import Path
 import pymupdf
 
 from extraction.with_ocr.settings import settings
+from extraction.without_ocr import discovery
 
 
 class PdfIntrouvable(FileNotFoundError):
@@ -35,14 +36,12 @@ def index_pdfs() -> dict[str, Path]:
 
     Construit une fois par passe : les lignes `page_extraction` ne portent
     que le nom, et chercher sur disque à chacune des 2 510 lignes serait
-    balayer le dossier autant de fois.
+    balayer le dossier autant de fois. L'arborescence est celle que
+    `without_ocr` parcourt — plate ou celle du versement BnF.
     """
     global _index
     if _index is None:
-        dossier = _dossier_pdf()
-        if not dossier.is_dir():
-            raise FileNotFoundError(f"PATH_TO_DATA directory not found: {dossier}")
-        _index = {p.name: p for p in dossier.glob("*.pdf")}
+        _index = discovery.index_pdfs(_dossier_pdf())
     return _index
 
 

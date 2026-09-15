@@ -103,9 +103,10 @@ uv run alembic upgrade head
 uv run python -m extraction.without_ocr
 ```
 
-Le script parcourt tous les PDFs de `PATH_TO_DATA`, extrait chaque page et la persiste
+Le script parcourt tous les PDFs de `PATH_TO_DATA` — dossier plat ou arborescence du
+versement BnF, un dossier par département —, extrait chaque page et la persiste
 en base. Les PDFs déjà extraits sont ignorés (supprimer les rows existants pour
-ré-extraire). À la fin il affiche un récapitulatif : nombre de PDFs traités, échecs
+ré-extraire), ce qui rend la commande relançable. À la fin il affiche un récapitulatif : nombre de PDFs traités, échecs
 éventuels et identifiants des contributions créées.
 
 ### Transcrire le manuscrit (OCR)

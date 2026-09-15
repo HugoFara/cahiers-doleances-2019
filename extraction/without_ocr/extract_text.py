@@ -61,18 +61,25 @@ def find_city(metadata_text: str) -> str | None:
     return match.group(1).strip().upper()
 
 
-def find_end_page(pages: list[str]) -> int | None:
+def find_end_page(pages: list[str], start: int = 0) -> int | None:
     """0-based index of the first page containing the end marker.
+
+    The search starts at ``start``: in some cahiers the "Fin des pages
+    écrites" sheet was scanned in place of a metadata page (measured on the
+    national deposit, 2026-09-15: about sixty cahiers with the marker on page
+    2 and up to 229 written pages behind it). A marker among the metadata
+    pages is not an end.
 
     Args:
         pages: List of page-extracted texts (0-based index).
+        start: First page index to examine.
 
     Returns:
-        The index of the first marked page, or ``None`` if none.
+        The index of the first marked page from ``start``, or ``None``.
     """
     marker = ExtractionConfig.END_MARKER.value
-    for i, text in enumerate(pages):
-        if marker in text:
+    for i in range(start, len(pages)):
+        if marker in pages[i]:
             return i
     return None
 
@@ -133,7 +140,8 @@ def extract_pdf_pages(filepath: str | Path, engine: Engine | None = None) -> lis
 
     Args:
         filepath: Path of the PDF to process.
-        engine: Optional SQLAlchemy engine (defaults to the global engine).
+        engine: Optional SQLAlchemy engine. Callers looping over many PDFs must
+            pass one: ``None`` creates an engine — and a connection — per call.
 
     Returns:
         List of IDs of the created ``Contribution`` rows (one per page).
@@ -159,7 +167,7 @@ def extract_pdf_pages(filepath: str | Path, engine: Engine | None = None) -> lis
     city = find_city(metadata_text) or ""
     logger.info("City extracted from metadata: %s", city or "(not found)")
 
-    end_page = find_end_page(raw_pages)
+    end_page = find_end_page(raw_pages, start=skip)
     if end_page is not None:
         last_page = end_page  # exclusive
     else:

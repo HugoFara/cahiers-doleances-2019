@@ -7,6 +7,7 @@ import pytest
 from extraction.without_ocr.discovery import (
     _natural_sort_key,
     first_pdf,
+    index_pdfs,
     list_pdfs,
     require_path_to_data,
 )
@@ -80,3 +81,50 @@ def test_require_path_to_data_raises_when_empty(monkeypatch):
     )
     with pytest.raises(ValueError):
         require_path_to_data()
+
+
+def test_list_pdfs_walks_the_bnf_tree(tmp_path: Path):
+    """Un dossier par département, les cahiers sous CC/, l'inventaire à part."""
+    for dept, nom in (
+        ("01", "CC_01000_190304_01053_MD_15462.pdf"),
+        ("65", "CC_65000_190301_65440_MD_20001.pdf"),
+    ):
+        dossier = tmp_path / f"BnF_GDN_{dept}_PDF" / "CC"
+        dossier.mkdir(parents=True)
+        (dossier / nom).touch()
+    (tmp_path / "Bnf_GDN_02_PDF" / "CC").mkdir(parents=True)
+    (tmp_path / "Bnf_GDN_02_PDF" / "CC" / "CC_02000_190304_02168_MD_15900.pdf").touch()
+    (tmp_path / "A_lire").mkdir()
+    (tmp_path / "A_lire" / "BNF_GDN_01_Ain_inventaire_contributions.pdf").touch()
+    (tmp_path / "BnF_GDN_01_PDF" / "CC" / "Thumbs.db").touch()
+
+    result = [str(p.relative_to(tmp_path)) for p in list_pdfs(tmp_path)]
+    assert result == [
+        "BnF_GDN_01_PDF/CC/CC_01000_190304_01053_MD_15462.pdf",
+        "BnF_GDN_65_PDF/CC/CC_65000_190301_65440_MD_20001.pdf",
+        "Bnf_GDN_02_PDF/CC/CC_02000_190304_02168_MD_15900.pdf",
+    ]
+
+
+def test_list_pdfs_raises_when_only_inventories(tmp_path: Path):
+    (tmp_path / "A_lire").mkdir()
+    (tmp_path / "A_lire" / "inventaire.pdf").touch()
+    with pytest.raises(ValueError):
+        list_pdfs(tmp_path)
+
+
+def test_index_pdfs_maps_names_to_paths(tmp_path: Path):
+    (tmp_path / "d1").mkdir()
+    (tmp_path / "d1" / "a.pdf").touch()
+    (tmp_path / "b.pdf").touch()
+
+    index = index_pdfs(tmp_path)
+    assert index == {"a.pdf": tmp_path / "d1" / "a.pdf", "b.pdf": tmp_path / "b.pdf"}
+
+
+def test_index_pdfs_refuses_a_duplicated_name(tmp_path: Path):
+    for d in ("d1", "d2"):
+        (tmp_path / d).mkdir()
+        (tmp_path / d / "a.pdf").touch()
+    with pytest.raises(ValueError, match="appears twice"):
+        index_pdfs(tmp_path)

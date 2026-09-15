@@ -60,3 +60,21 @@ def test_path_to_data_manquante_leve_value_error(monkeypatch):
     with pytest.raises(ValueError, match="PATH_TO_DATA"):
         render.index_pdfs()
     render.reinitialiser_index()
+
+
+def test_index_suit_l_arborescence_bnf(tmp_path, monkeypatch):
+    """Le cahier est trouvé par son nom, où qu'il soit dans le versement."""
+    dossier = tmp_path / "BnF_GDN_01_PDF" / "CC"
+    dossier.mkdir(parents=True)
+    doc = pymupdf.open()
+    doc.new_page()
+    doc.save(dossier / "CC_01000_190304_01053_MD_15462.pdf")
+    doc.close()
+    monkeypatch.setattr(settings, "path_to_data", str(tmp_path))
+    render.reinitialiser_index()
+    try:
+        assert render.trouver_pdf("CC_01000_190304_01053_MD_15462.pdf") == (
+            dossier / "CC_01000_190304_01053_MD_15462.pdf"
+        )
+    finally:
+        render.reinitialiser_index()

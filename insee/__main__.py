@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session
 from database.db import check_connection, get_engine
 from database.models import City
 from extraction.without_ocr.config import ExtractionConfig
+from extraction.without_ocr.discovery import list_pdfs
 from extraction.without_ocr.settings import settings
 from insee.codes import code_de_l_entete, code_du_nom_de_fichier, rapprocher
 from insee.cog import (
@@ -101,7 +102,7 @@ def commande_auditer(dossier: Path | None) -> int:
     origines: dict[str, int] = {}
     desaccords: list[tuple[str, str, str]] = []
     codes: set[str] = set()
-    for chemin in sorted(dossier.glob("*.pdf")):
+    for chemin in list_pdfs(dossier):
         du_fichier = code_du_nom_de_fichier(chemin.name)
         de_l_entete = code_de_l_entete(entete(chemin))
         code, origine = rapprocher(du_fichier, de_l_entete)

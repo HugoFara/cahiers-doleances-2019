@@ -41,6 +41,14 @@ Le modèle de données (`contribution`, `page_extraction`) est documenté dans
 PATH_TO_DATA=/chemin/vers/les/pdfs
 ```
 
+Le dossier est parcouru récursivement : un dossier plat de cahiers convient,
+et l'arborescence du versement BnF telle qu'elle arrive
+(`BnF_GDN_<dept>_PDF/CC/<cahier>.pdf`, un dossier par département) aussi. Le
+dossier `A_lire`, qui porte les inventaires et non des cahiers, est ignoré. Un
+cahier est identifié par son seul nom de fichier, où qu'il soit dans l'arbre ;
+deux fichiers de même nom à deux endroits font refuser la passe plutôt que d'en
+choisir un en silence.
+
 ## Lancer l'extraction
 
 ```bash
@@ -51,8 +59,10 @@ uv run alembic upgrade head
 uv run python -m extraction.without_ocr
 ```
 
-Le script affiche un récapitulatif final : nombre de PDFs traités, échecs éventuels
-et identifiants des contributions créées en base.
+Les cahiers déjà présents dans `page_extraction` sont écartés d'emblée : la
+commande se relance après une interruption et ne fait que ce qui reste. Le
+script affiche un récapitulatif final : nombre de PDFs traités, ignorés, échecs
+éventuels et identifiants des contributions créées en base.
 
 ## Tester
 
