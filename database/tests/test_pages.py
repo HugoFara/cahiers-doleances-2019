@@ -26,7 +26,14 @@ def session() -> Session:
         yield session
 
 
-def _page(session, numero, texte, needs_ocr, pdf="CC_01000_190304_01053_MD_15462.pdf"):
+def _page(
+    session,
+    numero,
+    texte,
+    needs_ocr,
+    pdf="CC_01000_190304_01053_MD_15462.pdf",
+    categorie="CC",
+):
     page = PageExtraction(
         pdf_name=pdf,
         page_number=numero,
@@ -34,6 +41,7 @@ def _page(session, numero, texte, needs_ocr, pdf="CC_01000_190304_01053_MD_15462
         quality_score=0.1 if needs_ocr else 0.9,
         needs_ocr=needs_ocr,
         contribution_id=1,
+        categorie=categorie,
     )
     session.add(page)
     session.flush()
@@ -224,3 +232,14 @@ def test_une_derive_transcrite_ne_se_lit_pas_mais_reste_transcrite(session):
 
 def test_sans_run_actif_il_n_y_a_pas_de_derive(session):
     assert derives(session) == []
+
+
+def test_la_categorie_separe_cahiers_et_courriers(session):
+    """Un courrier et un cahier ne se lisent pas ensemble ; sans filtre, si."""
+    _page(session, 3, "registre", False)
+    _page(session, 3, "lettre", False, pdf="CO_01000_190215_D_02389.pdf", categorie="CO")
+    _page(session, 3, "hors convention", False, pdf="a.pdf", categorie=None)
+
+    assert [p.texte for p in lire_pages(session, categorie="CC")] == ["registre"]
+    assert [p.texte for p in lire_pages(session, categorie="co")] == ["lettre"]
+    assert len(lire_pages(session)) == 3

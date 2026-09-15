@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from database.db import check_connection, get_engine
 from database.pages import TRANSCRIPTION_ACTIVE
 from database.runs import SEGMENTATION, TRANSCRIPTION, creer_run, run_actif
+from extraction.without_ocr.discovery import CATEGORIE_DEFAUT, CATEGORIES
 from segmentation import config
 from segmentation.persistance import (
     cahiers_deja_decoupes,
@@ -46,12 +47,13 @@ def parametres_appliques() -> dict:
 def main(
     nouveau_run: str | None = None,
     auteur: str | None = None,
+    categorie: str = CATEGORIE_DEFAUT,
 ) -> int:
     engine = get_engine()
     check_connection(engine)
 
     with Session(engine) as session:
-        lues = lire_pages(session)
+        lues = lire_pages(session, categorie)
         cahiers = grouper_par_cahier(lues)
         if not cahiers:
             print(
@@ -75,7 +77,7 @@ def main(
                 source="segmentation/",
                 parameters=parametres_appliques()
                 | {"run_transcription": run_ocr.id if run_ocr else None},
-                corpus=f"{pages_lues} page(s) · {len(cahiers)} cahier(s) · "
+                corpus=f"{categorie} · {pages_lues} page(s) · {len(cahiers)} cahier(s) · "
                 + (
                     f"{transcrites} transcrite(s) (run #{run_ocr.id})"
                     if run_ocr
@@ -122,5 +124,11 @@ if __name__ == "__main__":
         "--auteur",
         help="qui lance ce découpage (défaut : la configuration git du dépôt)",
     )
+    parser.add_argument(
+        "--categorie",
+        choices=CATEGORIES,
+        default=CATEGORIE_DEFAUT,
+        help=f"catégorie du versement à découper (défaut : {CATEGORIE_DEFAUT})",
+    )
     args = parser.parse_args()
-    sys.exit(main(args.nouveau_run, args.auteur))
+    sys.exit(main(args.nouveau_run, args.auteur, args.categorie))

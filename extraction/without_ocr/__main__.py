@@ -1,11 +1,14 @@
 """Extract all PDFs from PATH_TO_DATA and persist them page by page.
 
-Cahiers already in ``page_extraction`` are skipped up front, so the command
-can be interrupted and relaunched on a large deposit and only does what is
-left. Displays a concise recap of each created Contribution and the total
-extraction time.
+Only one deposit category is loaded at a time — ``--categorie``, cahiers
+citoyens by default: letters, meeting reports and cahiers are different
+kinds of documents and never enter the base by accident. Cahiers already in
+``page_extraction`` are skipped up front, so the command can be interrupted
+and relaunched on a large deposit and only does what is left. Displays a
+concise recap of each created Contribution and the total extraction time.
 """
 
+import argparse
 import sys
 
 from sqlalchemy import func, select
@@ -14,23 +17,35 @@ from tqdm import tqdm
 
 from database.db import check_connection, get_engine
 from database.models import Base, Contribution, PageExtraction
-from extraction.without_ocr.discovery import list_pdfs, require_path_to_data
+from extraction.without_ocr.discovery import (
+    CATEGORIE_DEFAUT,
+    CATEGORIES,
+    list_pdfs,
+    require_path_to_data,
+)
 from extraction.without_ocr.extract_text import extract_pdf_pages
 from extraction.without_ocr.settings import logger
 from extraction.without_ocr.timing import timed
 
 
 @timed
-def main() -> int:
-    """Extract and persist all PDFs found in PATH_TO_DATA.
+def main(categories: list[str] | None = None) -> int:
+    """Extract and persist the PDFs of the given categories found in PATH_TO_DATA.
+
+    Args:
+        categories: deposit categories to load (default: cahiers citoyens).
 
     Returns:
         0 if all PDFs were processed successfully, 1 otherwise.
     """
+    categories = categories or [CATEGORIE_DEFAUT]
     data_dir = require_path_to_data()
-    pdf_paths = list_pdfs(data_dir)
+    pdf_paths = list_pdfs(data_dir, categories)
 
-    logger.info(f"Found {len(pdf_paths)} PDF(s) in {data_dir.resolve()}")
+    logger.info(
+        f"Found {len(pdf_paths)} PDF(s) of categor{'y' if len(categories) == 1 else 'ies'} "
+        f"{', '.join(categories)} in {data_dir.resolve()}"
+    )
 
     engine = get_engine()
     check_connection(engine)
@@ -108,4 +123,13 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument(
+        "--categorie",
+        nargs="+",
+        choices=CATEGORIES,
+        default=[CATEGORIE_DEFAUT],
+        help=f"catégorie(s) du versement à charger (défaut : {CATEGORIE_DEFAUT})",
+    )
+    args = parser.parse_args()
+    sys.exit(main(args.categorie))

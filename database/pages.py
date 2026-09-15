@@ -149,6 +149,7 @@ def lire_pages(
     garder_illisibles: bool = False,
     ordre: str = "cahier",
     contributions: Iterable[int] | None = None,
+    categorie: str | None = None,
 ) -> list[PageLue]:
     """Les pages du corpus avec leur texte de lecture.
 
@@ -159,6 +160,10 @@ def lire_pages(
         ordre: ``cahier`` (nom du PDF puis page) ou ``contribution``
             (contribution puis page — l'ordre de l'export vers l'analyse).
         contributions: restreindre à ces contributions ; tout le corpus sinon.
+        categorie: restreindre à une catégorie du versement (``CC``, ``CO``,
+            ``CR``, ``IL`` — `page_extraction.categorie`). Les commandes qui
+            lisent le corpus la passent toujours : cahiers, courriers et
+            comptes rendus ne se lisent pas ensemble. ``None`` ne filtre pas.
 
     Returns:
         Les pages, dans l'ordre demandé.
@@ -172,6 +177,8 @@ def lire_pages(
     requete = select(PageExtraction).order_by(*tri)
     if contributions is not None:
         requete = requete.where(PageExtraction.contribution_id.in_(list(contributions)))
+    if categorie is not None:
+        requete = requete.where(PageExtraction.categorie == categorie.upper())
     transcriptions = transcriptions_actives(session)
     lues = [
         lire_page(page, transcriptions.get(page.id))

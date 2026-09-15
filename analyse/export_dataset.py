@@ -44,17 +44,19 @@ from database.db import check_connection, get_engine
 from database.models import Doleance
 from database.pages import PageLue
 from database.runs import SEGMENTATION, run_actif
+from extraction.without_ocr.discovery import CATEGORIE_DEFAUT, CATEGORIES
 
 DEFAUT = Path("data/dataset.csv")
 
 
-def lire_pages(session: Session) -> list[PageLue]:
+def lire_pages(session: Session, categorie: str | None = None) -> list[PageLue]:
     """Les pages lisibles avec leur texte de lecture, par contribution puis page.
 
     Les pages sans texte — manuscrites sans transcription — sont écartées :
     leur bruit d'extraction ferait dériver la découverte de thèmes.
+    ``categorie`` restreint à une catégorie du versement.
     """
-    return lecture.lire_pages(session, ordre="contribution")
+    return lecture.lire_pages(session, ordre="contribution", categorie=categorie)
 
 
 def construire_documents(pages: list[PageLue]) -> list[dict[str, str]]:
@@ -128,7 +130,9 @@ def ecrire_dataset(documents: list[dict[str, str]], chemin: Path) -> None:
         writer.writerows(documents)
 
 
-def main(chemin: Path = DEFAUT, niveau: str = CONTRIBUTION) -> int:
+def main(
+    chemin: Path = DEFAUT, niveau: str = CONTRIBUTION, categorie: str = CATEGORIE_DEFAUT
+) -> int:
     engine = get_engine()
     check_connection(engine)
 
@@ -144,7 +148,7 @@ def main(chemin: Path = DEFAUT, niveau: str = CONTRIBUTION) -> int:
                 "(uv run python -m segmentation) ?"
             )
         else:
-            pages = lire_pages(session)
+            pages = lire_pages(session, categorie)
             documents = construire_documents(pages)
             lues = f"{len(pages)} page(s) lue(s)"
             vide = (
@@ -173,5 +177,12 @@ if __name__ == "__main__":
         default=CONTRIBUTION,
         help="unité exportée (défaut : contribution ; doleance = texte d'un contributeur)",
     )
+    parser.add_argument(
+        "--categorie",
+        choices=CATEGORIES,
+        default=CATEGORIE_DEFAUT,
+        help=f"au niveau page : catégorie du versement exportée (défaut : {CATEGORIE_DEFAUT}) ; "
+        "au niveau doléance, c'est le run de découpage qui la porte",
+    )
     args = parser.parse_args()
-    sys.exit(main(args.output, args.niveau))
+    sys.exit(main(args.output, args.niveau, args.categorie))

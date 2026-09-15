@@ -7,6 +7,7 @@ cahier is identified by its file name alone, wherever it sits in the tree.
 """
 
 import re
+from collections.abc import Iterable
 from pathlib import Path
 
 from extraction.without_ocr.settings import settings
@@ -14,6 +15,19 @@ from extraction.without_ocr.settings import settings
 # Folders of the BnF deposit that hold something other than cahiers: ``A_lire``
 # carries one inventory PDF per département, not contributions.
 DOSSIERS_HORS_CORPUS = frozenset({"A_lire"})
+
+# The deposit's four categories, carried by the file-name prefix: cahiers
+# citoyens, contributions individuelles (letters), comptes rendus de réunions
+# d'initiative locale, comptes rendus sent as e-mail attachments. They are
+# different kinds of documents and are never loaded together by default.
+CATEGORIES = ("CC", "CO", "CR", "IL")
+CATEGORIE_DEFAUT = "CC"
+
+
+def categorie(nom: str) -> str | None:
+    """The deposit category of a file name, or ``None`` outside the convention."""
+    prefixe = nom[:2].upper()
+    return prefixe if nom[2:3] == "_" and prefixe in CATEGORIES else None
 
 
 def _natural_sort_key(path: Path) -> list[str | int]:
@@ -26,11 +40,16 @@ def _natural_sort_key(path: Path) -> list[str | int]:
     return [int(part) if part.isdigit() else part for part in parts]
 
 
-def list_pdfs(path: str | Path) -> list[Path]:
+def list_pdfs(
+    path: str | Path, categories: Iterable[str] | None = None
+) -> list[Path]:
     """List PDF files under a directory, recursively, sorted in natural order.
 
     Args:
         path: Directory containing the PDFs, flat or as the BnF tree.
+        categories: keep only files of these deposit categories (see
+            :data:`CATEGORIES`); files outside the naming convention are
+            dropped too. ``None`` keeps everything.
 
     Returns:
         A list of ``Path`` objects pointing to ``*.pdf`` files, ordered by
@@ -47,12 +66,14 @@ def list_pdfs(path: str | Path) -> list[Path]:
     if not p.is_dir():
         raise NotADirectoryError(f"PATH_TO_DATA is not a directory: {p}")
 
+    gardees = None if categories is None else {c.upper() for c in categories}
     pdfs = sorted(
         (
             f
             for f in p.rglob("*.pdf")
             if f.is_file()
             and DOSSIERS_HORS_CORPUS.isdisjoint(f.relative_to(p).parts[:-1])
+            and (gardees is None or categorie(f.name) in gardees)
         ),
         key=lambda f: _natural_sort_key(f.relative_to(p)),
     )

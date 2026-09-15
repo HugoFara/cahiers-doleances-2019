@@ -53,6 +53,7 @@ from extraction.with_ocr.persist import (
 )
 from extraction.with_ocr.render import FORMATS, PdfIntrouvable, rendre_page
 from extraction.with_ocr.settings import logger
+from extraction.without_ocr.discovery import CATEGORIE_DEFAUT, CATEGORIES
 from extraction.without_ocr.extract_text import wordfreq_quality_score
 
 
@@ -84,6 +85,12 @@ def parser() -> argparse.ArgumentParser:
             "derives : avec --run-id seulement, rejoue les pages du run dont "
             "la transcription est une dérive du modèle"
         ),
+    )
+    p.add_argument(
+        "--categorie",
+        choices=CATEGORIES,
+        default=CATEGORIE_DEFAUT,
+        help=f"catégorie du versement dont on transcrit les pages (défaut : {CATEGORIE_DEFAUT})",
     )
     p.add_argument(
         "--limite",
@@ -198,7 +205,9 @@ def main(argv: list[str] | None = None) -> int:
             session.commit()
             perimetre = f"{DERIVES} ({perimetre})"
         else:
-            pages = pages_a_transcrire(session, run, perimetre, args.limite)
+            pages = pages_a_transcrire(
+                session, run, perimetre, args.limite, categorie=args.categorie
+            )
         if en_batch:
             attendues = mode_batch.pages_en_attente(run)
             pages = [p for p in pages if p.id not in attendues]

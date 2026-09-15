@@ -130,6 +130,11 @@ class PageExtraction(Base):
     quality_score = Column(Float)  # 0.0 (garbage) à 1.0 (texte propre)
     needs_ocr = Column(Boolean)  # page manuscrite suspectée
     city = Column(String)  # ville extraite
+    # Catégorie du versement, lue dans le préfixe du nom de fichier : CC
+    # (cahiers citoyens), CO (courriers), CR / IL (comptes rendus). NULL hors
+    # de la convention de nommage. Les lectures du corpus filtrent dessus :
+    # les quatre ne se mélangent pas.
+    categorie = Column(String(2), index=True)
 
 
 class PageTranscription(Base):

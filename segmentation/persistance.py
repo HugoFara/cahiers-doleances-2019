@@ -30,13 +30,14 @@ from database.pages import PageLue
 from segmentation.decoupage import Doleance, decouper_cahier
 
 
-def lire_pages(session: Session) -> list[PageLue]:
+def lire_pages(session: Session, categorie: str | None = None) -> list[PageLue]:
     """Les pages lisibles, avec leur texte de lecture, dans l'ordre des cahiers.
 
     Les pages sans texte — manuscrites sans transcription — sont écartées :
     leur bruit d'extraction ferait déclencher les règles de découpage au hasard.
+    ``categorie`` restreint à une catégorie du versement (`page_extraction.categorie`).
     """
-    return lecture.lire_pages(session, ordre="cahier")
+    return lecture.lire_pages(session, ordre="cahier", categorie=categorie)
 
 
 def grouper_par_cahier(pages: list[PageLue]) -> dict[str, list[PageLue]]:

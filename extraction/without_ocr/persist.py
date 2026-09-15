@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from database.db import get_engine
 from database.models import Contribution, Extraction, PageExtraction
+from extraction.without_ocr.discovery import categorie
 from extraction.without_ocr.settings import logger
 
 
@@ -88,6 +89,7 @@ def save_page_extractions(
                     quality_score=p["quality_score"],
                     needs_ocr=needs_ocr,
                     city=city,
+                    categorie=categorie(pdf_name),
                 )
             )
 

@@ -22,6 +22,7 @@ from couverture.mesures import distribution_qualite, mesurer, sensibilite_seuil
 from database.db import check_connection, get_engine
 from database.models import Contribution, PageExtraction
 from database.pages import transcriptions_actives
+from extraction.without_ocr.discovery import CATEGORIE_DEFAUT, CATEGORIES
 from insee.cog import Commune, lire, populations_sans_double_compte
 
 SEUILS_TESTES = [0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5]
@@ -153,11 +154,15 @@ def afficher(
     )
 
 
-def main(sortie: Path | None = None) -> int:
+def main(sortie: Path | None = None, categorie: str = CATEGORIE_DEFAUT) -> int:
     engine = get_engine()
     check_connection(engine)
     with Session(engine) as session:
-        pages = list(session.scalars(select(PageExtraction)))
+        pages = list(
+            session.scalars(
+                select(PageExtraction).where(PageExtraction.categorie == categorie)
+            )
+        )
         communes = codes_communes(session)
         transcrites = set(transcriptions_actives(session))
     codes = set(communes.values())
@@ -193,5 +198,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--json", type=Path, dest="sortie", help="écrire aussi le rapport en JSON"
     )
+    parser.add_argument(
+        "--categorie",
+        choices=CATEGORIES,
+        default=CATEGORIE_DEFAUT,
+        help=f"catégorie du versement mesurée (défaut : {CATEGORIE_DEFAUT})",
+    )
     args = parser.parse_args()
-    sys.exit(main(args.sortie))
+    sys.exit(main(args.sortie, args.categorie))

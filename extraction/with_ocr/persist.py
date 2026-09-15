@@ -107,6 +107,7 @@ def pages_a_transcrire(
     run: Run,
     perimetre: str,
     limite: int | None = None,
+    categorie: str | None = None,
 ) -> list[PageExtraction]:
     """Les pages du périmètre, sauf celles déjà transcrites dans ce run.
 
@@ -119,6 +120,8 @@ def pages_a_transcrire(
             plusieurs joints par ``+`` (``manuscrit+suspect``) : une même
             passe, étendue à un second périmètre.
         limite: nombre maximal de pages, pour un essai.
+        categorie: catégorie du versement (`page_extraction.categorie`) ;
+            ``None`` ne filtre pas.
 
     Returns:
         Les pages à traiter, dans l'ordre de leurs ids.
@@ -136,6 +139,8 @@ def pages_a_transcrire(
         .where(PageExtraction.id.not_in(deja), or_(*clauses))
         .order_by(PageExtraction.id)
     )
+    if categorie is not None:
+        requete = requete.where(PageExtraction.categorie == categorie.upper())
     if limite is not None:
         requete = requete.limit(limite)
     return list(session.scalars(requete))

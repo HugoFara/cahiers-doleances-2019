@@ -55,9 +55,22 @@ choisir un en silence.
 # Appliquer les migrations (notamment la table page_extraction)
 uv run alembic upgrade head
 
-# Extraire tous les PDFs du dossier PATH_TO_DATA
+# Extraire les cahiers citoyens (CC) du dossier PATH_TO_DATA
 uv run python -m extraction.without_ocr
+
+# Ou une autre catégorie du versement — jamais plusieurs par accident
+uv run python -m extraction.without_ocr --categorie CO
 ```
+
+Le versement BnF classe les contributions en quatre catégories, portées par le
+préfixe du nom de fichier : `CC` cahiers citoyens, `CO` contributions
+individuelles (courriers), `CR` comptes rendus de réunions d'initiative locale,
+`IL` comptes rendus envoyés par courriel. Ce sont des genres de documents
+différents : l'extraction n'en charge qu'une à la fois (`--categorie`, `CC` par
+défaut), chaque page porte la sienne (`page_extraction.categorie`), et tout ce
+qui lit le corpus — HTR, découpage, export, couverture — prend le même
+`--categorie` et ne lit qu'elle. Les fichiers hors de la convention de nommage
+ne sont chargés par aucun filtre.
 
 Les cahiers déjà présents dans `page_extraction` sont écartés d'emblée : la
 commande se relance après une interruption et ne fait que ce qui reste. Le

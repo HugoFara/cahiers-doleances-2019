@@ -6,6 +6,7 @@ import pytest
 
 from extraction.without_ocr.discovery import (
     _natural_sort_key,
+    categorie,
     first_pdf,
     index_pdfs,
     list_pdfs,
@@ -128,3 +129,38 @@ def test_index_pdfs_refuses_a_duplicated_name(tmp_path: Path):
         (tmp_path / d / "a.pdf").touch()
     with pytest.raises(ValueError, match="appears twice"):
         index_pdfs(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("nom", "attendu"),
+    [
+        ("CC_01000_190304_01053_MD_15462.pdf", "CC"),
+        ("CO_01000_190215_D_02389.pdf", "CO"),
+        ("CR_01150_190304_MD_02737.pdf", "CR"),
+        ("IL_28220_190322_M_01189.pdf", "IL"),
+        ("cc_01000_190304_01053_MD_15462.pdf", "CC"),
+        ("Cahier_citoyen_test.pdf", None),
+        ("CCX_1.pdf", None),
+        ("a.pdf", None),
+    ],
+)
+def test_categorie_lue_dans_le_prefixe(nom, attendu):
+    assert categorie(nom) == attendu
+
+
+def test_list_pdfs_filtre_par_categorie(tmp_path: Path):
+    """Les quatre catégories du versement ne se chargent pas ensemble."""
+    for d, n in (
+        ("CC", "CC_01000_190304_01053_MD_15462.pdf"),
+        ("CO", "CO_01000_190215_D_02389.pdf"),
+        ("CR", "CR_01150_190304_MD_02737.pdf"),
+    ):
+        (tmp_path / d).mkdir()
+        (tmp_path / d / n).touch()
+    (tmp_path / "hors_convention.pdf").touch()
+
+    assert [p.name[:2] for p in list_pdfs(tmp_path, ["CC"])] == ["CC"]
+    assert [p.name[:2] for p in list_pdfs(tmp_path, ["co", "CR"])] == ["CO", "CR"]
+    assert len(list_pdfs(tmp_path)) == 4
+    with pytest.raises(ValueError):
+        list_pdfs(tmp_path, ["IL"])
