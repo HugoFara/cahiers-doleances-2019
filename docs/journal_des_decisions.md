@@ -1616,21 +1616,49 @@ les trois catégories restantes, les CO d'abord). Motif : un courrier
 individuel est une doléance au sens du plan — « ce qu'a écrit une
 personne » — et 24 % des doléances de l'échantillon sont déjà des
 courriers collés dans les registres ; écarter les CO écarte ceux qui ont
-écrit sans passer par la mairie. CR et IL restent dehors pour l'instant :
-un compte rendu de réunion n'est pas la parole d'un contributeur, la
-question de leur place est ouverte.
+écrit sans passer par la mairie. **Les CO entrent dans le périmètre des
+doléances.** CR et IL n'y entrent pas : ce sont des comptes rendus de
+réunions, le cadre du Grand débat lui-même, pas celui de l'association —
+ils ont une valeur d'archive historique, pas de parole individuelle. Un
+échantillon de 25 (5 CR et 5 IL par département de l'échantillon, tirage
+dans `data/raw/national_echantillon/liste.txt`) est gardé hors du dossier
+extrait, à des fins d'illustration.
 
 **Ce qui ne suit pas sans travail.** Les noms CO/CR/IL portent le code
 postal et non le code INSEE (`CO_01000_190215_D_02389`) : le rattachement
-à la commune demande une table code postal → communes, avec ambiguïté. Le
-suffixe `D` / `M` / `MD` (dactylographié / manuscrit / mixte ?) est une
-annotation de l'opérateur à vérifier ; si elle est fiable, c'est un
-`needs_ocr` de niveau document, gratuit. `A_lire/_RGPD_chercheur.pdf`
+à la commune demande une table code postal → communes, avec ambiguïté.
+`A_lire/_RGPD_chercheur.pdf`
 (Archives nationales, 2020) pose le cadre « recherche historique » du
 traitement : à lire avant de trancher le périmètre publié.
 
 **Réversibilité.** Le dossier `CO/` se supprime ; rien n'en dépend en base
 tant que l'extraction n'y a pas été lancée.
+
+**Auteur.** Équipe technique, *à nommer avant publication*.
+
+---
+
+## 2026-09-15 — Le suffixe D / M / MD des noms de fichiers est lu comme dactylographié / manuscrit / mixte ; la transparence des versos gonfle `needs_ocr`
+
+**Vérifié.** Sur 300 CO tirés, une fois écartées les pages sans encre
+franche, la part manuscrite des pages écrites est de **6 % dans les `D`,
+67 % dans les `M`, 14 % dans les `MD`**. L'annotation de l'opérateur de
+numérisation est fiable dans sa direction, au niveau du document ; elle ne
+compte pas les pages. Les CC sont tous `MD` (des registres), elle n'y dit
+rien. Répartition nationale, depuis les inventaires : CO, 64 % des pages
+en `D`, 14 % en `M`, 22 % en `MD` — soit ~15 000 pages manuscrites de
+courriers, un huitième du manuscrit des cahiers. CR et IL : 1 à 3 % de `M`.
+
+**Trouvé en vérifiant.** Le premier compte donnait 35 % de pages
+« manuscrites » dans les `D` : ce sont des **versos vierges où le recto
+transparaît** en miroir, dont la couche texte est du bruit. `needs_ocr`
+les prend pour de l'écriture. Sur 300 pages `needs_ocr` de CC tirées en
+base, **31 (10 %) sont de la transparence** : rapporté aux 125 719,
+~12 500 pages partiraient à l'HTR pour rien, trois jours de GPU, et c'est
+le type de page qui fait dériver le modèle. Un seuil d'encre franche
+(pixels sombres < 0,3 % à 50 dpi) les écarte ; c'est la même mesure
+visuelle qui manque pour les pages courtes écartées à tort. Consigné, non
+implémenté.
 
 **Auteur.** Équipe technique, *à nommer avant publication*.
 
