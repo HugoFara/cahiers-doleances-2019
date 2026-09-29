@@ -87,12 +87,40 @@ représentativité — quelle part de la population des quatre départements a u
 cahier quelque part — est mesurée dans [insee/README.md](../insee/README.md), et
 elle non plus ne rend pas le corpus représentatif.
 
+## Par commune
+
+Demandée par l'équipe Cahiers citoyens du Campus Condorcet (2026‑09‑24), qui
+compare ses propres estimations. `--communes` écrit une ligne par code INSEE :
+
+| Colonne | Sens |
+|---|---|
+| `pages_texte_natif` | couche texte lisible sans transcription |
+| `pages_sans_texte` | `needs_ocr` : manuscrits surtout, mais aussi scans sans couche texte |
+| `dont_transcrites` / `dont_vides` / `dont_echec_transcription` / `dont_non_traitees` | ce que le run `transcription` actif a fait de ces pages |
+| `taux_texte_natif` | `pages_texte_natif / pages` |
+| `taux_exploitable` | `(pages_texte_natif + dont_transcrites) / pages` ; les pages vides restent au dénominateur |
+
+Seul le code INSEE fait la commune : les pages dont le cahier n'en porte pas
+sont comptées à part, pas regroupées par graphie. Le nom est l'officiel dans
+les départements du référentiel, ailleurs la graphie de l'en-tête, à défaut le
+code.
+
+Au 24 septembre 2026, sur les cahiers CC du corpus national (19 820 cahiers,
+278 917 pages rattachées, 16 986 communes, 105 départements) : **55 % des
+pages ont un texte natif** ; médiane par commune 50 %, quartiles 28 % et 75 %.
+1 392 communes n'ont aucune page à texte natif, presque toutes petites (715
+parmi les 2 327 communes à une ou deux pages, 9 parmi celles de 16 à 50,
+aucune au‑delà). La transcription n'a tourné que sur l'échantillon du POC
+(402 communes) : ailleurs `taux_exploitable` égale `taux_texte_natif`.
+
 ## Utilisation
 
 ```bash
 uv run python -m insee cog                           # pour la pondération
 uv run python -m couverture                          # rapport à l'écran
 uv run python -m couverture --json data/couverture.json
+uv run python -m insee rattacher                     # avant la table par commune
+uv run python -m couverture --communes data/couverture/communes_CC.csv
 ```
 
 Le rapport ne contient que des compteurs, jamais le texte des cahiers : il est

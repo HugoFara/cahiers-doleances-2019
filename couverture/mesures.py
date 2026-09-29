@@ -20,6 +20,8 @@ compteurs.
 from collections import defaultdict
 from dataclasses import dataclass, field
 
+from database.pages import est_commentaire_page_vide, est_derive
+from insee.codes import departement
 from insee.communes import cle_commune
 
 
@@ -187,6 +189,120 @@ def mesurer(
         habitants=habitants,
         transcrites=sum(1 for p in pages if p.needs_ocr is True and p.id in lues),
     )
+
+
+@dataclass(frozen=True)
+class LigneCommune:
+    """Ce qu'on lit des pages d'une commune.
+
+    Une page a du texte natif (sa couche texte est lisible), ou n'en a pas
+    (`needs_ocr` : en pratique un manuscrit, parfois un scan sans couche
+    texte). Les secondes se répartissent selon ce que la transcription active
+    en a fait : lues, vides (le modèle dit la page blanche), en échec (le
+    modèle a dérivé), ou pas encore traitées.
+    """
+
+    code: str
+    nom: str
+    cahiers: int
+    pages: int
+    natives: int
+    transcrites: int = 0
+    vides: int = 0
+    echecs: int = 0
+
+    @property
+    def sans_texte(self) -> int:
+        return self.pages - self.natives
+
+    @property
+    def non_traitees(self) -> int:
+        return self.sans_texte - self.transcrites - self.vides - self.echecs
+
+    @property
+    def departement(self) -> str:
+        return departement(self.code) or ""
+
+    @property
+    def taux_natif(self) -> float:
+        """Part des pages lisibles sans aucune transcription."""
+        return self.natives / self.pages if self.pages else 0.0
+
+    @property
+    def taux_exploitable(self) -> float:
+        """Part des pages dont on lit un texte, transcription comprise.
+
+        Les pages vides restent au dénominateur : une page blanche est une page
+        du cahier, et la retirer ferait monter le taux des registres les plus
+        creux.
+        """
+        return (self.natives + self.transcrites) / self.pages if self.pages else 0.0
+
+
+def par_commune(
+    pages: list,
+    communes: dict[int, str],
+    noms: dict[str, str] | None = None,
+    transcriptions: dict[int, str] | None = None,
+) -> tuple[list[LigneCommune], int]:
+    """Le taux de pages exploitables, commune par commune.
+
+    **Seul le code INSEE fait la commune.** Le repli sur la graphie de
+    `mesurer` n'a pas sa place dans une table publiée par commune : il
+    ferait deux lignes d'une même commune, et aucune de celles dont l'en-tête
+    est illisible. Les pages sans code sont comptées à part.
+
+    Args:
+        pages: lignes `page_extraction`, avec `id`, `pdf_name`,
+            `contribution_id` et `needs_ocr`.
+        communes: ``{contribution_id: code INSEE}``.
+        noms: ``{code INSEE: nom}`` ; à défaut, la ligne porte le code.
+        transcriptions: ``{id de page: texte}`` du run `transcription` actif.
+            Le texte n'est lu que pour classer la page (lue, vide, dérive) ;
+            il ne sort pas d'ici.
+
+    Returns:
+        Les lignes triées par code, et le nombre de pages sans commune.
+    """
+    transcriptions = transcriptions or {}
+    pages_de: dict[str, list] = defaultdict(list)
+    sans_commune = 0
+    for page in pages:
+        code = communes.get(page.contribution_id)
+        if code is None:
+            sans_commune += 1
+        else:
+            pages_de[code].append(page)
+
+    lignes = []
+    for code in sorted(pages_de):
+        natives = transcrites = vides = echecs = 0
+        for page in pages_de[code]:
+            if page.needs_ocr is not True:
+                natives += 1
+                continue
+            texte = transcriptions.get(page.id)
+            if texte is None:
+                continue
+            if est_derive(texte):
+                echecs += 1
+            elif est_commentaire_page_vide(texte) or not texte.strip():
+                vides += 1
+            else:
+                transcrites += 1
+        lignes.append(
+            LigneCommune(
+                code=code,
+                nom=(noms or {}).get(code) or code,
+                cahiers=len({p.pdf_name for p in pages_de[code]}),
+                pages=len(pages_de[code]),
+                natives=natives,
+                transcrites=transcrites,
+                vides=vides,
+                echecs=echecs,
+            )
+        )
+    return lignes, sans_commune
 
 
 def distribution_qualite(pages: list, pas: float = 0.1) -> dict[str, int]:

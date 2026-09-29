@@ -2,6 +2,7 @@
 
     uv run python -m couverture
     uv run python -m couverture --json data/couverture.json
+    uv run python -m couverture --communes data/couverture_communes.csv
 
 Le rapport ne contient que des compteurs — jamais le texte des cahiers — il est
 donc partageable tel quel. Les noms de communes sans aucune page lisible en font
@@ -10,6 +11,7 @@ faut afficher à côté de tout comptage.
 """
 
 import argparse
+import csv
 import json
 import sys
 from datetime import UTC, datetime
@@ -18,9 +20,15 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from couverture.mesures import distribution_qualite, mesurer, sensibilite_seuil
+from couverture.mesures import (
+    LigneCommune,
+    distribution_qualite,
+    mesurer,
+    par_commune,
+    sensibilite_seuil,
+)
 from database.db import check_connection, get_engine
-from database.models import Contribution, PageExtraction
+from database.models import City, Contribution, PageExtraction
 from database.pages import transcriptions_actives
 from extraction.without_ocr.discovery import CATEGORIE_DEFAUT, CATEGORIES
 from insee.cog import Commune, lire, populations_sans_double_compte
@@ -58,6 +66,59 @@ def codes_communes(session: Session) -> dict[int, str]:
         )
     ).all()
     return dict(lignes)
+
+
+def noms_du_corpus(session: Session) -> dict[str, str]:
+    """``{code INSEE: nom}`` : l'officiel s'il est chargé, sinon la graphie.
+
+    Le référentiel versionné ne couvre que les départements du POC ; ailleurs,
+    le nom est la graphie la plus riche lue dans les en-têtes (`city.name`).
+    """
+    lignes = session.execute(select(City.code, City.official_name, City.name)).all()
+    return {code: officiel or graphie for code, officiel, graphie in lignes if officiel or graphie}
+
+
+COLONNES_COMMUNES = (
+    "code_insee",
+    "departement",
+    "commune",
+    "cahiers",
+    "pages",
+    "pages_texte_natif",
+    "pages_sans_texte",
+    "dont_transcrites",
+    "dont_vides",
+    "dont_echec_transcription",
+    "dont_non_traitees",
+    "taux_texte_natif",
+    "taux_exploitable",
+)
+
+
+def ecrire_communes(lignes: list[LigneCommune], sortie: Path) -> None:
+    """La table par commune, en CSV : des compteurs, jamais de texte."""
+    sortie.parent.mkdir(parents=True, exist_ok=True)
+    with sortie.open("w", newline="") as f:
+        ecrivain = csv.writer(f)
+        ecrivain.writerow(COLONNES_COMMUNES)
+        for ligne in lignes:
+            ecrivain.writerow(
+                [
+                    ligne.code,
+                    ligne.departement,
+                    ligne.nom,
+                    ligne.cahiers,
+                    ligne.pages,
+                    ligne.natives,
+                    ligne.sans_texte,
+                    ligne.transcrites,
+                    ligne.vides,
+                    ligne.echecs,
+                    ligne.non_traitees,
+                    f"{ligne.taux_natif:.3f}",
+                    f"{ligne.taux_exploitable:.3f}",
+                ]
+            )
 
 
 def rapport(
@@ -154,7 +215,11 @@ def afficher(
     )
 
 
-def main(sortie: Path | None = None, categorie: str = CATEGORIE_DEFAUT) -> int:
+def main(
+    sortie: Path | None = None,
+    categorie: str = CATEGORIE_DEFAUT,
+    table_communes: Path | None = None,
+) -> int:
     engine = get_engine()
     check_connection(engine)
     with Session(engine) as session:
@@ -164,7 +229,9 @@ def main(sortie: Path | None = None, categorie: str = CATEGORIE_DEFAUT) -> int:
             )
         )
         communes = codes_communes(session)
-        transcrites = set(transcriptions_actives(session))
+        actives = transcriptions_actives(session)
+        transcrites = set(actives)
+        noms_corpus = noms_du_corpus(session) if table_communes else {}
     codes = set(communes.values())
     communes_insee = referentiel()
     habitants = populations_sans_double_compte(codes, communes_insee)
@@ -190,6 +257,18 @@ def main(sortie: Path | None = None, categorie: str = CATEGORIE_DEFAUT) -> int:
             + "\n"
         )
         print(f"\n  rapport -> {sortie}")
+    if table_communes:
+        lignes, sans_commune = par_commune(
+            pages,
+            communes,
+            noms_corpus | noms,
+            {i: t.text or "" for i, t in actives.items()},
+        )
+        ecrire_communes(lignes, table_communes)
+        print(
+            f"\n  table par commune -> {table_communes} ({len(lignes)} communes ; "
+            f"{sans_commune} pages sans code INSEE, hors table)"
+        )
     return 0
 
 
@@ -204,5 +283,11 @@ if __name__ == "__main__":
         default=CATEGORIE_DEFAUT,
         help=f"catégorie du versement mesurée (défaut : {CATEGORIE_DEFAUT})",
     )
+    parser.add_argument(
+        "--communes",
+        type=Path,
+        dest="table_communes",
+        help="écrire aussi le taux de pages exploitables par commune (CSV)",
+    )
     args = parser.parse_args()
-    sys.exit(main(args.sortie, args.categorie))
+    sys.exit(main(args.sortie, args.categorie, args.table_communes))

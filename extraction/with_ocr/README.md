@@ -153,6 +153,13 @@ facile. La couche texte de référence est elle-même imparfaite (en-têtes
 corrompus, mesuré le 2026-09-10) : une part du 2,6 % lui revient. La
 fidélité sur le manuscrit attend un étalon transcrit à la main.
 
+**Mesuré le 2026-09-23 sur du manuscrit hors corpus** (20 pages de
+Charente-Maritime transcrites à la main, 19 retenues) : ornith-1.5:9b CER
+8,6 %, WER 17,3 % sans accents ni ponctuation — sous 2 % sur les écritures
+lisibles, jusqu'à 47 % sur les difficiles, où il invente un texte fluide ;
+glm-ocr en boucle sur 7 pages, écarté. Détail et limites (images basse
+définition, pas nos scans) : `docs/journal_des_decisions.md`, 2026-09-23.
+
 ## Tests
 
 ```bash

@@ -1732,6 +1732,71 @@ l'anonymisation viendront en runs à part.
 
 ---
 
+## 2026-09-23 — Première mesure sur le manuscrit : ornith-1.5 lit les écritures lisibles et invente sur les difficiles ; glm-ocr est écarté
+
+**Constat.** Le 2026-09-12, la fidélité d'ornith n'était mesurée que sur
+l'imprimé, faute d'étalon manuscrit. Un étalon existe désormais hors du
+corpus : 20 pages manuscrites de cahiers citoyens de Charente-Maritime
+(département 17, trois cahiers), transcrites à la main deux fois, par
+Marie-Anne Chabin (orthographe corrigée, publiée sur son blog) et par un
+membre de l'équipe (Hugo, au plus près du manuscrit, depuis le scan). Les
+écarts entre les deux ont été arbitrés sur l'image : 21 lectures sur 23
+donnent raison à Chabin. Dossier et script : `charente-maritime/`
+(`metriques.py`), hors dépôt.
+
+**Mesuré.** ornith-1.5:9b et glm-ocr passés en local (Ollama) sur les 20
+images, avec la consigne, la normalisation et le retirage des dérives de
+`extraction.with_ocr`. Une page (image tronquée) est exclue ; CER et WER
+sur 19 pages, texte en minuscules, sans ponctuation ni accents, texte entre
+crochets retiré, référence transcription manuelle diplomatique :
+
+| Transcripteur | CER | WER |
+|---|---:|---:|
+| Chabin (humaine) | 1,9 % | 7,2 % |
+| Gemini 3.1 Pro (API, passé hors équipe) | 2,2 % | 7,0 % |
+| ornith-1.5:9b | 8,6 % | 17,3 % |
+| glm-ocr | 187 % | 213 % |
+
+- **ornith** : sous 2 % sur les écritures lisibles, jusqu'à 47 % sur les
+  difficiles, où il écrit un français fluide sans rapport avec la page
+  (« Vous dire que l'étude et la perte ont gravité » pour « Vous dites que
+  l'école et la santé sont gratuites »). 5 pages sur 20 retirées pour
+  dérive, toutes rattrapées ; ce sont les pages les plus difficiles.
+- **glm-ocr** : 6 pages restent en boucle après 3 retirages (jusqu'à
+  6 000 caractères pour ~500), une 7ᵉ est dupliquée sans que `est_derive`
+  la voie. Sur les 13 pages sans boucle détectée : CER 24,8 %, contre 6,9 %
+  pour ornith.
+
+**Décision.** glm-ocr est écarté, ce que le choix du 2026-09-11 faisait sur
+trois pages jugées à l'œil. ornith reste le modèle de la passe, avec une
+réserve chiffrée : sur le manuscrit difficile, une part du texte transcrit
+est inventée, et wordfreq la note bien.
+
+**Ce que ça ne dit pas.** Ce ne sont pas nos scans : images de 600 à
+800 px de large, contre 300 DPI dans le corpus ; 20 pages de trois
+scripteurs. Le chiffre situe le modèle sur des cahiers manuscrits de 2019,
+il ne mesure pas le run 18. Exécution sur CPU : 2 à 11 min par page, sans
+effet sur le texte. Deux suites : un étalon tiré dans nos propres pages
+manuscrites, et un signal de lecture douteuse autre que wordfreq pour
+repérer les pages où ornith invente.
+
+**Auteur.** Hugo (transcription et arbitrage), équipe technique.
+
+**Complément du 2026-09-24 : taux d'invention.** Même étalon, référence
+`hugo-corrige` (9,1 % aussi contre `hugo`), écarts classés mot à mot comme pour 1789
+(`charente-maritime/invention.py`). ornith invente 9,1 % des mots (mot
+plausible et faux) contre 1,9 % pour Chabin et 2,5 % pour Gemini ; le
+charabia, repérable à la relecture, ne fait que 0,8 %. L'excès sur le
+plancher humain (environ 7 points) vient surtout d'une main difficile
+(cahier `01193` : environ 17 %, 57 % sur une page) ; les mains lisibles
+sont à environ 4 %. Pour les 2 510 pages manuscrites transcrites, l'ordre
+de grandeur est donc de 4 % à 20 % de mots inventés selon la main,
+environ 9 % en moyenne. Il faut l'afficher à côté de `taux_exploitable`
+(`couverture/`) : une page transcrite est comptée comme exploitable, mais
+elle n'est pas entièrement fiable.
+
+---
+
 ## À consigner dès qu'elles seront prises
 
 - Le statut donné à chaque grille de thèmes, une fois qu'elles auront leurs

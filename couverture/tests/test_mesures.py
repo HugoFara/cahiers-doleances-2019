@@ -2,7 +2,12 @@
 
 import pytest
 
-from couverture.mesures import distribution_qualite, mesurer, sensibilite_seuil
+from couverture.mesures import (
+    distribution_qualite,
+    mesurer,
+    par_commune,
+    sensibilite_seuil,
+)
 from database.models import PageExtraction
 
 
@@ -267,3 +272,59 @@ def test_sans_nom_officiel_on_retombe_sur_la_graphie():
 def test_sans_graphie_ni_nom_officiel_le_code_vaut_mieux_que_rien():
     pages = [page(city=None, needs_ocr=True, contribution_id=1)]
     assert mesurer(pages, {1: "17452"}, None, NOMS).communes_muettes == ["17452"]
+
+
+# --- table par commune ---
+
+
+def pages_numerotees(*flags: bool, contribution_id: int = 1) -> list[PageExtraction]:
+    pages = [page(needs_ocr=f, contribution_id=contribution_id) for f in flags]
+    for i, p in enumerate(pages):
+        p.id = i + 100 * contribution_id
+    return pages
+
+
+def test_la_table_ne_compte_que_par_code_insee():
+    """Une page sans code n'invente pas de ligne : elle est comptée à part."""
+    pages = pages_numerotees(False) + pages_numerotees(False, contribution_id=2)
+    lignes, sans_commune = par_commune(pages, {1: "01053"})
+    assert [ligne.code for ligne in lignes] == ["01053"]
+    assert sans_commune == 1
+
+
+def test_le_taux_natif_ignore_la_transcription():
+    pages = pages_numerotees(False, True, True, True)
+    (ligne,), _ = par_commune(pages, {1: "01053"}, transcriptions={101: "Plus d'impôts."})
+    assert ligne.taux_natif == 0.25
+    assert ligne.taux_exploitable == 0.5
+
+
+def test_les_pages_sans_texte_se_repartissent_selon_la_transcription():
+    pages = pages_numerotees(True, True, True, True)
+    transcriptions = {
+        100: "Rétablir l'ISF.",
+        101: "Cette image ne contient aucun texte.",
+        102: "le maire " * 3000,
+    }
+    (ligne,), _ = par_commune(pages, {1: "01053"}, transcriptions=transcriptions)
+    assert (ligne.transcrites, ligne.vides, ligne.echecs, ligne.non_traitees) == (1, 1, 1, 1)
+
+
+def test_une_page_blanche_reste_au_denominateur():
+    """La retirer ferait monter le taux des registres les plus creux."""
+    pages = pages_numerotees(False, True)
+    (ligne,), _ = par_commune(pages, {1: "01053"}, transcriptions={101: ""})
+    assert ligne.vides == 1
+    assert ligne.taux_exploitable == 0.5
+
+
+def test_la_ligne_porte_le_nom_le_departement_et_les_cahiers():
+    a, b = pages_numerotees(False, False)
+    b.pdf_name = "autre.pdf"
+    (ligne,), _ = par_commune([a, b], {1: "2A004"}, noms={"2A004": "Ajaccio"})
+    assert (ligne.nom, ligne.departement, ligne.cahiers) == ("Ajaccio", "2A", 2)
+
+
+def test_sans_nom_la_ligne_porte_le_code():
+    (ligne,), _ = par_commune(pages_numerotees(False), {1: "53001"})
+    assert ligne.nom == "53001"
